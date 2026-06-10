@@ -1,0 +1,55 @@
+{
+  "name": "@gotsaeng/cli",
+  "version": "0.10.0",
+  "description": "Command-line interface for GotSaeng OS.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "gotsaeng": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wonkwonlee/gotsaeng-os.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/wonkwonlee/gotsaeng-os/issues"
+  },
+  "homepage": "https://github.com/wonkwonlee/gotsaeng-os/tree/main/packages/cli#readme",
+  "keywords": [
+    "context-engineering",
+    "markdown",
+    "local-first",
+    "llm",
+    "cli",
+    "context-compiler"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "cd ../.. && tsx --conditions development packages/cli/src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepack": "pnpm build"
+  },
+  "dependencies": {
+    "@gotsaeng/core": "workspace:*",
+    "commander": "^12.0.0"
+  }
+}

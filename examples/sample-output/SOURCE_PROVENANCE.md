@@ -1,0 +1,327 @@
+# Source Provenance: GotSaeng OS
+
+Generated: 2026-06-06T00:00:00.000Z
+
+## Summary
+
+- Average score: 79.7
+- Strong items: 17
+- Moderate items: 21
+- Weak items: 0
+- By level: moderate: 21, strong: 17
+
+## Weak Provenance Items
+
+- None.
+
+## Strong Provenance Items
+
+- Add snapshot-quality exporter tests. (source: 01_projects/gotsaeng-os.md; kind: action; status: open; provenance: strong 98)
+- Implement the Markdown scanner and parser. (source: 01_projects/gotsaeng-os.md; kind: action; status: done; provenance: strong 95)
+- Document future memory diff and source provenance scoring. (source: 04_research/llm-context-engineering.md; kind: action; status: open; provenance: strong 93)
+- Keep plugin work limited to roadmap documentation for now. (source: 02_decisions/2026-06-06-plugin-vs-framework.md; kind: action; status: active; provenance: strong 93)
+- Convert scattered founder notes into explicit context markers. (source: 00_inbox/raw-chat-export.md; kind: action; status: active; provenance: strong 93)
+- Write the first README quickstart. (source: 03_logs/weekly-review-2026-W23.md; kind: action; status: done; provenance: strong 90)
+- Revisit old weekly-review actions before publishing v0.1. (source: 03_logs/weekly-review-2026-W23.md; kind: action; status: open; provenance: strong 90)
+- A generic productivity dashboard could dilute the compiler-first identity. (source: 01_projects/gotsaeng-os.md; kind: risk; status: unknown; provenance: strong 80)
+- What is the smallest context pack that feels useful in a real handoff? (source: 01_projects/gotsaeng-os.md; kind: question; status: unknown; provenance: strong 80)
+- The real product is portable context infrastructure, not a note app. (source: 01_projects/gotsaeng-os.md; kind: insight; status: unknown; provenance: strong 80)
+- ADHD-aware workflows can help anyone managing fragmented attention and long-running goals. (source: 01_projects/gotsaeng-os.md; kind: insight; status: unknown; provenance: strong 80)
+- GotSaeng OS is not an AI note app. (source: 01_projects/gotsaeng-os.md; kind: fact; status: unknown; provenance: strong 80)
+- GotSaeng OS is a local-first context compiler. (source: 01_projects/gotsaeng-os.md; kind: fact; status: unknown; provenance: strong 80)
+- GotSaeng OS is a human-in-the-loop context operating system. (source: 01_projects/gotsaeng-os.md; kind: fact; status: unknown; provenance: strong 80)
+- Treat Obsidian as the first adapter, not the core product. (source: 01_projects/gotsaeng-os.md; kind: decision; status: unknown; provenance: strong 80)
+- Build the CLI before the Obsidian plugin. (source: 01_projects/gotsaeng-os.md; kind: decision; status: unknown; provenance: strong 80)
+- Early users are likely to be Obsidian power users and technical builders. (source: 01_projects/gotsaeng-os.md; kind: assumption; status: unknown; provenance: strong 80)
+
+## Provenance Warnings
+
+- Keep v0.1 focused on deterministic Markdown extraction. (source: 00_inbox/raw-chat-export.md; kind: action; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is chat-export
+  - signal: -10: item status is unknown
+- A CLI-first foundation is easier to test and publish as open-source infrastructure. (source: 02_decisions/2026-06-06-plugin-vs-framework.md; kind: assumption; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is decision
+  - signal: -10: item status is unknown
+- Human-readable Markdown is the right first export format. (source: 04_research/llm-context-engineering.md; kind: assumption; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is research
+  - signal: -10: item status is unknown
+- GotSaeng OS should be framework-first and plugin-second. (source: 02_decisions/2026-06-06-plugin-vs-framework.md; kind: decision; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is decision
+  - signal: -10: item status is unknown
+- The compiler belongs in packages/core so future adapters do not own the product. (source: 02_decisions/2026-06-06-plugin-vs-framework.md; kind: decision; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is decision
+  - signal: -10: item status is unknown
+- GotSaeng OS means both the Korean internet phrase "God Life" and the reinterpretation "Got 生." (source: 00_inbox/raw-chat-export.md; kind: fact; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is chat-export
+  - signal: -10: item status is unknown
+- The Obsidian plugin is an adapter for v0.2+, not the v0.1 core. (source: 02_decisions/2026-06-06-plugin-vs-framework.md; kind: fact; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is decision
+  - signal: -10: item status is unknown
+- The first compiler should produce PROJECT_CONTEXT.md, MEMORY_SNAPSHOT.md, and decision/action/risk/question outputs. (source: 03_logs/weekly-review-2026-W23.md; kind: fact; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is weekly-review
+  - signal: -10: item status is unknown
+- Model-ready context packs should include source paths so humans can audit claims. (source: 04_research/llm-context-engineering.md; kind: fact; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is research
+  - signal: -10: item status is unknown
+- A raw chat becomes useful when the compiler extracts durable memory instead of preserving every message. (source: 00_inbox/raw-chat-export.md; kind: insight; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is chat-export
+  - signal: -10: item status is unknown
+- A boring compiler is a stronger base than a flashy integration. (source: 02_decisions/2026-06-06-plugin-vs-framework.md; kind: insight; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is decision
+  - signal: -10: item status is unknown
+- Stale context is not failure; it is a recovery surface. (source: 03_logs/weekly-review-2026-W23.md; kind: insight; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is weekly-review
+  - signal: -10: item status is unknown
+- Context over automation is the strongest design constraint. (source: 04_research/llm-context-engineering.md; kind: insight; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is research
+  - signal: -10: item status is unknown
+- LLMs are powerful, but long-running work loses continuity when source notes, chat logs, (source: 04_research/llm-context-engineering.md; kind: insight; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is research
+  - signal: -10: item status is unknown
+- decisions, risks, and execution traces are scattered. (source: 04_research/llm-context-engineering.md; kind: insight; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is research
+  - signal: -10: item status is unknown
+- Which parts of a chat export should become durable project memory? (source: 00_inbox/raw-chat-export.md; kind: question; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is chat-export
+  - signal: -10: item status is unknown
+- Which stale items are still relevant after the compiler lands? (source: 03_logs/weekly-review-2026-W23.md; kind: question; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is weekly-review
+  - signal: -10: item status is unknown
+- Should future context packs include confidence metadata? (source: 04_research/llm-context-engineering.md; kind: question; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is research
+  - signal: -10: item status is unknown
+- Building the plugin first could trap the architecture inside Obsidian assumptions. (source: 02_decisions/2026-06-06-plugin-vs-framework.md; kind: risk; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is decision
+  - signal: -10: item status is unknown
+- Old open actions can stay invisible unless stale context is surfaced. (source: 03_logs/weekly-review-2026-W23.md; kind: risk; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is weekly-review
+  - signal: -10: item status is unknown
+- Semantic contradiction detection is out of scope for v0.1. (source: 04_research/llm-context-engineering.md; kind: risk; status: unknown; provenance: moderate 75)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is research
+  - signal: -10: item status is unknown
+- Early users are likely to be Obsidian power users and technical builders. (source: 01_projects/gotsaeng-os.md; kind: assumption; status: unknown; provenance: strong 80)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is project
+  - signal: +5: source has frontmatter status
+  - signal: -10: item status is unknown
+- Build the CLI before the Obsidian plugin. (source: 01_projects/gotsaeng-os.md; kind: decision; status: unknown; provenance: strong 80)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is project
+  - signal: +5: source has frontmatter status
+  - signal: -10: item status is unknown
+- Treat Obsidian as the first adapter, not the core product. (source: 01_projects/gotsaeng-os.md; kind: decision; status: unknown; provenance: strong 80)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is project
+  - signal: +5: source has frontmatter status
+  - signal: -10: item status is unknown
+- GotSaeng OS is a human-in-the-loop context operating system. (source: 01_projects/gotsaeng-os.md; kind: fact; status: unknown; provenance: strong 80)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is project
+  - signal: +5: source has frontmatter status
+  - signal: -10: item status is unknown
+- GotSaeng OS is a local-first context compiler. (source: 01_projects/gotsaeng-os.md; kind: fact; status: unknown; provenance: strong 80)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is project
+  - signal: +5: source has frontmatter status
+  - signal: -10: item status is unknown
+- GotSaeng OS is not an AI note app. (source: 01_projects/gotsaeng-os.md; kind: fact; status: unknown; provenance: strong 80)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is project
+  - signal: +5: source has frontmatter status
+  - signal: -10: item status is unknown
+- ADHD-aware workflows can help anyone managing fragmented attention and long-running goals. (source: 01_projects/gotsaeng-os.md; kind: insight; status: unknown; provenance: strong 80)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is project
+  - signal: +5: source has frontmatter status
+  - signal: -10: item status is unknown
+- The real product is portable context infrastructure, not a note app. (source: 01_projects/gotsaeng-os.md; kind: insight; status: unknown; provenance: strong 80)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is project
+  - signal: +5: source has frontmatter status
+  - signal: -10: item status is unknown
+- What is the smallest context pack that feels useful in a real handoff? (source: 01_projects/gotsaeng-os.md; kind: question; status: unknown; provenance: strong 80)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is project
+  - signal: +5: source has frontmatter status
+  - signal: -10: item status is unknown
+- A generic productivity dashboard could dilute the compiler-first identity. (source: 01_projects/gotsaeng-os.md; kind: risk; status: unknown; provenance: strong 80)
+  - warning: Extracted item status is unknown.
+  - signal: +45: baseline local Markdown source
+  - signal: +15: source has updated date
+  - signal: +5: source has created date
+  - signal: +5: source has explicit title
+  - signal: +5: source has tags
+  - signal: +10: source note type is project
+  - signal: +5: source has frontmatter status
+  - signal: -10: item status is unknown

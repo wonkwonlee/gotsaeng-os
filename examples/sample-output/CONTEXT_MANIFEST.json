@@ -1,0 +1,1784 @@
+{
+  "projectName": "GotSaeng OS",
+  "generatedAt": "2026-06-06T00:00:00.000Z",
+  "sourceRoot": "<sample-vault>",
+  "itemCount": 38,
+  "items": [
+    {
+      "id": "18d7c06e5611ad9d",
+      "sourcePath": "00_inbox/raw-chat-export.md",
+      "sourceTitle": "Raw Chat Export Notes",
+      "kind": "action",
+      "text": "Convert scattered founder notes into explicit context markers.",
+      "status": "active",
+      "priority": "high",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 93,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is chat-export",
+          "+5: item status is active",
+          "+3: item priority is high"
+        ],
+        "warnings": []
+      },
+      "confidence": {
+        "score": 98,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is chat-export",
+          "+5: item status is active",
+          "+3: item priority is high"
+        ],
+        "warnings": []
+      },
+      "tags": [
+        "capture",
+        "chat-export",
+        "context-engineering"
+      ],
+      "stale": false
+    },
+    {
+      "id": "effdff6b73e87a8e",
+      "sourcePath": "00_inbox/raw-chat-export.md",
+      "sourceTitle": "Raw Chat Export Notes",
+      "kind": "action",
+      "text": "Keep v0.1 focused on deterministic Markdown extraction.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is chat-export",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is chat-export",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "capture",
+        "chat-export",
+        "context-engineering"
+      ],
+      "stale": false
+    },
+    {
+      "id": "e6317ae8a7cfe5c7",
+      "sourcePath": "01_projects/gotsaeng-os.md",
+      "sourceTitle": "GotSaeng OS",
+      "kind": "action",
+      "text": "Add snapshot-quality exporter tests.",
+      "status": "open",
+      "priority": "high",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 98,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is project",
+          "+5: source has frontmatter status",
+          "+5: item status is open",
+          "+3: item priority is high"
+        ],
+        "warnings": []
+      },
+      "confidence": {
+        "score": 98,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is project",
+          "+5: item status is open",
+          "+3: item priority is high"
+        ],
+        "warnings": []
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "open-source"
+      ],
+      "stale": false
+    },
+    {
+      "id": "7bf9b3b5cb910b68",
+      "sourcePath": "01_projects/gotsaeng-os.md",
+      "sourceTitle": "GotSaeng OS",
+      "kind": "action",
+      "text": "Implement the Markdown scanner and parser.",
+      "status": "done",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 95,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is project",
+          "+5: source has frontmatter status",
+          "+5: item status is done"
+        ],
+        "warnings": []
+      },
+      "confidence": {
+        "score": 95,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is project",
+          "+5: item status is done"
+        ],
+        "warnings": []
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "open-source"
+      ],
+      "stale": false
+    },
+    {
+      "id": "a8972fd63d89e8e6",
+      "sourcePath": "02_decisions/2026-06-06-plugin-vs-framework.md",
+      "sourceTitle": "CLI Framework Before Obsidian Plugin",
+      "kind": "action",
+      "text": "Keep plugin work limited to roadmap documentation for now.",
+      "status": "active",
+      "priority": "medium",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 93,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is decision",
+          "+5: item status is active",
+          "+3: item priority is medium"
+        ],
+        "warnings": []
+      },
+      "confidence": {
+        "score": 98,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is decision",
+          "+5: item status is active",
+          "+3: item priority is medium"
+        ],
+        "warnings": []
+      },
+      "tags": [
+        "architecture",
+        "framework",
+        "obsidian"
+      ],
+      "stale": false
+    },
+    {
+      "id": "bbbf2252729fc7a3",
+      "sourcePath": "03_logs/weekly-review-2026-W23.md",
+      "sourceTitle": "Weekly Review 2026-W23",
+      "kind": "action",
+      "text": "Revisit old weekly-review actions before publishing v0.1.",
+      "status": "open",
+      "created": "2026-01-20",
+      "updated": "2026-01-20",
+      "provenance": {
+        "score": 90,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is weekly-review",
+          "+5: item status is open"
+        ],
+        "warnings": []
+      },
+      "confidence": {
+        "score": 95,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is weekly-review",
+          "+5: item status is open"
+        ],
+        "warnings": []
+      },
+      "tags": [
+        "stale-demo",
+        "weekly-review"
+      ],
+      "stale": true
+    },
+    {
+      "id": "0c7974343c9f7e80",
+      "sourcePath": "03_logs/weekly-review-2026-W23.md",
+      "sourceTitle": "Weekly Review 2026-W23",
+      "kind": "action",
+      "text": "Write the first README quickstart.",
+      "status": "done",
+      "created": "2026-01-20",
+      "updated": "2026-01-20",
+      "provenance": {
+        "score": 90,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is weekly-review",
+          "+5: item status is done"
+        ],
+        "warnings": []
+      },
+      "confidence": {
+        "score": 95,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is weekly-review",
+          "+5: item status is done"
+        ],
+        "warnings": []
+      },
+      "tags": [
+        "stale-demo",
+        "weekly-review"
+      ],
+      "stale": true
+    },
+    {
+      "id": "d6262e1f15a8d4fc",
+      "sourcePath": "04_research/llm-context-engineering.md",
+      "sourceTitle": "LLM Context Engineering Notes",
+      "kind": "action",
+      "text": "Document future memory diff and source provenance scoring.",
+      "status": "open",
+      "priority": "low",
+      "created": "2026-06-05",
+      "updated": "2026-06-05",
+      "provenance": {
+        "score": 93,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is research",
+          "+5: item status is open",
+          "+3: item priority is low"
+        ],
+        "warnings": []
+      },
+      "confidence": {
+        "score": 98,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is research",
+          "+5: item status is open",
+          "+3: item priority is low"
+        ],
+        "warnings": []
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "research"
+      ],
+      "stale": false
+    },
+    {
+      "id": "e038636c3c6a9fa0",
+      "sourcePath": "01_projects/gotsaeng-os.md",
+      "sourceTitle": "GotSaeng OS",
+      "kind": "assumption",
+      "text": "Early users are likely to be Obsidian power users and technical builders.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 80,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is project",
+          "+5: source has frontmatter status",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is project",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "open-source"
+      ],
+      "stale": false
+    },
+    {
+      "id": "937c60f762612ace",
+      "sourcePath": "02_decisions/2026-06-06-plugin-vs-framework.md",
+      "sourceTitle": "CLI Framework Before Obsidian Plugin",
+      "kind": "assumption",
+      "text": "A CLI-first foundation is easier to test and publish as open-source infrastructure.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is decision",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is decision",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "architecture",
+        "framework",
+        "obsidian"
+      ],
+      "stale": false
+    },
+    {
+      "id": "e4d61ae4fd298bad",
+      "sourcePath": "04_research/llm-context-engineering.md",
+      "sourceTitle": "LLM Context Engineering Notes",
+      "kind": "assumption",
+      "text": "Human-readable Markdown is the right first export format.",
+      "status": "unknown",
+      "created": "2026-06-05",
+      "updated": "2026-06-05",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is research",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is research",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "research"
+      ],
+      "stale": false
+    },
+    {
+      "id": "25c3b7ae808d9197",
+      "sourcePath": "01_projects/gotsaeng-os.md",
+      "sourceTitle": "GotSaeng OS",
+      "kind": "decision",
+      "text": "Build the CLI before the Obsidian plugin.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 80,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is project",
+          "+5: source has frontmatter status",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is project",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "open-source"
+      ],
+      "stale": false
+    },
+    {
+      "id": "fab173eae8a32eae",
+      "sourcePath": "01_projects/gotsaeng-os.md",
+      "sourceTitle": "GotSaeng OS",
+      "kind": "decision",
+      "text": "Treat Obsidian as the first adapter, not the core product.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 80,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is project",
+          "+5: source has frontmatter status",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is project",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "open-source"
+      ],
+      "stale": false
+    },
+    {
+      "id": "8388d99cdd2f4570",
+      "sourcePath": "02_decisions/2026-06-06-plugin-vs-framework.md",
+      "sourceTitle": "CLI Framework Before Obsidian Plugin",
+      "kind": "decision",
+      "text": "GotSaeng OS should be framework-first and plugin-second.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is decision",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is decision",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "architecture",
+        "framework",
+        "obsidian"
+      ],
+      "stale": false
+    },
+    {
+      "id": "da6026173f687946",
+      "sourcePath": "02_decisions/2026-06-06-plugin-vs-framework.md",
+      "sourceTitle": "CLI Framework Before Obsidian Plugin",
+      "kind": "decision",
+      "text": "The compiler belongs in packages/core so future adapters do not own the product.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is decision",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is decision",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "architecture",
+        "framework",
+        "obsidian"
+      ],
+      "stale": false
+    },
+    {
+      "id": "f08168ad79ccf0f5",
+      "sourcePath": "00_inbox/raw-chat-export.md",
+      "sourceTitle": "Raw Chat Export Notes",
+      "kind": "fact",
+      "text": "GotSaeng OS means both the Korean internet phrase \"God Life\" and the reinterpretation \"Got 生.\"",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is chat-export",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is chat-export",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "capture",
+        "chat-export",
+        "context-engineering"
+      ],
+      "stale": false
+    },
+    {
+      "id": "a2b9d5b243849001",
+      "sourcePath": "01_projects/gotsaeng-os.md",
+      "sourceTitle": "GotSaeng OS",
+      "kind": "fact",
+      "text": "GotSaeng OS is a human-in-the-loop context operating system.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 80,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is project",
+          "+5: source has frontmatter status",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is project",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "open-source"
+      ],
+      "stale": false
+    },
+    {
+      "id": "921951badb8cee73",
+      "sourcePath": "01_projects/gotsaeng-os.md",
+      "sourceTitle": "GotSaeng OS",
+      "kind": "fact",
+      "text": "GotSaeng OS is a local-first context compiler.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 80,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is project",
+          "+5: source has frontmatter status",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is project",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "open-source"
+      ],
+      "stale": false
+    },
+    {
+      "id": "07c3d6ce4aea7ac1",
+      "sourcePath": "01_projects/gotsaeng-os.md",
+      "sourceTitle": "GotSaeng OS",
+      "kind": "fact",
+      "text": "GotSaeng OS is not an AI note app.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 80,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is project",
+          "+5: source has frontmatter status",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is project",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "open-source"
+      ],
+      "stale": false
+    },
+    {
+      "id": "b22a4fa0ab6d3f67",
+      "sourcePath": "02_decisions/2026-06-06-plugin-vs-framework.md",
+      "sourceTitle": "CLI Framework Before Obsidian Plugin",
+      "kind": "fact",
+      "text": "The Obsidian plugin is an adapter for v0.2+, not the v0.1 core.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is decision",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is decision",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "architecture",
+        "framework",
+        "obsidian"
+      ],
+      "stale": false
+    },
+    {
+      "id": "f2dae5b2f05c6c8e",
+      "sourcePath": "03_logs/weekly-review-2026-W23.md",
+      "sourceTitle": "Weekly Review 2026-W23",
+      "kind": "fact",
+      "text": "The first compiler should produce PROJECT_CONTEXT.md, MEMORY_SNAPSHOT.md, and decision/action/risk/question outputs.",
+      "status": "unknown",
+      "created": "2026-01-20",
+      "updated": "2026-01-20",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is weekly-review",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is weekly-review",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "stale-demo",
+        "weekly-review"
+      ],
+      "stale": true
+    },
+    {
+      "id": "95491a69fba0b889",
+      "sourcePath": "04_research/llm-context-engineering.md",
+      "sourceTitle": "LLM Context Engineering Notes",
+      "kind": "fact",
+      "text": "Model-ready context packs should include source paths so humans can audit claims.",
+      "status": "unknown",
+      "created": "2026-06-05",
+      "updated": "2026-06-05",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is research",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is research",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "research"
+      ],
+      "stale": false
+    },
+    {
+      "id": "cfbd6e52a3750918",
+      "sourcePath": "00_inbox/raw-chat-export.md",
+      "sourceTitle": "Raw Chat Export Notes",
+      "kind": "insight",
+      "text": "A raw chat becomes useful when the compiler extracts durable memory instead of preserving every message.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is chat-export",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is chat-export",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "capture",
+        "chat-export",
+        "context-engineering"
+      ],
+      "stale": false
+    },
+    {
+      "id": "a7b55f36b7d1e2da",
+      "sourcePath": "01_projects/gotsaeng-os.md",
+      "sourceTitle": "GotSaeng OS",
+      "kind": "insight",
+      "text": "ADHD-aware workflows can help anyone managing fragmented attention and long-running goals.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 80,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is project",
+          "+5: source has frontmatter status",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is project",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "open-source"
+      ],
+      "stale": false
+    },
+    {
+      "id": "2d4c8486448b4514",
+      "sourcePath": "01_projects/gotsaeng-os.md",
+      "sourceTitle": "GotSaeng OS",
+      "kind": "insight",
+      "text": "The real product is portable context infrastructure, not a note app.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 80,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is project",
+          "+5: source has frontmatter status",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is project",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "open-source"
+      ],
+      "stale": false
+    },
+    {
+      "id": "7ded1aa9e64fc03d",
+      "sourcePath": "02_decisions/2026-06-06-plugin-vs-framework.md",
+      "sourceTitle": "CLI Framework Before Obsidian Plugin",
+      "kind": "insight",
+      "text": "A boring compiler is a stronger base than a flashy integration.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is decision",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is decision",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "architecture",
+        "framework",
+        "obsidian"
+      ],
+      "stale": false
+    },
+    {
+      "id": "63446cc90fb869f2",
+      "sourcePath": "03_logs/weekly-review-2026-W23.md",
+      "sourceTitle": "Weekly Review 2026-W23",
+      "kind": "insight",
+      "text": "Stale context is not failure; it is a recovery surface.",
+      "status": "unknown",
+      "created": "2026-01-20",
+      "updated": "2026-01-20",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is weekly-review",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is weekly-review",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "stale-demo",
+        "weekly-review"
+      ],
+      "stale": true
+    },
+    {
+      "id": "e30e173e55b5bbd4",
+      "sourcePath": "04_research/llm-context-engineering.md",
+      "sourceTitle": "LLM Context Engineering Notes",
+      "kind": "insight",
+      "text": "Context over automation is the strongest design constraint.",
+      "status": "unknown",
+      "created": "2026-06-05",
+      "updated": "2026-06-05",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is research",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is research",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "research"
+      ],
+      "stale": false
+    },
+    {
+      "id": "1a4944da758139e2",
+      "sourcePath": "04_research/llm-context-engineering.md",
+      "sourceTitle": "LLM Context Engineering Notes",
+      "kind": "insight",
+      "text": "LLMs are powerful, but long-running work loses continuity when source notes, chat logs,",
+      "status": "unknown",
+      "created": "2026-06-05",
+      "updated": "2026-06-05",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is research",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 65,
+        "level": "medium",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+15: section-pattern extraction",
+          "+10: source has updated date",
+          "+10: source note type is research",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "research"
+      ],
+      "stale": false
+    },
+    {
+      "id": "a096764015147731",
+      "sourcePath": "04_research/llm-context-engineering.md",
+      "sourceTitle": "LLM Context Engineering Notes",
+      "kind": "insight",
+      "text": "decisions, risks, and execution traces are scattered.",
+      "status": "unknown",
+      "created": "2026-06-05",
+      "updated": "2026-06-05",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is research",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 65,
+        "level": "medium",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+15: section-pattern extraction",
+          "+10: source has updated date",
+          "+10: source note type is research",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "research"
+      ],
+      "stale": false
+    },
+    {
+      "id": "037d8ed38def599a",
+      "sourcePath": "00_inbox/raw-chat-export.md",
+      "sourceTitle": "Raw Chat Export Notes",
+      "kind": "question",
+      "text": "Which parts of a chat export should become durable project memory?",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is chat-export",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is chat-export",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "capture",
+        "chat-export",
+        "context-engineering"
+      ],
+      "stale": false
+    },
+    {
+      "id": "bc63e1bcd5ec1f21",
+      "sourcePath": "01_projects/gotsaeng-os.md",
+      "sourceTitle": "GotSaeng OS",
+      "kind": "question",
+      "text": "What is the smallest context pack that feels useful in a real handoff?",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 80,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is project",
+          "+5: source has frontmatter status",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is project",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "open-source"
+      ],
+      "stale": false
+    },
+    {
+      "id": "e627a0f6e1251c93",
+      "sourcePath": "03_logs/weekly-review-2026-W23.md",
+      "sourceTitle": "Weekly Review 2026-W23",
+      "kind": "question",
+      "text": "Which stale items are still relevant after the compiler lands?",
+      "status": "unknown",
+      "created": "2026-01-20",
+      "updated": "2026-01-20",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is weekly-review",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is weekly-review",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "stale-demo",
+        "weekly-review"
+      ],
+      "stale": true
+    },
+    {
+      "id": "af72edaea8f7125f",
+      "sourcePath": "04_research/llm-context-engineering.md",
+      "sourceTitle": "LLM Context Engineering Notes",
+      "kind": "question",
+      "text": "Should future context packs include confidence metadata?",
+      "status": "unknown",
+      "created": "2026-06-05",
+      "updated": "2026-06-05",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is research",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is research",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "research"
+      ],
+      "stale": false
+    },
+    {
+      "id": "fb7ab7343d899aba",
+      "sourcePath": "01_projects/gotsaeng-os.md",
+      "sourceTitle": "GotSaeng OS",
+      "kind": "risk",
+      "text": "A generic productivity dashboard could dilute the compiler-first identity.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 80,
+        "level": "strong",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is project",
+          "+5: source has frontmatter status",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is project",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "open-source"
+      ],
+      "stale": false
+    },
+    {
+      "id": "8caffa5012760aa9",
+      "sourcePath": "02_decisions/2026-06-06-plugin-vs-framework.md",
+      "sourceTitle": "CLI Framework Before Obsidian Plugin",
+      "kind": "risk",
+      "text": "Building the plugin first could trap the architecture inside Obsidian assumptions.",
+      "status": "unknown",
+      "created": "2026-06-06",
+      "updated": "2026-06-06",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is decision",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is decision",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "architecture",
+        "framework",
+        "obsidian"
+      ],
+      "stale": false
+    },
+    {
+      "id": "033a6bdf99166657",
+      "sourcePath": "03_logs/weekly-review-2026-W23.md",
+      "sourceTitle": "Weekly Review 2026-W23",
+      "kind": "risk",
+      "text": "Old open actions can stay invisible unless stale context is surfaced.",
+      "status": "unknown",
+      "created": "2026-01-20",
+      "updated": "2026-01-20",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is weekly-review",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is weekly-review",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "stale-demo",
+        "weekly-review"
+      ],
+      "stale": true
+    },
+    {
+      "id": "3bca920eea8c4a59",
+      "sourcePath": "04_research/llm-context-engineering.md",
+      "sourceTitle": "LLM Context Engineering Notes",
+      "kind": "risk",
+      "text": "Semantic contradiction detection is out of scope for v0.1.",
+      "status": "unknown",
+      "created": "2026-06-05",
+      "updated": "2026-06-05",
+      "provenance": {
+        "score": 75,
+        "level": "moderate",
+        "calibration": "v0.10-local-metadata",
+        "signals": [
+          "+45: baseline local Markdown source",
+          "+15: source has updated date",
+          "+5: source has created date",
+          "+5: source has explicit title",
+          "+5: source has tags",
+          "+10: source note type is research",
+          "-10: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "confidence": {
+        "score": 85,
+        "level": "high",
+        "signals": [
+          "+35: deterministic local extraction",
+          "+35: explicit extraction marker",
+          "+10: source has updated date",
+          "+10: source note type is research",
+          "-5: item status is unknown"
+        ],
+        "warnings": [
+          "Extracted item status is unknown."
+        ]
+      },
+      "tags": [
+        "context-engineering",
+        "llm",
+        "research"
+      ],
+      "stale": false
+    }
+  ]
+}

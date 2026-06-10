@@ -1,0 +1,101 @@
+{
+  "filesScanned": 8,
+  "markdownFilesParsed": 8,
+  "filesSkipped": 0,
+  "parseErrors": [],
+  "warnings": [
+    "Missing updated field: templates/decision.md",
+    "Missing updated field: templates/project.md",
+    "Missing updated field: templates/weekly-review.md"
+  ],
+  "extractionStats": {
+    "totalItems": 38,
+    "byKind": {
+      "action": 8,
+      "assumption": 3,
+      "decision": 4,
+      "fact": 7,
+      "insight": 8,
+      "question": 4,
+      "risk": 4
+    },
+    "byStatus": {
+      "active": 2,
+      "done": 2,
+      "open": 3,
+      "unknown": 31
+    },
+    "notesWithItems": 5,
+    "notesWithoutItems": 3
+  },
+  "sourceCoverage": {
+    "noteTypes": {
+      "chat-export": 1,
+      "decision": 1,
+      "project": 1,
+      "research": 1,
+      "template": 3,
+      "weekly-review": 1
+    },
+    "notesWithUpdated": 5,
+    "notesMissingUpdated": 3
+  },
+  "warningTriage": {
+    "totalWarnings": 3,
+    "totalParseErrors": 0,
+    "items": [
+      {
+        "label": "Notes missing updated dates",
+        "count": 3,
+        "severity": "warning",
+        "examples": [
+          "templates/decision.md",
+          "templates/project.md",
+          "templates/weekly-review.md"
+        ]
+      }
+    ]
+  },
+  "provenanceStats": {
+    "averageScore": 79.7,
+    "byLevel": {
+      "moderate": 21,
+      "strong": 17
+    },
+    "weakItems": 0,
+    "moderateItems": 21,
+    "strongItems": 17
+  },
+  "confidenceStats": {
+    "averageScore": 86.1,
+    "byLevel": {
+      "high": 36,
+      "medium": 2
+    },
+    "lowItems": 0,
+    "highItems": 36
+  },
+  "contradictionStats": {
+    "totalCandidates": 1,
+    "bySignal": {
+      "keyword_cue": 1
+    },
+    "reviewItems": 0,
+    "watchItems": 1
+  },
+  "generatedFiles": [
+    "PROJECT_CONTEXT.md",
+    "MEMORY_SNAPSHOT.md",
+    "DECISION_LOG.md",
+    "ACTION_BACKLOG.md",
+    "RISK_REGISTER.md",
+    "OPEN_QUESTIONS.md",
+    "STALE_CONTEXT.md",
+    "SOURCE_PROVENANCE.md",
+    "CONFIDENCE.md",
+    "CONTRADICTIONS.md",
+    "MEMORY_DIFF.md",
+    "CONTEXT_MANIFEST.json",
+    "COMPILE_REPORT.json"
+  ]
+}

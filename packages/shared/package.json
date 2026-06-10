@@ -1,0 +1,30 @@
+{
+  "name": "@gotsaeng/shared",
+  "version": "0.10.0",
+  "description": "Shared constants for GotSaeng OS packages.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wonkwonlee/gotsaeng-os.git",
+    "directory": "packages/shared"
+  },
+  "bugs": {
+    "url": "https://github.com/wonkwonlee/gotsaeng-os/issues"
+  },
+  "homepage": "https://github.com/wonkwonlee/gotsaeng-os/tree/main/packages/shared#readme",
+  "keywords": [
+    "gotsaeng",
+    "context-engineering",
+    "shared"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

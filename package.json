@@ -1,0 +1,51 @@
+{
+  "name": "gotsaeng-os",
+  "version": "0.10.0",
+  "description": "Local-first context compiler for Markdown-based knowledge workflows.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "packageManager": "pnpm@8.12.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wonkwonlee/gotsaeng-os.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wonkwonlee/gotsaeng-os/issues"
+  },
+  "homepage": "https://github.com/wonkwonlee/gotsaeng-os#readme",
+  "keywords": [
+    "context-engineering",
+    "markdown",
+    "local-first",
+    "llm",
+    "knowledge-management",
+    "context-compiler"
+  ],
+  "scripts": {
+    "build": "pnpm -r --sort --if-present build",
+    "test": "pnpm -r --sort --if-present build && vitest run",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "typecheck": "pnpm -r --sort --if-present typecheck",
+    "smoke:clean-clone": "node scripts/release-smoke.mjs clean-clone",
+    "smoke:package": "node scripts/release-smoke.mjs package",
+    "smoke:obsidian": "node scripts/release-smoke.mjs obsidian",
+    "smoke:release": "node scripts/release-smoke.mjs all"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.5.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^2.0.0"
+  }
+}

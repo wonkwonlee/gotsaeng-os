@@ -1,0 +1,117 @@
+.gotsaeng-os-setting-note {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.gotsaeng-os-report-view {
+  padding: 16px;
+}
+
+.gotsaeng-os-view-note {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  margin-top: 0;
+}
+
+.gotsaeng-os-action-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 12px 0 16px;
+}
+
+.gotsaeng-os-button,
+.gotsaeng-os-link-button {
+  width: 100%;
+}
+
+.gotsaeng-os-stats {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.gotsaeng-os-stat {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.gotsaeng-os-stat-label {
+  color: var(--text-muted);
+  display: block;
+  font-size: var(--font-ui-smaller);
+  margin-bottom: 4px;
+}
+
+.gotsaeng-os-output-path {
+  background: var(--background-secondary);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+  padding: 8px;
+  word-break: break-word;
+}
+
+.gotsaeng-os-artifact-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 12px 0 16px;
+}
+
+.gotsaeng-os-artifact-button {
+  width: 100%;
+}
+
+.gotsaeng-os-artifact-button.is-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.gotsaeng-os-source-panel {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  margin: 12px 0;
+  padding: 12px;
+}
+
+.gotsaeng-os-source-panel h4 {
+  margin: 0 0 8px;
+}
+
+.gotsaeng-os-source-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gotsaeng-os-source-button {
+  overflow-wrap: anywhere;
+  text-align: left;
+  width: 100%;
+}
+
+.gotsaeng-os-artifact-preview {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  max-height: 55vh;
+  overflow: auto;
+  padding: 12px;
+}
+
+.gotsaeng-os-artifact-preview pre {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 760px) {
+  .gotsaeng-os-action-grid,
+  .gotsaeng-os-artifact-grid,
+  .gotsaeng-os-source-grid,
+  .gotsaeng-os-stats {
+    grid-template-columns: 1fr;
+  }
+}

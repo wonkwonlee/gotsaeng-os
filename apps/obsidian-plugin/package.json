@@ -1,0 +1,19 @@
+{
+  "name": "@gotsaeng/obsidian-plugin",
+  "version": "0.10.0",
+  "description": "Desktop-only Obsidian adapter for the GotSaeng OS context compiler.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "main": "./dist/main.js",
+  "scripts": {
+    "build": "tsup && node scripts/copy-assets.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@gotsaeng/core": "workspace:*"
+  },
+  "devDependencies": {
+    "obsidian": "^1.8.7"
+  }
+}
