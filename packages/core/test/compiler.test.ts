@@ -140,6 +140,75 @@ describe("compiler", () => {
     });
   });
 
+  it("ignores the generated output folder on recompile via ignoreGlobs", async () => {
+    const vaultDir = await fs.mkdtemp(path.join(os.tmpdir(), "gotsaeng-ignore-"));
+    await fs.mkdir(path.join(vaultDir, "notes"), { recursive: true });
+    await fs.writeFile(
+      path.join(vaultDir, "notes/project.md"),
+      [
+        "---",
+        "type: project",
+        "title: Ignore Globs Project",
+        "updated: 2026-06-05",
+        "---",
+        "",
+        "# Ignore Globs Project",
+        "",
+        "- fact: The compiler runs locally.",
+        "- decision: Ship the v0.1 local-first compiler.",
+        "- todo: Write the scanner ignore test. status: active priority: high",
+        "- question: Which folders should be excluded from scans?"
+      ].join("\n"),
+      "utf8"
+    );
+
+    const firstPack = await compileContextPack({
+      sourceRoot: vaultDir,
+      projectName: "GotSaeng OS",
+      generatedAt: "2026-06-06T00:00:00.000Z",
+      dateProvider: clock
+    });
+
+    // A clean compile of a vault with a properly dated note produces no warnings.
+    expect(firstPack.report.warnings).toEqual([]);
+
+    // Simulate the plugin writing its visible output folder back inside the vault.
+    const rendered = renderMarkdownFiles(firstPack);
+    const outputFolder = "Gotsaeng/Context Pack";
+    await fs.mkdir(path.join(vaultDir, outputFolder), { recursive: true });
+    for (const fileName of GENERATED_MARKDOWN_FILES) {
+      await fs.writeFile(path.join(vaultDir, outputFolder, fileName), rendered[fileName], "utf8");
+    }
+
+    // Without ignoreGlobs the generated files are re-scanned and pollute the report.
+    const pollutedPack = await compileContextPack({
+      sourceRoot: vaultDir,
+      projectName: "GotSaeng OS",
+      generatedAt: "2026-06-06T00:00:00.000Z",
+      dateProvider: clock
+    });
+    expect(pollutedPack.report.warnings.some((warning) => warning.includes(outputFolder))).toBe(true);
+
+    // With ignoreGlobs the generated output folder is excluded entirely.
+    const ignoredPack = await compileContextPack({
+      sourceRoot: vaultDir,
+      projectName: "GotSaeng OS",
+      generatedAt: "2026-06-06T00:00:00.000Z",
+      dateProvider: clock,
+      ignoreGlobs: [`${outputFolder}/**`]
+    });
+
+    expect(ignoredPack.report.warnings.filter((warning) => warning.includes(outputFolder))).toEqual([]);
+    expect(ignoredPack.report.warnings).toEqual(firstPack.report.warnings);
+    expect(ignoredPack.report.filesScanned).toBe(firstPack.report.filesScanned);
+    expect(ignoredPack.report.markdownFilesParsed).toBe(firstPack.report.markdownFilesParsed);
+    expect(ignoredPack.report.extractionStats?.totalItems).toBe(firstPack.report.extractionStats?.totalItems);
+    expect(ignoredPack.facts.length).toBe(firstPack.facts.length);
+    expect(ignoredPack.decisions.length).toBe(firstPack.decisions.length);
+    expect(ignoredPack.actions.length).toBe(firstPack.actions.length);
+    expect(ignoredPack.questions.length).toBe(firstPack.questions.length);
+  });
+
   it("renders a stable JSON compile report", () => {
     const json = renderCompileReport({
       filesScanned: 1,

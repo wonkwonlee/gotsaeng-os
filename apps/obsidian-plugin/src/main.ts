@@ -37,7 +37,7 @@ import {
   type GotSaengPluginSettings,
   type OutputFolderVisibility,
 } from "./settings";
-import { resolveOutputPath, toVaultRelativePath, type VaultPathInfo } from "./vault-path";
+import { buildOutputIgnoreGlobs, resolveOutputPath, toVaultRelativePath, type VaultPathInfo } from "./vault-path";
 import { GOTSAENG_REPORT_VIEW_TYPE, GotSaengReportHubView } from "./view";
 
 const VALIDATION_REPORT_FILE = "VALIDATION_REPORT.md";
@@ -241,6 +241,7 @@ export default class GotSaengObsidianPlugin extends Plugin {
       sourceRoot: pathInfo.vaultRoot,
       projectName: this.settings.projectName,
       staleDays: this.settings.staleDays,
+      ignoreGlobs: buildOutputIgnoreGlobs(pathInfo.outputFolder),
     });
     const report = await writeContextPack(pack, pathInfo.outputDir);
     await this.cleanupStaleOutputFolders(pathInfo);

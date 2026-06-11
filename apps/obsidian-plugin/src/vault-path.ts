@@ -45,6 +45,19 @@ export function toVaultRelativePath(outputFolder: string, fileName: string): str
   return normalizeVaultPath(`${outputFolder}/${fileName}`);
 }
 
+// fast-glob/picomatch metacharacters. A literal output folder containing any of
+// these (e.g. "Reports [v2]") would otherwise be parsed as glob syntax and fail
+// to ignore the real folder, silently re-introducing the issue #6 self-scan.
+const GLOB_METACHARS = /[\\*?[\]{}()!+@|]/g;
+
+// Build the scanner ignore globs for the plugin's own output folder, matching the
+// folder literally. Path separators ("/") are preserved; only metacharacters are
+// escaped. outputFolder is expected already vault-relative and slash-normalized.
+export function buildOutputIgnoreGlobs(outputFolder: string): string[] {
+  const escaped = outputFolder.replace(GLOB_METACHARS, "\\$&");
+  return [`${escaped}/**`];
+}
+
 function normalizeVaultPath(value: string): string {
   return value.replace(/\\/g, "/").replace(/\/+/g, "/");
 }

@@ -49,6 +49,11 @@ const HEADING_PATTERN = /^(?<level>#{1,6})\s+(?<text>.+)$/;
 
 const MAX_ITEM_TEXT_LENGTH = 360;
 
+// Inferred (non-explicit) extraction can balloon on research vaults where a single
+// "Risks"/"Questions" heading is followed by dozens of bullets. Cap how many
+// section_line items a single heading may emit. Explicit markers are exempt.
+export const MAX_SECTION_LINE_ITEMS_PER_HEADING = 12;
+
 export function extractItems(note: NoteDocument): ExtractedItem[] {
   const items: ExtractedItem[] = [];
   const lines = note.body.split(/\r?\n/);
@@ -60,7 +65,8 @@ export function extractItems(note: NoteDocument): ExtractedItem[] {
       currentSection = {
         title: heading.text,
         kind: classifySectionHeading(heading.text),
-        level: heading.level
+        level: heading.level,
+        emittedCount: 0
       };
 
       const headingItem = extractHeadingItem(heading.text, note, currentSection);
@@ -85,6 +91,9 @@ export function extractItems(note: NoteDocument): ExtractedItem[] {
     const sectionItem = extractSectionLine(line, note, currentSection);
     if (sectionItem) {
       items.push(sectionItem);
+      if (currentSection) {
+        currentSection.emittedCount += 1;
+      }
     }
   }
 
@@ -109,6 +118,7 @@ type SectionContext = {
   title: string;
   kind: ExtractedItemKind | undefined;
   level: number;
+  emittedCount: number;
 };
 
 function extractExplicitLine(line: string, note: NoteDocument): ExtractedItem | undefined {
@@ -179,6 +189,10 @@ function extractSectionLine(
   }
 
   if (section.level > 2 && section.kind !== "insight") {
+    return undefined;
+  }
+
+  if (section.emittedCount >= MAX_SECTION_LINE_ITEMS_PER_HEADING) {
     return undefined;
   }
 

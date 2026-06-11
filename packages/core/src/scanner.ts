@@ -23,20 +23,24 @@ async function assertDirectory(rootPath: string): Promise<string> {
   return resolved;
 }
 
-export async function scanSourceFiles(rootPath: string): Promise<string[]> {
+export type ScanOptions = {
+  ignoreGlobs?: string[];
+};
+
+export async function scanSourceFiles(rootPath: string, options?: ScanOptions): Promise<string[]> {
   const resolvedRoot = await assertDirectory(rootPath);
   const files = await fg(["**/*"], {
     cwd: resolvedRoot,
     onlyFiles: true,
     absolute: true,
     dot: false,
-    ignore: DEFAULT_IGNORES
+    ignore: [...DEFAULT_IGNORES, ...(options?.ignoreGlobs ?? [])]
   });
 
   return files.map((file) => path.resolve(file)).sort((a, b) => compareStrings(normalizePath(a), normalizePath(b)));
 }
 
-export async function scanMarkdownFiles(rootPath: string): Promise<string[]> {
-  const files = await scanSourceFiles(rootPath);
+export async function scanMarkdownFiles(rootPath: string, options?: ScanOptions): Promise<string[]> {
+  const files = await scanSourceFiles(rootPath, options);
   return files.filter((file) => /\.(md|markdown)$/i.test(file));
 }

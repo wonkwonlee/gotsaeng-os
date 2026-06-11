@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { extractItems } from "../src/extractor";
+import { extractItems, MAX_SECTION_LINE_ITEMS_PER_HEADING } from "../src/extractor";
 import { parseMarkdown } from "../src/parser";
 
 describe("extractor", () => {
@@ -157,5 +157,69 @@ describe("extractor", () => {
         })
       ])
     );
+  });
+
+  it("caps inferred section_line items per heading", () => {
+    const bullets = Array.from(
+      { length: 30 },
+      (_unused, index) => `- Inferred risk number ${index + 1} about the research direction.`
+    );
+    const note = parseMarkdown(
+      ["# Research Note", "", "## Risks", "", ...bullets].join("\n"),
+      "/vault/30_Research/risks.md",
+      "/vault"
+    );
+
+    const risks = extractItems(note).filter((item) => item.kind === "risk");
+    expect(risks.length).toBe(MAX_SECTION_LINE_ITEMS_PER_HEADING);
+  });
+
+  it("applies the section_line cap per heading independently", () => {
+    const firstBullets = Array.from(
+      { length: 30 },
+      (_unused, index) => `- Risk A number ${index + 1} for the first section.`
+    );
+    const secondBullets = Array.from(
+      { length: 30 },
+      (_unused, index) => `- Risk B number ${index + 1} for the second section.`
+    );
+    const note = parseMarkdown(
+      [
+        "# Research Note",
+        "",
+        "## Risks",
+        "",
+        ...firstBullets,
+        "",
+        "## Additional Risks",
+        "",
+        ...secondBullets
+      ].join("\n"),
+      "/vault/30_Research/multi.md",
+      "/vault"
+    );
+
+    const risks = extractItems(note).filter((item) => item.kind === "risk");
+    expect(risks.length).toBe(MAX_SECTION_LINE_ITEMS_PER_HEADING * 2);
+  });
+
+  it("never caps explicit marker items even beyond the section cap", () => {
+    const englishMarkers = Array.from(
+      { length: 18 },
+      (_unused, index) => `- risk: Explicit risk number ${index + 1}.`
+    );
+    const koreanMarkers = Array.from(
+      { length: 18 },
+      (_unused, index) => `- 위험: 명시적 위험 ${index + 1}.`
+    );
+    const note = parseMarkdown(
+      ["# Research Note", "", "## Risks", "", ...englishMarkers, ...koreanMarkers].join("\n"),
+      "/vault/30_Research/explicit.md",
+      "/vault"
+    );
+
+    const risks = extractItems(note).filter((item) => item.kind === "risk");
+    expect(risks.length).toBe(englishMarkers.length + koreanMarkers.length);
+    expect(risks.length).toBeGreaterThan(MAX_SECTION_LINE_ITEMS_PER_HEADING);
   });
 });

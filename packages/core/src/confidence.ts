@@ -90,6 +90,9 @@ export function compareItemsByConfidence(a: ExtractedItem, b: ExtractedItem): nu
 
 function addExtractionSourceSignal(signals: ConfidenceSignal[], source: ExtractionConfidenceSource): void {
   if (source === "explicit_marker") {
+    // NOTE: exporters/markdown-exporter.ts string-matches this exact label
+    // (EXPLICIT_MARKER_CONFIDENCE_SIGNAL) to keep explicit-marker risks above
+    // RISK_REGISTER_CAP. Do not reword without updating that consumer.
     signals.push({ label: "explicit extraction marker", impact: 35 });
     return;
   }

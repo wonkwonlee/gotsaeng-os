@@ -29,6 +29,14 @@ export const GENERATED_MARKDOWN_FILES = [
 
 export type GeneratedMarkdownFile = (typeof GENERATED_MARKDOWN_FILES)[number];
 
+// Safety net for research vaults that still produce a very large risk set even
+// after the at-source extraction cap. Explicit-marker risks are ordered first so
+// they are never the ones trimmed by this cap.
+export const RISK_REGISTER_CAP = 200;
+
+// Confidence signal label emitted by scoreExtractionConfidence for explicit markers.
+const EXPLICIT_MARKER_CONFIDENCE_SIGNAL = "explicit extraction marker";
+
 export function renderMarkdownFiles(pack: ContextPack): Record<GeneratedMarkdownFile, string> {
   return {
     "PROJECT_CONTEXT.md": renderProjectContext(pack),
@@ -190,14 +198,46 @@ export function renderActionBacklog(pack: ContextPack): string {
 }
 
 export function renderRiskRegister(pack: ContextPack): string {
+  const ordered = orderRisksForRegister(pack.risks);
+
   return [
     `# Risk Register: ${pack.projectName}`,
     "",
     `Generated: ${pack.generatedAt}`,
     "",
-    renderItemList(pack.risks),
+    renderItemList(ordered, { limit: RISK_REGISTER_CAP }),
     ""
   ].join("\n");
+}
+
+function orderRisksForRegister(risks: ExtractedItem[]): ExtractedItem[] {
+  return [...risks].sort(compareRisksForRegister);
+}
+
+// Explicit-marker risks first (so the cap never drops them), then by confidence
+// score descending, with a deterministic tiebreak matching sortExtractedItems.
+function compareRisksForRegister(a: ExtractedItem, b: ExtractedItem): number {
+  const explicitDelta = Number(isExplicitMarkerItem(b)) - Number(isExplicitMarkerItem(a));
+  if (explicitDelta !== 0) {
+    return explicitDelta;
+  }
+
+  const scoreDelta = (b.confidence?.score ?? 0) - (a.confidence?.score ?? 0);
+  if (scoreDelta !== 0) {
+    return scoreDelta;
+  }
+
+  return (
+    compareStrings(a.kind, b.kind) ||
+    compareStrings(a.sourcePath, b.sourcePath) ||
+    compareStrings(a.text, b.text)
+  );
+}
+
+function isExplicitMarkerItem(item: ExtractedItem): boolean {
+  return (
+    item.confidence?.signals.some((signal) => signal.includes(EXPLICIT_MARKER_CONFIDENCE_SIGNAL)) ?? false
+  );
 }
 
 export function renderOpenQuestions(pack: ContextPack): string {

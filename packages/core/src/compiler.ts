@@ -35,8 +35,8 @@ export async function compileContextPack(options: CompileOptions): Promise<Conte
   const parsedOptions = CompileOptionsSchema.parse(options);
   const dateProvider: DateProvider = options.dateProvider ?? (() => new Date());
   const sourceRoot = path.resolve(parsedOptions.sourceRoot);
-  const allFiles = await scanSourceFiles(sourceRoot);
-  const markdownFiles = await scanMarkdownFiles(sourceRoot);
+  const allFiles = await scanSourceFiles(sourceRoot, { ignoreGlobs: parsedOptions.ignoreGlobs });
+  const markdownFiles = await scanMarkdownFiles(sourceRoot, { ignoreGlobs: parsedOptions.ignoreGlobs });
   const notes = [];
   const parseErrors = [];
 

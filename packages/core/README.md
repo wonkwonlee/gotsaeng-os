@@ -23,9 +23,14 @@ const pack = await compileContextPack({
   sourceRoot: "./notes",
   projectName: "My Project",
   staleDays: 90,
+  ignoreGlobs: ["context-pack/**"],
 });
 
 await writeContextPack(pack, "./context-pack");
 ```
+
+`ignoreGlobs` is an optional list of `fast-glob` patterns (relative to `sourceRoot`) excluded from
+scanning in addition to the built-in defaults. Use it to keep a previously generated output folder
+from being re-scanned on the next compile.
 
 The CLI package `@gotsaeng/cli` is the recommended entry point for end users.
