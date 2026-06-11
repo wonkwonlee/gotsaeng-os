@@ -75,7 +75,6 @@ From a sibling checkout layout (`~/projects/gotsaeng-os-dev` and `~/projects/got
 cd ~/projects/gotsaeng-os
 git rm -r -q .                                         # clear tracked files (.git is kept)
 git -C ../gotsaeng-os-dev archive HEAD | tar -x -C .   # extract dev's tracked files only
-rm -rf obsidian-vault-update                           # dev-only personal notes — never public
 git add -A
 git commit -m "Release <version>"
 git push
@@ -84,10 +83,12 @@ git push
 Why this shape:
 
 - `git archive HEAD` exports **tracked files only** — untracked/ignored dev artifacts
-  (`.vault-copy/`, `.omc/`, `node_modules/`, `dist/`, `coverage/`) are excluded automatically.
+  (`.vault-notes/`, `.vault-copy/`, `.omc/`, `node_modules/`, `dist/`, `coverage/`) are excluded
+  automatically.
 - Clearing tracked files first means files deleted in dev do not linger in public.
-- `obsidian-vault-update/` is tracked in dev but is personal vault material — always remove
-  it before committing.
+- `.vault-notes/` holds personal vault material (the release journal that gets copied into the
+  local Obsidian vault). It is **gitignored** in dev, so `git archive HEAD` excludes it
+  automatically — no manual removal step is needed.
 - Run the **Pre-Publish Safety Scan** (below) in the public repo before pushing.
 
 ---

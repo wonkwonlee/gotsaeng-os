@@ -11,3 +11,4 @@ apps/*/dist/
 .omx/
 .omc/
 .vault-copy/
+.vault-notes/
