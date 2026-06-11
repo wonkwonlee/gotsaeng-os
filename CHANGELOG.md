@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.4
+
+- Removed the plugin-name heading from the settings tab (Obsidian directory guideline: settings
+  headings must not include the plugin name).
+- `manifest.json` `authorUrl` now points to the maintainer profile instead of the plugin repo.
+- No other behavior changes.
+
 ## 0.10.3
 
 - Added root-level `manifest.json` and `versions.json` copies required by the Obsidian community

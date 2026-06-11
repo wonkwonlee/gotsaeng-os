@@ -1,6 +1,6 @@
 {
   "name": "gotsaeng-os",
-  "version": "0.10.3",
+  "version": "0.10.4",
   "description": "Local-first context compiler for Markdown-based knowledge workflows.",
   "private": true,
   "type": "module",

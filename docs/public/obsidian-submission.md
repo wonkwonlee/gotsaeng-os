@@ -10,11 +10,11 @@
 
 ## Pre-submission checklist
 
-- [x] `apps/obsidian-plugin/manifest.json` `version` == `0.10.3`
-- [x] `apps/obsidian-plugin/versions.json` contains key `"0.10.3"`
-- [x] All five `package.json` files have `"version": "0.10.3"`
-- [x] Git tag `0.10.3` on the public repo (NO `v` prefix — must exactly match manifest version)
-- [x] GitHub release `0.10.3` with assets: `main.js`, `manifest.json`, `styles.css`
+- [x] `apps/obsidian-plugin/manifest.json` `version` == `0.10.4`
+- [x] `apps/obsidian-plugin/versions.json` contains key `"0.10.4"`
+- [x] All five `package.json` files have `"version": "0.10.4"`
+- [x] Git tag `0.10.4` on the public repo (NO `v` prefix — must exactly match manifest version)
+- [x] GitHub release `0.10.4` with assets: `main.js`, `manifest.json`, `styles.css`
 - [x] Release assets are from `apps/obsidian-plugin/dist/` after a clean `pnpm build`
 - [x] `pnpm typecheck && pnpm test && pnpm build && pnpm lint` pass on the tagged commit
 - [x] Public repo has `README.md` and `LICENSE` (MIT) at the root
