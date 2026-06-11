@@ -364,7 +364,7 @@ class GotSaengSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: "GotSaeng OS" });
+    new Setting(containerEl).setName("GotSaeng OS").setHeading();
     containerEl.createEl("p", {
       text: "Desktop-only local context compiler. v0.10 does not call AI services or sync data.",
       cls: "gotsaeng-os-setting-note",
