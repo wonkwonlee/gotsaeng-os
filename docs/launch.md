@@ -128,7 +128,7 @@ fully polished.
 
 | Channel | Gate | Status |
 |---|---|---|
-| Obsidian community PR | Fast gate (0.1 + 0.2 + tag + release assets) | Awaiting tag + GitHub release |
+| Obsidian community directory | Fast gate (0.1 + 0.2 + tag + release assets) | **Submitted 2026-06-11** via portal — <https://community.obsidian.md/plugins/gotsaeng-os> — awaiting review |
 | Show HN | Full gate (Phase 0 + 1 all green) | Draft |
 | r/ObsidianMD | Full gate | Draft |
 | r/PKM | Full gate | Draft |
