@@ -255,7 +255,7 @@ function createItem(input: {
   line: string;
   confidenceSource: ExtractionConfidenceSource;
 }): ExtractedItem | undefined {
-  const text = cleanExtractedText(input.text);
+  const { text, truncatedFrom } = cleanExtractedText(input.text);
   if (!text) {
     return undefined;
   }
@@ -273,13 +273,21 @@ function createItem(input: {
     tags: [...input.note.tags]
   };
 
-  return {
-    ...item,
-    confidence: scoreExtractionConfidence(input.note, item, input.confidenceSource)
-  };
+  const confidence = scoreExtractionConfidence(
+    input.note,
+    item,
+    input.confidenceSource,
+    truncatedFrom !== undefined
+      ? { truncation: { originalLength: truncatedFrom, maxLength: MAX_ITEM_TEXT_LENGTH } }
+      : {}
+  );
+
+  return { ...item, confidence };
 }
 
-function cleanExtractedText(text: string): string {
+type CleanedText = { text: string; truncatedFrom?: number };
+
+function cleanExtractedText(text: string): CleanedText {
   const cleaned = text
     .replace(/\s+\bstatus:\s*(open|active|done|stale|unknown)\b/gi, "")
     .replace(/\s+\bpriority:\s*(low|medium|high)\b/gi, "")
@@ -301,12 +309,17 @@ function cleanExtractedText(text: string): string {
     /^https?:\/\//i.test(cleaned) ||
     cleaned.toLowerCase() === "none"
   ) {
-    return "";
+    return { text: "" };
   }
 
-  return cleaned.length > MAX_ITEM_TEXT_LENGTH
-    ? `${cleaned.slice(0, MAX_ITEM_TEXT_LENGTH - 1).trimEnd()}...`
-    : cleaned;
+  if (cleaned.length > MAX_ITEM_TEXT_LENGTH) {
+    return {
+      text: `${cleaned.slice(0, MAX_ITEM_TEXT_LENGTH - 1).trimEnd()}...`,
+      truncatedFrom: cleaned.length
+    };
+  }
+
+  return { text: cleaned };
 }
 
 function inferStatus(line: string): ExtractedItemStatus {
@@ -454,7 +467,7 @@ function isSectionParagraphCandidate(text: string, kind: ExtractedItemKind): boo
 }
 
 function normalizeSectionTitle(title: string): string {
-  return cleanExtractedText(title).replace(/:$/, "");
+  return cleanExtractedText(title).text.replace(/:$/, "");
 }
 
 function isGenericTaskSection(title: string): boolean {

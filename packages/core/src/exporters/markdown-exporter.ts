@@ -29,10 +29,14 @@ export const GENERATED_MARKDOWN_FILES = [
 
 export type GeneratedMarkdownFile = (typeof GENERATED_MARKDOWN_FILES)[number];
 
-// Safety net for research vaults that still produce a very large risk set even
-// after the at-source extraction cap. Explicit-marker risks are ordered first so
-// they are never the ones trimmed by this cap.
-export const RISK_REGISTER_CAP = 200;
+// Per-list cap for the dedicated single-category registers (Risk Register, Action
+// Backlog, Open Questions, Memory Snapshot lists, Stale Context). When a register
+// would exceed this many items, high-signal items (explicit markers first, then
+// confidence) are kept and the remainder is summarized with an omission footer.
+export const REGISTER_ITEM_CAP = 200;
+
+// Back-compat alias: the risk register was the first register to adopt the cap.
+export const RISK_REGISTER_CAP = REGISTER_ITEM_CAP;
 
 // Confidence signal label emitted by scoreExtractionConfidence for explicit markers.
 const EXPLICIT_MARKER_CONFIDENCE_SIGNAL = "explicit extraction marker";
@@ -115,15 +119,15 @@ export function renderMemorySnapshot(pack: ContextPack): string {
     "",
     "## Durable Facts",
     "",
-    renderItemList(pack.facts),
+    renderCappedRegisterList(pack.facts),
     "",
     "## Insights",
     "",
-    renderItemList(pack.insights, { limit: 120 }),
+    renderCappedRegisterList(pack.insights, 120),
     "",
     "## Assumptions",
     "",
-    renderItemList(pack.assumptions),
+    renderCappedRegisterList(pack.assumptions),
     "",
     "## Recent Updates",
     "",
@@ -180,43 +184,52 @@ export function renderActionBacklog(pack: ContextPack): string {
     "",
     "## Open",
     "",
-    renderItemList(open),
+    renderCappedRegisterList(open),
     "",
     "## Active",
     "",
-    renderItemList(active),
+    renderCappedRegisterList(active),
     "",
     "## Unknown",
     "",
-    renderItemList(unknown),
+    renderCappedRegisterList(unknown),
     "",
     "## Done",
     "",
-    renderItemList(done),
+    renderCappedRegisterList(done),
     ""
   ].join("\n");
 }
 
 export function renderRiskRegister(pack: ContextPack): string {
-  const ordered = orderRisksForRegister(pack.risks);
-
   return [
     `# Risk Register: ${pack.projectName}`,
     "",
     `Generated: ${pack.generatedAt}`,
     "",
-    renderItemList(ordered, { limit: RISK_REGISTER_CAP }),
+    renderCappedRegisterList(pack.risks),
     ""
   ].join("\n");
 }
 
-function orderRisksForRegister(risks: ExtractedItem[]): ExtractedItem[] {
-  return [...risks].sort(compareRisksForRegister);
+// Bound a dedicated register's flat list. Output is unchanged while the list is
+// within the cap; once it exceeds the cap, high-signal items (explicit markers,
+// then confidence score) are ordered first so the trimmed items are the low-signal
+// ones, summarized by renderItemList's omission footer.
+function renderCappedRegisterList(items: ExtractedItem[], cap: number = REGISTER_ITEM_CAP): string {
+  if (items.length <= cap) {
+    return renderItemList(items);
+  }
+  return renderItemList(orderItemsForRegister(items), { limit: cap });
 }
 
-// Explicit-marker risks first (so the cap never drops them), then by confidence
+function orderItemsForRegister(items: ExtractedItem[]): ExtractedItem[] {
+  return [...items].sort(compareItemsForRegister);
+}
+
+// Explicit-marker items first (so the cap never drops them), then by confidence
 // score descending, with a deterministic tiebreak matching sortExtractedItems.
-function compareRisksForRegister(a: ExtractedItem, b: ExtractedItem): number {
+function compareItemsForRegister(a: ExtractedItem, b: ExtractedItem): number {
   const explicitDelta = Number(isExplicitMarkerItem(b)) - Number(isExplicitMarkerItem(a));
   if (explicitDelta !== 0) {
     return explicitDelta;
@@ -246,7 +259,7 @@ export function renderOpenQuestions(pack: ContextPack): string {
     "",
     `Generated: ${pack.generatedAt}`,
     "",
-    renderItemList(pack.questions),
+    renderCappedRegisterList(pack.questions),
     ""
   ].join("\n");
 }
@@ -261,7 +274,7 @@ export function renderStaleContext(pack: ContextPack): string {
     "",
     "## Stale Items",
     "",
-    pack.staleItems.length > 0 ? renderItemList(pack.staleItems) : "- No stale items detected.",
+    pack.staleItems.length > 0 ? renderCappedRegisterList(pack.staleItems) : "- No stale items detected.",
     "",
     "## Notes Missing Updated Dates",
     "",

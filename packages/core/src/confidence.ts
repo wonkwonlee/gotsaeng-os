@@ -21,12 +21,19 @@ type ConfidenceSignal = {
 export function scoreExtractionConfidence(
   note: NoteDocument,
   item: ExtractedItem,
-  source: ExtractionConfidenceSource
+  source: ExtractionConfidenceSource,
+  options: { truncation?: { originalLength: number; maxLength: number } } = {}
 ): ConfidenceMetadata {
   const signals: ConfidenceSignal[] = [{ label: "deterministic local extraction", impact: 35 }];
   const warnings: string[] = [];
 
   addExtractionSourceSignal(signals, source);
+
+  if (options.truncation) {
+    warnings.push(
+      `Extracted text truncated from ${options.truncation.originalLength} characters to the ${options.truncation.maxLength}-character limit (source: ${note.path}).`
+    );
+  }
 
   if (note.updated) {
     signals.push({ label: "source has updated date", impact: 10 });

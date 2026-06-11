@@ -42,6 +42,32 @@ describe("extractor", () => {
     ]);
   });
 
+  it("warns when extracted item text is truncated", () => {
+    const longText = "A".repeat(500);
+    const note = parseMarkdown(`- fact: ${longText}`, "/vault/long.md", "/vault");
+    const [item] = extractItems(note);
+
+    expect(item).toBeDefined();
+    expect(item?.text.length).toBeLessThan(longText.length);
+    expect(item?.text.endsWith("...")).toBe(true);
+
+    const warnings = item?.confidence?.warnings ?? [];
+    expect(warnings.some((warning) => warning.includes("truncated"))).toBe(true);
+    // the warning surfaces the source path and the original length
+    const sourcePath = item?.sourcePath ?? "";
+    expect(sourcePath).not.toEqual("");
+    expect(warnings.some((warning) => warning.includes(sourcePath))).toBe(true);
+    expect(warnings.some((warning) => warning.includes("500"))).toBe(true);
+  });
+
+  it("does not warn about truncation for normal-length text", () => {
+    const note = parseMarkdown("- fact: GotSaeng OS is local-first.", "/vault/ok.md", "/vault");
+    const [item] = extractItems(note);
+
+    const warnings = item?.confidence?.warnings ?? [];
+    expect(warnings.some((warning) => warning.includes("truncated"))).toBe(false);
+  });
+
   it("infers task-list status", () => {
     const note = parseMarkdown(
       ["- [ ] action: Add compiler tests.", "- [x] todo: Write README quickstart."].join("\n"),
