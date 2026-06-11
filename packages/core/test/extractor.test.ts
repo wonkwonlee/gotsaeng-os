@@ -89,6 +89,43 @@ describe("extractor", () => {
     ]);
   });
 
+  it("extracts numbered task lists with explicit markers", () => {
+    const note = parseMarkdown(
+      ["1. [ ] action: Deploy the app.", "2. [x] todo: Verify the release."].join("\n"),
+      "/vault/tasks.md",
+      "/vault"
+    );
+
+    expect(extractItems(note)).toMatchObject([
+      {
+        kind: "action",
+        text: "Deploy the app.",
+        status: "open"
+      },
+      {
+        kind: "action",
+        text: "Verify the release.",
+        status: "done"
+      }
+    ]);
+  });
+
+  it("extracts numbered task lists without explicit markers", () => {
+    const note = parseMarkdown(
+      "1. [ ] Deploy the app.",
+      "/vault/02_Daily/TODO.md",
+      "/vault"
+    );
+
+    expect(extractItems(note)).toMatchObject([
+      {
+        kind: "action",
+        text: "Deploy the app.",
+        status: "open"
+      }
+    ]);
+  });
+
   it("extracts summary paragraphs and key-point headings as insights", () => {
     const note = parseMarkdown(
       [

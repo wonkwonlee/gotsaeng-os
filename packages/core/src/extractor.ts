@@ -30,16 +30,20 @@ const MARKER_TO_KIND: Record<string, ExtractedItemKind> = {
 
 const MARKER_NAMES = Object.keys(MARKER_TO_KIND).join("|");
 
+const LIST_ITEM_PREFIX_PATTERN = String.raw`(?:[-*]|\d+\.)`;
+
 const BULLET_MARKER_PATTERN =
   new RegExp(
-    `^\\s*[-*]\\s+(?:\\[(?<checked>[ xX])\\]\\s+)?(?<marker>${MARKER_NAMES}):\\s*(?<text>.+)$`,
+    `^\\s*${LIST_ITEM_PREFIX_PATTERN}\\s+(?:\\[(?<checked>[ xX])\\]\\s+)?(?<marker>${MARKER_NAMES}):\\s*(?<text>.+)$`,
     "i"
   );
 
 const HEADING_MARKER_PATTERN =
   new RegExp(`^\\s*(?<marker>${MARKER_NAMES}):\\s*(?<text>.+)$`, "i");
 
-const TASK_PATTERN = /^\s*[-*]\s+\[(?<checked>[ xX])\]\s+(?<text>.+)$/;
+const TASK_PATTERN = new RegExp(
+  `^\\s*${LIST_ITEM_PREFIX_PATTERN}\\s+\\[(?<checked>[ xX])\\]\\s+(?<text>.+)$`
+);
 const BULLET_PATTERN = /^\s*[-*]\s+(?<text>.+)$/;
 const HEADING_PATTERN = /^(?<level>#{1,6})\s+(?<text>.+)$/;
 
