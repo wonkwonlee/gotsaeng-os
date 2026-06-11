@@ -22,13 +22,13 @@ jobs:
     name: Quality gates
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 8.12.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: pnpm
@@ -48,13 +48,13 @@ jobs:
       id-token: write  # Required for npm OIDC trusted publishing + provenance
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 8.12.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
@@ -82,3 +82,68 @@ jobs:
       # Publish @gotsaeng/cli SECOND — after core is live on the registry.
       - name: Publish @gotsaeng/cli
         run: pnpm --filter @gotsaeng/cli publish --access public --provenance --no-git-checks
+
+  github-release:
+    name: GitHub Release
+    needs: publish  # only cut a GitHub release once npm publish succeeded
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # create the GitHub Release and upload the Obsidian plugin assets
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 8.12.0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Build the Obsidian plugin so dist/{main.js,manifest.json,styles.css} exist.
+      # Obsidian clients download these three files for community-plugin installs.
+      - name: Build plugin assets
+        run: pnpm build
+
+      # Use this version's CHANGELOG.md section as the release body.
+      - name: Extract release notes
+        run: |
+          version="${GITHUB_REF_NAME}"
+          awk -v header="## ${version}" '
+            $0 == header { capture = 1; next }
+            /^## / { if (capture) exit }
+            capture { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            printf 'Release %s\n' "${version}" > release-notes.md
+          fi
+
+      # Create-or-update so a re-run after a flake is safe (npm has already
+      # published by this point and cannot be re-published).
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=()
+          case "${GITHUB_REF_NAME}" in
+            *-*) flags+=(--prerelease) ;;  # tags like 0.10.6-beta.1 are pre-releases
+          esac
+          assets=(
+            apps/obsidian-plugin/dist/main.js
+            apps/obsidian-plugin/dist/manifest.json
+            apps/obsidian-plugin/dist/styles.css
+          )
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            echo "Release ${GITHUB_REF_NAME} already exists; updating notes and assets."
+            gh release edit "${GITHUB_REF_NAME}" "${flags[@]}" --notes-file release-notes.md
+            gh release upload "${GITHUB_REF_NAME}" "${assets[@]}" --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" "${flags[@]}" \
+              --title "${GITHUB_REF_NAME}" \
+              --notes-file release-notes.md \
+              "${assets[@]}"
+          fi
