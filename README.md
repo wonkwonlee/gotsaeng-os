@@ -17,13 +17,13 @@ Compile your scattered Markdown notes into model-ready context packs — local-f
 > Requires Node.js 20 or newer. No install needed.
 
 ```bash
-npx -y @gotsaeng/cli@0.10.2 compile <vault> --output <dir> --project "<name>"
+npx -y @gotsaeng/cli@0.10.3 compile <vault> --output <dir> --project "<name>"
 ```
 
 Both `--output` and `--project` are required flags. Copy-paste example using the included sample vault:
 
 ```bash
-npx -y @gotsaeng/cli@0.10.2 compile ./examples/sample-vault --output ./out --project "GotSaeng OS"
+npx -y @gotsaeng/cli@0.10.3 compile ./examples/sample-vault --output ./out --project "GotSaeng OS"
 ```
 
 This writes 13 artifacts to `./out/` including `PROJECT_CONTEXT.md`, `MEMORY_SNAPSHOT.md`,

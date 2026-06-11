@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.3
+
+- Added root-level `manifest.json` and `versions.json` copies required by the Obsidian community
+  directory portal (it validates the manifest at the repository root of the release tag commit).
+- Includes the numbered task list extraction fix contributed in #8 (numbered prefixes like
+  `1. [ ]` now match task and explicit-marker extraction).
+- No other behavior changes.
+
 ## 0.10.2
 
 - Fixed the Obsidian plugin "Custom path" output folder setting: the path field no longer
