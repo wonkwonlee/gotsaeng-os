@@ -36,7 +36,17 @@ All four of the following must agree before cutting a tag:
 | `packages/cli/package.json` → `version` | `packages/cli/package.json` |
 | `apps/obsidian-plugin/manifest.json` → `version` | `apps/obsidian-plugin/manifest.json` |
 | Key in `apps/obsidian-plugin/versions.json` | `apps/obsidian-plugin/versions.json` |
+| Root `manifest.json` / `versions.json` (copies) | `manifest.json`, `versions.json` |
 | Git tag name | `git tag -l <version>` |
+
+> **Why root copies?** The Obsidian community directory portal reads `manifest.json` from the
+> HEAD of the repository's **root**. The root `manifest.json` and `versions.json` must be exact
+> copies of the ones in `apps/obsidian-plugin/`. Refresh them on every version bump:
+>
+> ```bash
+> cp apps/obsidian-plugin/manifest.json manifest.json
+> cp apps/obsidian-plugin/versions.json versions.json
+> ```
 
 Verify before tagging:
 
