@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="656" viewBox="0 0 680 656">
+
+  <!-- window background -->
+  <rect width="680" height="656" rx="8" fill="#0d1117"/>
+
+  <!-- title bar -->
+  <rect width="680" height="36" rx="8" fill="#161b22"/>
+  <rect y="24" width="680" height="12" fill="#161b22"/>
+
+  <!-- traffic lights -->
+  <circle cx="20" cy="18" r="5.5" fill="#ff5f57"/>
+  <circle cx="38" cy="18" r="5.5" fill="#ffbd2e"/>
+  <circle cx="56" cy="18" r="5.5" fill="#28c840"/>
+
+  <!-- window title -->
+  <text x="340" y="18" font-family="'Courier New',Courier,monospace" font-size="12" fill="#8b949e" text-anchor="middle" dominant-baseline="middle">gotsaeng-os &#x2014; compile</text>
+
+  <!-- command prompt -->
+  <text x="20" y="62" font-family="'Courier New',Courier,monospace" font-size="12" fill="#e6edf3"><tspan fill="#58a6ff">$ </tspan>npx -y @gotsaeng/cli compile examples/sample-vault --output ./out --project "Demo"</text>
+
+  <!-- output header -->
+  <text x="20" y="79" font-family="'Courier New',Courier,monospace" font-size="12" fill="#d2a8ff">GotSaeng OS Context Compiler</text>
+
+  <!-- project / source / output (blank line at y=96) -->
+  <text x="20" y="113" font-family="'Courier New',Courier,monospace" font-size="12" fill="#e6edf3"><tspan fill="#8b949e">Project: </tspan>Demo</text>
+  <text x="20" y="130" font-family="'Courier New',Courier,monospace" font-size="12" fill="#e6edf3"><tspan fill="#8b949e">Source:  </tspan>examples/sample-vault</text>
+  <text x="20" y="147" font-family="'Courier New',Courier,monospace" font-size="12" fill="#e6edf3"><tspan fill="#8b949e">Output:  </tspan>./out</text>
+
+  <!-- file stats (blank line at y=164) -->
+  <text x="20" y="181" font-family="'Courier New',Courier,monospace" font-size="12" fill="#e6edf3"><tspan fill="#8b949e">Files scanned:   </tspan><tspan fill="#f0883e">8</tspan></text>
+  <text x="20" y="198" font-family="'Courier New',Courier,monospace" font-size="12" fill="#e6edf3"><tspan fill="#8b949e">Markdown parsed: </tspan><tspan fill="#f0883e">8</tspan></text>
+
+  <!-- items extracted -->
+  <text x="20" y="215" font-family="'Courier New',Courier,monospace" font-size="12" fill="#8b949e">Items extracted:</text>
+  <text x="20" y="232" font-family="'Courier New',Courier,monospace" font-size="12" fill="#e6edf3"><tspan fill="#8b949e">- facts:         </tspan><tspan fill="#f0883e">7</tspan></text>
+  <text x="20" y="249" font-family="'Courier New',Courier,monospace" font-size="12" fill="#e6edf3"><tspan fill="#8b949e">- decisions:     </tspan><tspan fill="#f0883e">4</tspan></text>
+  <text x="20" y="266" font-family="'Courier New',Courier,monospace" font-size="12" fill="#e6edf3"><tspan fill="#8b949e">- actions:       </tspan><tspan fill="#f0883e">8</tspan></text>
+  <text x="20" y="283" font-family="'Courier New',Courier,monospace" font-size="12" fill="#e6edf3"><tspan fill="#8b949e">- risks:         </tspan><tspan fill="#f0883e">4</tspan></text>
+  <text x="20" y="300" font-family="'Courier New',Courier,monospace" font-size="12" fill="#e6edf3"><tspan fill="#8b949e">- assumptions:   </tspan><tspan fill="#f0883e">3</tspan></text>
+  <text x="20" y="317" font-family="'Courier New',Courier,monospace" font-size="12" fill="#e6edf3"><tspan fill="#8b949e">- questions:     </tspan><tspan fill="#f0883e">4</tspan></text>
+  <text x="20" y="334" font-family="'Courier New',Courier,monospace" font-size="12" fill="#e6edf3"><tspan fill="#8b949e">- insights:      </tspan><tspan fill="#f0883e">8</tspan></text>
+  <text x="20" y="351" font-family="'Courier New',Courier,monospace" font-size="12" fill="#e6edf3"><tspan fill="#8b949e">- stale:         </tspan><tspan fill="#f0883e">6</tspan></text>
+
+  <!-- generated files (blank line at y=368) -->
+  <text x="20" y="385" font-family="'Courier New',Courier,monospace" font-size="12" fill="#8b949e">Generated:</text>
+  <text x="20" y="402" font-family="'Courier New',Courier,monospace" font-size="12" fill="#7ee787">- PROJECT_CONTEXT.md</text>
+  <text x="20" y="419" font-family="'Courier New',Courier,monospace" font-size="12" fill="#7ee787">- MEMORY_SNAPSHOT.md</text>
+  <text x="20" y="436" font-family="'Courier New',Courier,monospace" font-size="12" fill="#7ee787">- DECISION_LOG.md</text>
+  <text x="20" y="453" font-family="'Courier New',Courier,monospace" font-size="12" fill="#7ee787">- ACTION_BACKLOG.md</text>
+  <text x="20" y="470" font-family="'Courier New',Courier,monospace" font-size="12" fill="#7ee787">- RISK_REGISTER.md</text>
+  <text x="20" y="487" font-family="'Courier New',Courier,monospace" font-size="12" fill="#7ee787">- OPEN_QUESTIONS.md</text>
+  <text x="20" y="504" font-family="'Courier New',Courier,monospace" font-size="12" fill="#7ee787">- STALE_CONTEXT.md</text>
+  <text x="20" y="521" font-family="'Courier New',Courier,monospace" font-size="12" fill="#7ee787">- SOURCE_PROVENANCE.md</text>
+  <text x="20" y="538" font-family="'Courier New',Courier,monospace" font-size="12" fill="#7ee787">- CONFIDENCE.md</text>
+  <text x="20" y="555" font-family="'Courier New',Courier,monospace" font-size="12" fill="#7ee787">- CONTRADICTIONS.md</text>
+  <text x="20" y="572" font-family="'Courier New',Courier,monospace" font-size="12" fill="#7ee787">- MEMORY_DIFF.md</text>
+  <text x="20" y="589" font-family="'Courier New',Courier,monospace" font-size="12" fill="#7ee787">- CONTEXT_MANIFEST.json</text>
+  <text x="20" y="606" font-family="'Courier New',Courier,monospace" font-size="12" fill="#7ee787">- COMPILE_REPORT.json</text>
+
+  <!-- done (blank line at y=623) -->
+  <text x="20" y="640" font-family="'Courier New',Courier,monospace" font-size="12" fill="#7ee787">Done.</text>
+
+</svg>

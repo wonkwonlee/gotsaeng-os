@@ -1,6 +1,6 @@
 {
   "name": "gotsaeng-os",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Local-first context compiler for Markdown-based knowledge workflows.",
   "private": true,
   "type": "module",
@@ -35,7 +35,8 @@
     "smoke:clean-clone": "node scripts/release-smoke.mjs clean-clone",
     "smoke:package": "node scripts/release-smoke.mjs package",
     "smoke:obsidian": "node scripts/release-smoke.mjs obsidian",
-    "smoke:release": "node scripts/release-smoke.mjs all"
+    "smoke:release": "node scripts/release-smoke.mjs all",
+    "test:coverage": "pnpm -r --sort --if-present build && vitest run --coverage"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
@@ -46,6 +47,7 @@
     "tsx": "^4.0.0",
     "typescript": "^5.5.0",
     "typescript-eslint": "^8.0.0",
-    "vitest": "^2.0.0"
+    "vitest": "^2.0.0",
+    "@vitest/coverage-v8": "^2.0.0"
   }
 }

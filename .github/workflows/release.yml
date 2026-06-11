@@ -1,0 +1,84 @@
+# PRE-REQUISITE (manual, npm web UI — must be done before the first tag):
+# Configure npm Trusted Publisher (OIDC) for BOTH @gotsaeng/core AND @gotsaeng/cli,
+# bound to this repository's release.yml workflow.
+# Without it the first OIDC publish will silently fail.
+# See: https://docs.npmjs.com/generating-provenance-statements#publishing-packages-with-provenance-via-github-actions
+
+name: Release
+
+on:
+  push:
+    tags:
+      # Bare version tags only — NO "v" prefix (e.g. "0.10.1", not "v0.10.1").
+      # This matches Obsidian's tag-equals-manifest-version rule.
+      - "[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+-*"
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm lint
+
+  publish:
+    name: Publish to npm (OIDC)
+    needs: quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Required for npm OIDC trusted publishing + provenance
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      # Upgrade npm before publishing. Node 20's bundled npm is 10.x; OIDC trusted
+      # publishing (granular access tokens via GitHub Actions OIDC) requires npm >=9.5.
+      # While 10.x satisfies that floor, `npm@latest` ensures we get the most recent
+      # OIDC + provenance fixes without waiting for a Node LTS update.
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
+      # Publish @gotsaeng/core FIRST — @gotsaeng/cli depends on it.
+      # Publishing cli before core would leave a window where cli resolves a stale core.
+      # No NODE_AUTH_TOKEN: npm obtains a short-lived token from the GitHub OIDC provider
+      # automatically when id-token: write is set and a Trusted Publisher is configured.
+      - name: Publish @gotsaeng/core
+        run: pnpm --filter @gotsaeng/core publish --access public --provenance --no-git-checks
+
+      # Publish @gotsaeng/cli SECOND — after core is live on the registry.
+      - name: Publish @gotsaeng/cli
+        run: pnpm --filter @gotsaeng/cli publish --access public --provenance --no-git-checks

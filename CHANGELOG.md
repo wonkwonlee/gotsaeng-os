@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.10.1
+
+- Replaced README Quick Start with the exact 3-arg `npx` form required by `compile` (`--output` and `--project` are required options).
+- Added README hero, badge row (npm, CI, license, Node version, local-first), and collapsed the feature list to a table with a `<details>` full list.
+- Added `examples/README.md` mapping `sample-vault` → `sample-output` with an output file table and annotation format reference.
+- Added `docs/public/demo.svg`: dependency-free terminal-style SVG demo from real `compile` output.
+- Added `.github/workflows/release.yml` (tag-triggered, OIDC `id-token: write`, core-before-cli publish order).
+- Added Node 20 + 22 matrix to `.github/workflows/ci.yml`.
+- Added `@vitest/coverage-v8` dev dependency; coverage available via `pnpm test:coverage`.
+- Set `packages/shared` to `"private": true`; publish set is provably `{@gotsaeng/core, @gotsaeng/cli}`.
+- Added `docs/release.md` rollback runbook for half-published npm state.
+- Deepened `CONTRIBUTING.md` with repo map and "how to add a new note type" walkthrough.
+- No compiler behavior changes.
+
 ## 0.10.0
 
 - Grouped `MEMORY_DIFF.md` detail sections by source note for newly added, changed, newly stale,

@@ -2,36 +2,57 @@
 
 **GotSaeng OS 生**
 
-**Reclaim your scattered life.**
+Compile your scattered Markdown notes into model-ready context packs — local-first, no telemetry, no cloud.
 
-**흩어진 생을 다시 손에 쥐다.**
+**Reclaim your scattered life. 흩어진 생을 다시 손에 쥐다.**
 
-GotSaeng OS is an open-source context engineering framework for compiling Markdown notes,
-chat logs, decisions, and execution records into model-ready memory snapshots.
+[![npm version](https://img.shields.io/npm/v/@gotsaeng/cli.svg)](https://www.npmjs.com/package/@gotsaeng/cli)
+[![CI](https://github.com/wonkwonlee/gotsaeng-os/actions/workflows/ci.yml/badge.svg)](https://github.com/wonkwonlee/gotsaeng-os/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node >=20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org/)
+[![local-first · no telemetry](https://img.shields.io/badge/local--first-%C2%B7%20no%20telemetry-blue.svg)](https://github.com/wonkwonlee/gotsaeng-os/blob/main/SECURITY.md)
 
-The goal is not to automate life away. The goal is to help people regain context, agency,
-and continuity.
+## Quick Start
 
-## Naming
+> Requires Node.js 20 or newer. No install needed.
 
-GotSaeng OS has two meanings. First, it references the Korean internet phrase **갓생**,
-sometimes translated as "God Life," meaning an intentional, disciplined, high-agency life.
-Second, it reinterprets the phrase as **Got 生**, where **生** means life. In this sense,
-GotSaeng means reclaiming life: taking back scattered time, thoughts, memory, attention,
-and execution.
+```bash
+npx -y @gotsaeng/cli@0.10.1 compile <vault> --output <dir> --project "<name>"
+```
 
-GotSaeng OS is ADHD-aware, not ADHD-limited. It is designed for anyone managing fragmented
-attention, scattered notes, long-running goals, unfinished tasks, research trails, technical
-decisions, and execution logs.
+Both `--output` and `--project` are required flags. Copy-paste example using the included sample vault:
 
-## Why This Exists
+```bash
+npx -y @gotsaeng/cli@0.10.1 compile ./examples/sample-vault --output ./out --project "GotSaeng OS"
+```
 
-LLMs are useful, but long-running work still loses context. Notes live in one place, chat
-exports in another, decisions in a third, and execution logs are often forgotten. GotSaeng OS
-starts with a small, local-first compiler that turns scattered Markdown context into a
-portable handoff pack for humans and AI tools.
+This writes 13 artifacts to `./out/` including `PROJECT_CONTEXT.md`, `MEMORY_SNAPSHOT.md`,
+`DECISION_LOG.md`, `MEMORY_DIFF.md`, `COMPILE_REPORT.json`, and more.
 
-## What v0.10 Does
+## See it in action
+
+![GotSaeng OS terminal demo](./docs/public/demo.svg)
+
+See [examples/README.md](./examples/README.md) for the full sample vault walkthrough and expected
+output.
+
+## What GotSaeng OS Does
+
+| Capability | What it does |
+| --- | --- |
+| **Vault scanning** | Recursively scans a local Markdown vault |
+| **Note classification** | Classifies notes into project, decision, research, weekly review, chat export, and template types |
+| **Extraction** | Extracts facts, decisions, actions, risks, assumptions, questions, insights, and stale context |
+| **Context pack output** | Writes auditable Markdown + JSON artifacts with source coverage stats |
+| **Memory diff** | Deterministic local diff comparing previous and current compile manifests |
+| **Provenance scoring** | Scores extracted items from local metadata — a heuristic for triage, not semantic verification |
+| **Confidence scoring** | Scores extraction reliability from deterministic local signals only |
+| **Contradiction candidates** | Surfaces candidate cues for human review — a review queue, not a semantic engine |
+| **Obsidian adapter** | Desktop-only plugin with Report Hub view, hidden output folder, and vault commands |
+| **CLI** | Published as `@gotsaeng/cli` — no global install required via npx |
+
+<details>
+<summary>Full v0.10 feature list</summary>
 
 - Scans a local Markdown vault.
 - Parses YAML frontmatter with `gray-matter`.
@@ -72,6 +93,8 @@ portable handoff pack for humans and AI tools.
 - Adds warning triage to Markdown and JSON reports.
 - Produces a cleaner high-signal weekly review surface in the Obsidian adapter.
 
+</details>
+
 ## What v0.10 Does Not Do
 
 v0.10 does not include SaaS, cloud sync, auth, payments, vector databases, RAG, LLM API calls,
@@ -82,72 +105,24 @@ Autonomous research is a long-term research direction, not a v0.10 capability. P
 confidence, and contradiction candidate scoring are deterministic metadata heuristics, not semantic
 fact verification.
 
-## Quick Start
+## Naming
 
-Requires Node.js 20 or newer and pnpm.
+GotSaeng OS has two meanings. First, it references the Korean internet phrase **갓생**,
+sometimes translated as "God Life," meaning an intentional, disciplined, high-agency life.
+Second, it reinterprets the phrase as **Got 生**, where **生** means life. In this sense,
+GotSaeng means reclaiming life: taking back scattered time, thoughts, memory, attention,
+and execution.
 
-```bash
-pnpm install
-pnpm --filter @gotsaeng/cli dev compile ./examples/sample-vault --output ./dist/context-pack --project "GotSaeng OS"
-```
+GotSaeng OS is ADHD-aware, not ADHD-limited. It is designed for anyone managing fragmented
+attention, scattered notes, long-running goals, unfinished tasks, research trails, technical
+decisions, and execution logs.
 
-Expected console summary:
+## Why This Exists
 
-```text
-GotSaeng OS Context Compiler
-
-Project: GotSaeng OS
-Source: ./examples/sample-vault
-Output: ./dist/context-pack
-
-Files scanned: 8
-Markdown parsed: 8
-Items extracted:
-- facts: 7
-- decisions: 4
-- actions: 8
-- risks: 4
-- assumptions: 3
-- questions: 4
-- insights: 8
-- stale: 6
-
-Generated:
-- PROJECT_CONTEXT.md
-- MEMORY_SNAPSHOT.md
-- DECISION_LOG.md
-- ACTION_BACKLOG.md
-- RISK_REGISTER.md
-- OPEN_QUESTIONS.md
-- STALE_CONTEXT.md
-- SOURCE_PROVENANCE.md
-- CONFIDENCE.md
-- CONTRADICTIONS.md
-- MEMORY_DIFF.md
-- CONTEXT_MANIFEST.json
-- COMPILE_REPORT.json
-
-Done.
-```
-
-Generated output:
-
-```text
-dist/context-pack/
-├── PROJECT_CONTEXT.md
-├── MEMORY_SNAPSHOT.md
-├── DECISION_LOG.md
-├── ACTION_BACKLOG.md
-├── RISK_REGISTER.md
-├── OPEN_QUESTIONS.md
-├── STALE_CONTEXT.md
-├── SOURCE_PROVENANCE.md
-├── CONFIDENCE.md
-├── CONTRADICTIONS.md
-├── MEMORY_DIFF.md
-├── CONTEXT_MANIFEST.json
-└── COMPILE_REPORT.json
-```
+LLMs are useful, but long-running work still loses context. Notes live in one place, chat
+exports in another, decisions in a third, and execution logs are often forgotten. GotSaeng OS
+starts with a small, local-first compiler that turns scattered Markdown context into a
+portable handoff pack for humans and AI tools.
 
 ## CLI Commands
 
@@ -156,15 +131,6 @@ gotsaeng compile <vaultPath> --output <outputDir> --project <projectName> --stal
 gotsaeng validate <vaultPath>
 gotsaeng validate <vaultPath> --strict
 gotsaeng doctor
-```
-
-During development, run the CLI through pnpm:
-
-```bash
-pnpm --filter @gotsaeng/cli dev doctor
-pnpm --filter @gotsaeng/cli dev validate ./examples/sample-vault
-pnpm --filter @gotsaeng/cli dev validate ./examples/sample-vault --strict
-pnpm --filter @gotsaeng/cli dev compile ./examples/sample-vault --output ./dist/context-pack --project "GotSaeng OS"
 ```
 
 `validate` defaults to compatibility mode for real Obsidian vaults. Unsupported custom note types
@@ -227,6 +193,23 @@ and contradiction-related language. It is a review queue, not a semantic contrad
 The live Report Hub preview extracts source-note references from Markdown and JSON artifacts and
 shows vault-note buttons above the preview. This keeps `.gotsaeng/context-pack` hidden while still
 making compiled context auditable from inside Obsidian.
+
+## Develop from Source
+
+Requires Node.js 20 or newer and pnpm.
+
+```bash
+pnpm install
+pnpm --filter @gotsaeng/cli dev compile ./examples/sample-vault --output ./dist/context-pack --project "GotSaeng OS"
+```
+
+Other dev commands:
+
+```bash
+pnpm --filter @gotsaeng/cli dev doctor
+pnpm --filter @gotsaeng/cli dev validate ./examples/sample-vault
+pnpm --filter @gotsaeng/cli dev validate ./examples/sample-vault --strict
+```
 
 ## Architecture
 

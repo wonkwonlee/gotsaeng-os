@@ -12,6 +12,8 @@ export default tseslint.config(
       "examples/sample-output/**",
       ".gotsaeng/**",
       ".omx/**",
+      ".omc/**",
+      ".vault-copy/**",
       "prettier.config.cjs"
     ]
   },

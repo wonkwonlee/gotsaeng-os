@@ -1,5 +1,36 @@
 # CLAUDE.md
 
-This repository uses `AGENTS.md` as the source of truth for assistant and project rules. This file is a compatibility entry point for tools that look for `CLAUDE.md`; keep it minimal and aligned with `AGENTS.md` rather than maintaining a second policy copy.
+## Project
 
-See [`AGENTS.md`](./AGENTS.md) for the current project constraints, quality gates, and architecture boundaries.
+GotSaeng OS is a local-first context compiler for Markdown-based knowledge workflows.
+
+## Working Agreements
+
+- Use pnpm.
+- Use strict TypeScript.
+- Prefer small pure functions.
+- Keep current releases local-only.
+- Do not add telemetry.
+- Do not add LLM API calls unless explicitly requested in a future task.
+- Do not add cloud sync.
+- Do not introduce new dependencies without a clear reason.
+- Run tests after behavior changes.
+- Update docs when changing public behavior.
+
+## Quality Gates
+
+Before completing a task, run:
+
+- pnpm typecheck
+- pnpm test
+- pnpm build
+- pnpm lint
+
+If a command cannot run, explain why.
+
+## Architecture Principle
+
+Core logic belongs in packages/core.
+CLI logic belongs in packages/cli.
+Obsidian adapter shell work belongs in apps/obsidian-plugin.
+Do not reimplement core compiler behavior inside the Obsidian adapter.

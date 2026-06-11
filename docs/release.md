@@ -1,145 +1,193 @@
-# Release Notes
+# Release Runbook
+
+## Overview
+
+Releases are tag-triggered via `.github/workflows/release.yml`.
+Tag names use **bare version format — NO `v` prefix** (e.g. `0.10.1`, not `v0.10.1`).
+This satisfies Obsidian's tag-equals-manifest-version rule.
+
+---
+
+## OIDC Trusted Publisher Pre-requisite (manual — do once per package)
+
+Before the first tag, configure **npm Trusted Publisher (OIDC)** for **both** packages in the npm web UI:
+
+1. Log in to [npmjs.com](https://www.npmjs.com) as the package maintainer.
+2. Navigate to `@gotsaeng/core` → Settings → Publish → **Trusted Publishers** → Add.
+   - **Owner:** `wonkwonlee`
+   - **Repository:** `gotsaeng-os`
+   - **Workflow file:** `release.yml`
+   - **Environment:** *(leave blank)*
+3. Repeat step 2 for `@gotsaeng/cli`.
+
+> **Why both packages?** The workflow publishes core _and_ cli in the same job using OIDC.
+> If either package lacks a trusted publisher entry, its publish step will silently fail.
+
+---
+
+## Version-Agreement Invariant
+
+All four of the following must agree before cutting a tag:
+
+| Source | Where |
+|---|---|
+| Root `package.json` → `version` | `package.json` |
+| `packages/core/package.json` → `version` | `packages/core/package.json` |
+| `packages/cli/package.json` → `version` | `packages/cli/package.json` |
+| `apps/obsidian-plugin/manifest.json` → `version` | `apps/obsidian-plugin/manifest.json` |
+| Key in `apps/obsidian-plugin/versions.json` | `apps/obsidian-plugin/versions.json` |
+| Git tag name | `git tag -l <version>` |
+
+Verify before tagging:
+
+```bash
+node -p "require('./package.json').version"
+node -p "require('./packages/core/package.json').version"
+node -p "require('./packages/cli/package.json').version"
+node -p "require('./apps/obsidian-plugin/manifest.json').version"
+node -p "Object.keys(require('./apps/obsidian-plugin/versions.json'))"
+```
+
+All five must print the same version string (e.g. `0.10.1`).
+
+---
+
+## Dev → Public Repository Sync
+
+Development happens in `gotsaeng-os-dev` (full history). The public repository
+`wonkwonlee/gotsaeng-os` carries snapshot commits only — one squash commit per release.
+Tags, GitHub releases, the release workflow, and the Obsidian submission all operate on
+the **public** repository, so every release must be synced there first.
+
+From a sibling checkout layout (`~/projects/gotsaeng-os-dev` and `~/projects/gotsaeng-os`):
+
+```bash
+cd ~/projects/gotsaeng-os
+git rm -r -q .                                         # clear tracked files (.git is kept)
+git -C ../gotsaeng-os-dev archive HEAD | tar -x -C .   # extract dev's tracked files only
+rm -rf obsidian-vault-update                           # dev-only personal notes — never public
+git add -A
+git commit -m "Release <version>"
+git push
+```
+
+Why this shape:
+
+- `git archive HEAD` exports **tracked files only** — untracked/ignored dev artifacts
+  (`.vault-copy/`, `.omc/`, `node_modules/`, `dist/`, `coverage/`) are excluded automatically.
+- Clearing tracked files first means files deleted in dev do not linger in public.
+- `obsidian-vault-update/` is tracked in dev but is personal vault material — always remove
+  it before committing.
+- Run the **Pre-Publish Safety Scan** (below) in the public repo before pushing.
+
+---
+
+## Release Checklist
+
+1. **Bump versions** — update all five locations above to the new version.
+2. **Commit** the version bump on `main` in `gotsaeng-os-dev`.
+3. **Run quality gates locally:**
+   ```bash
+   pnpm typecheck && pnpm test && pnpm build && pnpm lint
+   ```
+4. **Sync to the public repository** (see "Dev → Public Repository Sync" above) and push.
+5. **Tag on the public repository** (bare version, no `v` prefix):
+   ```bash
+   git tag 0.10.1
+   git push origin 0.10.1
+   ```
+6. The tag push triggers `.github/workflows/release.yml` on the public repository:
+   - Quality job runs first (`pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm lint`).
+   - Publish job runs only after quality passes.
+   - **`@gotsaeng/core` is published first**, then `@gotsaeng/cli`.
+
+---
+
+## Publish Order: Core Before CLI
+
+`@gotsaeng/cli` declares `@gotsaeng/core` as a dependency.
+Publishing cli before core creates a window where npm resolves cli against a stale core version.
+The workflow enforces: **core → cli**, with no manual intervention required.
+
+---
+
+## Half-Published State (Rollback)
+
+npm versions are **immutable** — a published version cannot be overwritten or unpublished after 72 hours.
+
+If `@gotsaeng/core` publishes successfully but `@gotsaeng/cli` fails:
+
+1. **Do not attempt to re-publish under the same version.**
+2. **Fix the root cause** in the source.
+3. **Bump both packages to the next patch version in lockstep** (e.g. `0.10.1` → `0.10.2`).
+   Even though core `0.10.1` is already live and correct, both packages must move together
+   to maintain a consistent publish set.
+4. **Update all five version-agreement sources** (see invariant table above).
+5. Commit, tag the new version, push — the workflow re-runs cleanly.
+
+> The same lockstep rule applies if cli publishes but core fails (unlikely given the enforced order,
+> but possible if core's publish step succeeds then the registry rejects it post-upload).
+
+---
+
+## Coverage (Maintainer Signal)
+
+Run coverage locally to check test health — it is not published as a public badge:
+
+```bash
+pnpm test:coverage
+```
+
+This uses `@vitest/coverage-v8`. Reports are written to `coverage/` (gitignored).
+No coverage threshold is enforced in CI; it is a maintainer tool only.
+
+---
 
 ## v0.10 Package Readiness
 
-GotSaeng OS v0.10 is structured for future package publishing and local Obsidian adapter testing:
+GotSaeng OS v0.10 is structured for package publishing:
 
-- `@gotsaeng/core` contains the framework compiler API.
-- `@gotsaeng/cli` contains the `gotsaeng` command.
-- `@gotsaeng/shared` contains shared constants.
-- `apps/obsidian-plugin` contains a private desktop-only Obsidian adapter package.
+- `@gotsaeng/core` — framework compiler API (public).
+- `@gotsaeng/cli` — `gotsaeng` command (public).
+- `@gotsaeng/shared` — shared constants (`"private": true`, not published).
+- `apps/obsidian-plugin` — private desktop-only Obsidian adapter.
 
-The root package is intentionally private because it is the monorepo container.
+The root package is intentionally private (monorepo container).
 
-## Release Documentation Intake
+---
 
-The current public-release documentation set intentionally includes:
+## Pre-Publish Safety Scan
 
-- `docs/project-introduction.html` as a standalone shareable project introduction for technical and
-  non-technical readers.
-- `CLAUDE.md` as a compatibility entry point for assistant tooling that expects that filename. It
-  must preserve the same project-level local-first, no-telemetry, no-hidden-network, and module
-  boundary rules as `AGENTS.md`.
-
-## Publish Decision
-
-Do not publish from an uninitialized local folder. Before publishing v0.10 packages, confirm:
-
-- The GitHub repository URL is final.
-- The npm `@gotsaeng` scope exists and the maintainer has publish rights.
-- `pnpm install --frozen-lockfile` passes from a clean clone.
-- `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm lint` pass.
-- The generated sample output is current.
-- `README.md`, `CHANGELOG.md`, `SECURITY.md`, and `LICENSE` are accurate.
-- The Obsidian adapter build emits `main.js`, `manifest.json`, and `styles.css`.
-- `REPORT_HUB.md` is generated by the plugin compile path.
-- Warning triage appears in `COMPILE_REPORT.json`.
-- `MEMORY_DIFF.md` and `CONTEXT_MANIFEST.json` are generated by the core write path.
-- `MEMORY_DIFF.md` groups detail sections by source note.
-- `SOURCE_PROVENANCE.md` is generated and provenance stats appear in `COMPILE_REPORT.json`.
-- Provenance stats include strong, moderate, and weak buckets.
-- `CONFIDENCE.md` is generated and confidence stats appear in `COMPILE_REPORT.json`.
-- `CONTRADICTIONS.md` is generated and contradiction stats appear in `COMPILE_REPORT.json`.
-- The Obsidian Report Hub preview shows source-note buttons for generated Markdown and JSON
-  artifacts.
-- The Obsidian Report Hub preview shows confidence output and latest confidence stats.
-- The Obsidian Report Hub preview shows contradiction output and latest candidate counts.
-
-## Public Repository Snapshot
-
-For the first public release, keep the private development repository separate and create the public
-repository from a clean tracked snapshot after the readiness checks pass. Do not copy the working
-directory directly.
-
-Use `git archive HEAD` or an equivalent tracked-file export so ignored local runtime state is not
-included. The public snapshot must not include:
-
-- `.git/`
-- `.omx/`
-- `node_modules/`
-- root `dist/`
-- `packages/*/dist/`
-- `apps/*/dist/`
-- `.env` or `.env.*`
-- temporary package tarballs
-- personal vaults or generated personal context packs
-- OS/editor files such as `.DS_Store`
-
-Before copying or tagging the public snapshot, repeat the public-safety scan:
+Before committing a release-candidate, run the public-safety scan:
 
 ```bash
 git grep -n -E '(/Users/|personal vault|v0\.9 includes|OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|github_pat_|ghp_|npm_|BEGIN (RSA|OPENSSH|PRIVATE)|api[_-]?key|password|secret|token)' HEAD -- . ':!docs/release.md' ':!docs/security-audit.md'
 ```
 
-Expected result: no matches. The checked sample output must keep `CONTEXT_MANIFEST.json` source roots
-public-safe, such as `<sample-vault>`, instead of a developer machine path.
+Expected result: no matches.
 
-## Automated Release Smoke Checks
+---
 
-Use the root smoke scripts to rehearse release readiness without publishing anything:
+## Automated Smoke Checks
 
-```bash
-pnpm smoke:clean-clone
-pnpm smoke:package
-pnpm smoke:obsidian
-```
-
-`pnpm smoke:release` runs all three checks. The clean-clone smoke clones the current committed repository into a temporary directory, installs with the lockfile, and runs the full quality gate. Run it after committing release-candidate changes so the clone contains the same code that will be tagged or pushed.
-
-## Local Package Smoke Test
-
-Before publishing, verify the installable package shape without touching npm. The automated form is:
+Use the root smoke scripts to rehearse release readiness without publishing:
 
 ```bash
-pnpm smoke:package
+pnpm smoke:clean-clone   # Clone → install → quality gate
+pnpm smoke:package       # Pack tarballs → install → gotsaeng compile smoke
+pnpm smoke:obsidian      # Build plugin → verify assets + manifest version
+pnpm smoke:release       # All three in sequence
 ```
 
-The equivalent manual commands are:
+---
+
+## Candidate Publish Commands (manual fallback)
+
+Run these only after quality gates pass and OIDC trusted publishers are configured:
 
 ```bash
-rm -rf /tmp/gotsaeng-pack /tmp/gotsaeng-install-smoke /tmp/gotsaeng-pack-output
-mkdir -p /tmp/gotsaeng-pack /tmp/gotsaeng-install-smoke
-(cd packages/core && pnpm pack --pack-destination /tmp/gotsaeng-pack)
-(cd packages/cli && pnpm pack --pack-destination /tmp/gotsaeng-pack)
-cd /tmp/gotsaeng-install-smoke
-npm init -y
-npm install /tmp/gotsaeng-pack/gotsaeng-core-0.10.0.tgz /tmp/gotsaeng-pack/gotsaeng-cli-0.10.0.tgz
-./node_modules/.bin/gotsaeng compile /path/to/gotsaeng-os/examples/sample-vault \
-  --output /tmp/gotsaeng-pack-output \
-  --project "GotSaeng OS"
+pnpm --filter @gotsaeng/core publish --access public --provenance
+pnpm --filter @gotsaeng/cli publish --access public --provenance
 ```
 
-This smoke test must prove that the packed `gotsaeng` bin runs through the npm-style `.bin` symlink
-and writes the expected context-pack files. It does not publish anything; actual npm publishing
-still requires explicit maintainer confirmation and publish rights.
-
-## Obsidian Local Distribution Smoke
-
-Before release, run:
-
-```bash
-pnpm smoke:obsidian
-```
-
-This builds `@gotsaeng/obsidian-plugin`, verifies `main.js`, `manifest.json`, and `styles.css`, checks
-that the manifest version matches the root package version, confirms `isDesktopOnly: true`, and stages
-the plugin files in a temporary vault plugin folder.
-
-Then complete the in-app checklist in `docs/obsidian-manual-smoke.md`. The app checklist is required
-because Obsidian command registration, plugin reload behavior, settings persistence, Report Hub previews,
-and output-folder visibility switching can only be confirmed inside Obsidian desktop.
-
-## Candidate Publish Commands
-
-Run these only after the checks above are satisfied:
-
-```bash
-pnpm --filter @gotsaeng/core publish --access public
-pnpm --filter @gotsaeng/cli publish --access public
-```
-
-`@gotsaeng/shared` is not required for v0.10 runtime behavior and can stay unpublished until a
-package depends on it.
-
-The Obsidian adapter is private in v0.10 and should be tested through a manual local install before
-considering community plugin distribution.
+`@gotsaeng/shared` has `"private": true` and must never be published.
