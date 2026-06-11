@@ -8,11 +8,11 @@ has been verified.
 
 ## Pre-submission checklist
 
-- [ ] `apps/obsidian-plugin/manifest.json` `version` == `0.10.1`
-- [ ] `apps/obsidian-plugin/versions.json` contains key `"0.10.1"`
-- [ ] All five `package.json` files have `"version": "0.10.1"`
-- [ ] Git tag `0.10.1` created locally (NO `v` prefix — Obsidian requires exact manifest match)
-- [ ] GitHub release `0.10.1` created with assets: `main.js`, `manifest.json`, `styles.css`
+- [ ] `apps/obsidian-plugin/manifest.json` `version` == `0.10.2`
+- [ ] `apps/obsidian-plugin/versions.json` contains key `"0.10.2"`
+- [ ] All five `package.json` files have `"version": "0.10.2"`
+- [ ] Git tag `0.10.2` created locally (NO `v` prefix — Obsidian requires exact manifest match)
+- [ ] GitHub release `0.10.2` created with assets: `main.js`, `manifest.json`, `styles.css`
 - [ ] Release assets are from `apps/obsidian-plugin/dist/` after a clean `pnpm build`
 - [ ] `pnpm typecheck && pnpm test && pnpm build && pnpm lint` pass on the tagged commit
 
@@ -47,8 +47,8 @@ Add GotSaeng OS plugin
 ## Plugin submission: GotSaeng OS
 
 **Repository:** wonkwonlee/gotsaeng-os  
-**Version:** 0.10.1  
-**Manifest:** https://github.com/wonkwonlee/gotsaeng-os/releases/download/0.10.1/manifest.json
+**Version:** 0.10.2  
+**Manifest:** https://github.com/wonkwonlee/gotsaeng-os/releases/download/0.10.2/manifest.json
 
 ### What it does
 
@@ -79,8 +79,8 @@ based on note metadata and keyword analysis. They are not semantic AI verificati
 - [x] `minAppVersion` is set to `1.5.0`
 - [x] `isDesktopOnly` is set to `true` with justification above
 - [x] No external network calls, no telemetry, no LLM API calls
-- [x] Release `0.10.1` exists with `main.js`, `manifest.json`, and `styles.css` assets
-- [x] Tag is exactly `0.10.1` (no `v` prefix)
+- [x] Release `0.10.2` exists with `main.js`, `manifest.json`, and `styles.css` assets
+- [x] Tag is exactly `0.10.2` (no `v` prefix)
 ```
 
 ---
@@ -89,13 +89,13 @@ based on note metadata and keyword analysis. They are not semantic AI verificati
 
 When creating the GitHub release:
 
-1. Create the release from tag `0.10.1` (no `v` prefix).
+1. Create the release from tag `0.10.2` (no `v` prefix).
 2. Upload from `apps/obsidian-plugin/dist/`:
    - `main.js`
    - `manifest.json`
    - `styles.css`
 3. Verify the release URL resolves:
-   `https://github.com/wonkwonlee/gotsaeng-os/releases/download/0.10.1/manifest.json`
+   `https://github.com/wonkwonlee/gotsaeng-os/releases/download/0.10.2/manifest.json`
 
 ---
 

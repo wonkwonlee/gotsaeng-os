@@ -1,4 +1,4 @@
-# Launch Draft — GotSaeng OS 0.10.1
+# Launch Draft — GotSaeng OS 0.10.2
 
 This is a working draft for launch copy. No posts have been submitted. All copy below is for
 internal review before publishing.
@@ -98,7 +98,7 @@ files for LLMs
 
 **Body:**
 
-> GotSaeng OS 0.10.1 is out. If you've tried compiling your vault, I'd love to see:
+> GotSaeng OS 0.10.2 is out. If you've tried compiling your vault, I'd love to see:
 >
 > - What vault structure you're using
 > - Which output files you find most useful for your LLM workflows

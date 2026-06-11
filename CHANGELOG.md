@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.2
+
+- Fixed the Obsidian plugin "Custom path" output folder setting: the path field no longer
+  loses focus on every keystroke (the settings pane was re-rendered per character), invalid
+  intermediate input no longer spams notices (validation now runs on blur), and the field
+  auto-focuses when Custom path is selected.
+- No compiler behavior changes.
+
 ## 0.10.1
 
 - Replaced README Quick Start with the exact 3-arg `npx` form required by `compile` (`--output` and `--project` are required options).

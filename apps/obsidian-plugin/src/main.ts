@@ -416,32 +416,41 @@ class GotSaengSettingTab extends PluginSettingTab {
           });
       });
 
+    const isCustomVisibility = this.plugin.settings.outputFolderVisibility === "custom";
     new Setting(containerEl)
       .setName("Output folder path")
       .setDesc(
-        "Generated files stay inside the current vault. Switch to Custom path to edit this manually.",
+        isCustomVisibility
+          ? "Enter a vault-relative folder path (for example: Notes/Context Pack)."
+          : "Generated files stay inside the current vault. Switch to Custom path to edit this manually.",
       )
       .addText((text) => {
         text
           .setPlaceholder(DEFAULT_SETTINGS.outputFolder)
           .setValue(this.plugin.settings.outputFolder)
           .onChange(async (value) => {
-            const validationMessages = validateCustomOutputFolderInput(value);
             const updatedSettings = updateSettingsWithCustomOutputFolderInput(
               this.plugin.settings,
               value,
             );
             if (!updatedSettings) {
-              new Notice(`GotSaeng OS settings: ${validationMessages[0]}`);
-              this.display();
               return;
             }
 
             this.plugin.settings = updatedSettings;
             await this.plugin.saveSettings();
-            this.display();
           });
-        text.inputEl.disabled = this.plugin.settings.outputFolderVisibility !== "custom";
+        text.inputEl.disabled = !isCustomVisibility;
+        text.inputEl.addEventListener("blur", () => {
+          const validationMessages = validateCustomOutputFolderInput(text.inputEl.value);
+          if (validationMessages.length > 0) {
+            new Notice(`GotSaeng OS settings: ${validationMessages[0]}`);
+            text.setValue(this.plugin.settings.outputFolder);
+          }
+        });
+        if (isCustomVisibility) {
+          text.inputEl.focus();
+        }
       });
 
     new Setting(containerEl)

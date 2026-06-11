@@ -3,7 +3,7 @@
 ## Overview
 
 Releases are tag-triggered via `.github/workflows/release.yml`.
-Tag names use **bare version format — NO `v` prefix** (e.g. `0.10.1`, not `v0.10.1`).
+Tag names use **bare version format — NO `v` prefix** (e.g. `0.10.2`, not `v0.10.2`).
 This satisfies Obsidian's tag-equals-manifest-version rule.
 
 ---
@@ -48,7 +48,7 @@ node -p "require('./apps/obsidian-plugin/manifest.json').version"
 node -p "Object.keys(require('./apps/obsidian-plugin/versions.json'))"
 ```
 
-All five must print the same version string (e.g. `0.10.1`).
+All five must print the same version string (e.g. `0.10.2`).
 
 ---
 
@@ -93,8 +93,8 @@ Why this shape:
 4. **Sync to the public repository** (see "Dev → Public Repository Sync" above) and push.
 5. **Tag on the public repository** (bare version, no `v` prefix):
    ```bash
-   git tag 0.10.1
-   git push origin 0.10.1
+   git tag 0.10.2
+   git push origin 0.10.2
    ```
 6. The tag push triggers `.github/workflows/release.yml` on the public repository:
    - Quality job runs first (`pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm lint`).
@@ -119,8 +119,8 @@ If `@gotsaeng/core` publishes successfully but `@gotsaeng/cli` fails:
 
 1. **Do not attempt to re-publish under the same version.**
 2. **Fix the root cause** in the source.
-3. **Bump both packages to the next patch version in lockstep** (e.g. `0.10.1` → `0.10.2`).
-   Even though core `0.10.1` is already live and correct, both packages must move together
+3. **Bump both packages to the next patch version in lockstep** (e.g. `0.10.2` → `0.10.3`).
+   Even though core `0.10.2` is already live and correct, both packages must move together
    to maintain a consistent publish set.
 4. **Update all five version-agreement sources** (see invariant table above).
 5. Commit, tag the new version, push — the workflow re-runs cleanly.
