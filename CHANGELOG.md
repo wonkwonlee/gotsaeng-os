@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.10.5
+
+- Added an optional `ignoreGlobs` compile option so the Obsidian plugin no longer re-scans its own
+  visible output folder on the next compile. Previously a visible output folder (e.g.
+  `Gotsaeng/Context Pack/`) was re-read as source, inflating item counts and emitting
+  `Missing updated field` warnings. (#6)
+- Bounded the high-volume context-pack registers. Inferred bullet extraction under a single heading
+  is now capped, and every dedicated register (Risk Register, Action Backlog, Open Questions, and
+  the Memory Snapshot lists) caps each list at 200 items — keeping explicitly marked items first and
+  summarizing the remainder with an `... N more items omitted` footer. Output is unchanged for vaults
+  within the cap; full counts remain in `COMPILE_REPORT.json`. (#7)
+- Extracted item text longer than 360 characters is still truncated, but now records a warning (with
+  the source path and original length) in the item's confidence metadata instead of failing
+  silently. (#3)
+- No telemetry, network, or LLM calls; local-only behavior is unchanged.
+
 ## 0.10.4
 
 - Removed the plugin-name heading from the settings tab (Obsidian directory guideline: settings

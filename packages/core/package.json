@@ -1,6 +1,6 @@
 {
   "name": "@gotsaeng/core",
-  "version": "0.10.4",
+  "version": "0.10.5",
   "description": "Core context compiler for GotSaeng OS.",
   "type": "module",
   "license": "MIT",
