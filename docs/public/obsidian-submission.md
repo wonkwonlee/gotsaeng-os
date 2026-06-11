@@ -1,67 +1,43 @@
 # Obsidian Community Plugin Submission — GotSaeng OS
 
-This document is a local draft. All external actions (opening the PR, cutting the tag, uploading
-the release assets) are performed manually by the maintainer after the version-agreement invariant
-has been verified.
+> **Process update (2026-06):** Obsidian no longer accepts pull requests to
+> `obsidianmd/obsidian-releases` (the repo has PR creation disabled). Submissions go through
+> the **community directory portal** at <https://community.obsidian.md>. The portal reads
+> `manifest.json` from the HEAD of the repository's default branch and verifies the matching
+> GitHub release.
 
 ---
 
 ## Pre-submission checklist
 
-- [ ] `apps/obsidian-plugin/manifest.json` `version` == `0.10.2`
-- [ ] `apps/obsidian-plugin/versions.json` contains key `"0.10.2"`
-- [ ] All five `package.json` files have `"version": "0.10.2"`
-- [ ] Git tag `0.10.2` created locally (NO `v` prefix — Obsidian requires exact manifest match)
-- [ ] GitHub release `0.10.2` created with assets: `main.js`, `manifest.json`, `styles.css`
-- [ ] Release assets are from `apps/obsidian-plugin/dist/` after a clean `pnpm build`
-- [ ] `pnpm typecheck && pnpm test && pnpm build && pnpm lint` pass on the tagged commit
+- [x] `apps/obsidian-plugin/manifest.json` `version` == `0.10.2`
+- [x] `apps/obsidian-plugin/versions.json` contains key `"0.10.2"`
+- [x] All five `package.json` files have `"version": "0.10.2"`
+- [x] Git tag `0.10.2` on the public repo (NO `v` prefix — must exactly match manifest version)
+- [x] GitHub release `0.10.2` with assets: `main.js`, `manifest.json`, `styles.css`
+- [x] Release assets are from `apps/obsidian-plugin/dist/` after a clean `pnpm build`
+- [x] `pnpm typecheck && pnpm test && pnpm build && pnpm lint` pass on the tagged commit
+- [x] Public repo has `README.md` and `LICENSE` (MIT) at the root
+- [x] `manifest.json` `id` (`gotsaeng-os`) does not contain the word "obsidian"
+
+## Submission steps (portal)
+
+1. Go to <https://community.obsidian.md> and sign in with an Obsidian account.
+2. Link the GitHub account that owns `wonkwonlee/gotsaeng-os` (ownership verification).
+3. Navigate to **Plugins → New plugin**.
+4. Enter the repository URL: `https://github.com/wonkwonlee/gotsaeng-os`
+5. Agree to the [Developer policies](https://docs.obsidian.md/Developer+policies).
+6. Select **Submit**.
+7. The directory runs automated review checks. Address any feedback by fixing the code,
+   bumping the version (lockstep, see `docs/release.md`), tagging, and cutting a new release —
+   the portal picks up the latest release automatically.
+
+**Review is not done at "submitted" — shepherd the submission through automated and human
+feedback until the plugin is listed.**
 
 ---
 
-## community-plugins.json entry
-
-Add the following object to `community-plugins.json` in the
-[obsidianmd/obsidian-releases](https://github.com/obsidianmd/obsidian-releases) repo:
-
-```json
-{
-  "id": "gotsaeng-os",
-  "name": "GotSaeng OS",
-  "author": "GotSaeng OS contributors",
-  "description": "Compile your local Markdown vault into a structured context pack for LLM-assisted workflows. Local-first, no telemetry, no cloud, no LLM API calls.",
-  "repo": "wonkwonlee/gotsaeng-os"
-}
-```
-
----
-
-## Pull request title
-
-```
-Add GotSaeng OS plugin
-```
-
-## Pull request body
-
-```markdown
-## Plugin submission: GotSaeng OS
-
-**Repository:** wonkwonlee/gotsaeng-os  
-**Version:** 0.10.2  
-**Manifest:** https://github.com/wonkwonlee/gotsaeng-os/releases/download/0.10.2/manifest.json
-
-### What it does
-
-GotSaeng OS compiles a local Obsidian vault into a structured context pack — a set of Markdown and
-JSON files (`PROJECT_CONTEXT.md`, `MEMORY_SNAPSHOT.md`, `DECISION_LOG.md`, `ACTION_BACKLOG.md`,
-`RISK_REGISTER.md`, `OPEN_QUESTIONS.md`, `SOURCE_PROVENANCE.md`, `CONFIDENCE.md`,
-`CONTRADICTIONS.md`, `MEMORY_DIFF.md`, `CONTEXT_MANIFEST.json`, `COMPILE_REPORT.json`) — intended
-for use in LLM context windows, agent memory, and project handoffs.
-
-Provenance scoring, confidence scoring, and contradiction detection are deterministic heuristics
-based on note metadata and keyword analysis. They are not semantic AI verification.
-
-### isDesktopOnly justification
+## isDesktopOnly justification (for review feedback)
 
 `isDesktopOnly: true` because:
 
@@ -72,34 +48,23 @@ based on note metadata and keyword analysis. They are not semantic AI verificati
 3. **No mobile code path exists** — there is no fallback or mobile-safe implementation; shipping
    the plugin on mobile would result in immediate failure at compile time.
 
-### Checklist
+## Plugin description (used in the directory listing)
 
-- [x] I have read the plugin developer guidelines
-- [x] `id` in `manifest.json` matches the folder name and `community-plugins.json` entry
-- [x] `minAppVersion` is set to `1.5.0`
-- [x] `isDesktopOnly` is set to `true` with justification above
-- [x] No external network calls, no telemetry, no LLM API calls
-- [x] Release `0.10.2` exists with `main.js`, `manifest.json`, and `styles.css` assets
-- [x] Tag is exactly `0.10.2` (no `v` prefix)
+```
+Compile your local Markdown vault into a structured context pack for LLM-assisted workflows.
+Local-first, no telemetry, no cloud, no LLM API calls.
 ```
 
----
-
-## Release asset upload order
-
-When creating the GitHub release:
-
-1. Create the release from tag `0.10.2` (no `v` prefix).
-2. Upload from `apps/obsidian-plugin/dist/`:
-   - `main.js`
-   - `manifest.json`
-   - `styles.css`
-3. Verify the release URL resolves:
-   `https://github.com/wonkwonlee/gotsaeng-os/releases/download/0.10.2/manifest.json`
+Provenance scoring, confidence scoring, and contradiction detection are deterministic heuristics
+based on note metadata and keyword analysis. They are not semantic AI verification — keep this
+framing in any reviewer correspondence to avoid overclaiming.
 
 ---
 
-## Post-submission
+## Post-listing
 
-The Obsidian bot will run automated checks. Human review follows — shepherd the PR through change
-requests until merged. Bot-green is NOT the done state; merge is.
+Once admitted to the community directory:
+
+- Announce in the [Obsidian forum Share & Showcase](https://forum.obsidian.md/c/share-showcase/9).
+- Announce on the Obsidian Discord `#updates` channel (requires the `developer` role).
+- Proceed with the broader launch plan in `docs/launch.md`.
