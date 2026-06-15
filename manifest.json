@@ -1,7 +1,7 @@
 {
   "id": "gotsaeng-os",
   "name": "GotSaeng OS",
-  "version": "0.10.5",
+  "version": "0.10.6",
   "minAppVersion": "1.5.0",
   "description": "Compile local Markdown vault context into GotSaeng OS context packs.",
   "author": "GotSaeng OS contributors",

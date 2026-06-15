@@ -46,6 +46,12 @@ export function classifyNoteType(
   if (normalizedPath.includes("projects")) {
     return "project";
   }
+  // Meeting and interview notes capture decisions, facts, and open questions much
+  // like research notes do, so treat their folders as research rather than the
+  // low-confidence `unknown` fallback.
+  if (normalizedPath.includes("meetings") || normalizedPath.includes("interviews")) {
+    return "research";
+  }
 
   return "unknown";
 }

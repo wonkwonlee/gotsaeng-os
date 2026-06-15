@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.6
+
+- Mapped the common vault frontmatter aliases `type: memo` and `type: note` to `research`, so notes
+  using those conventions no longer fall through to the low-confidence `unknown` type. (#1)
+- Added path heuristics for `meetings/` and `interviews/` folders, classifying their notes as
+  `research` instead of `unknown` to preserve extraction confidence. (#5)
+- Added test coverage for Korean section-heading inference (할 일/질문 → question, 결정 → decision,
+  위험 → risk, 요약/통찰 → insight) so a regression in those patterns is caught. (#4)
+- No telemetry, network, or LLM calls; local-only behavior is unchanged.
+
 ## 0.10.5
 
 - Added an optional `ignoreGlobs` compile option so the Obsidian plugin no longer re-scans its own

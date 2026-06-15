@@ -21,4 +21,9 @@ describe("classifier", () => {
     expect(classifyNoteType("templates/project.md")).toBe("template");
     expect(classifyNoteType("scratch/random.md")).toBe("unknown");
   });
+
+  it("infers research from meeting and interview folders", () => {
+    expect(classifyNoteType("meetings/2026-01-standup.md")).toBe("research");
+    expect(classifyNoteType("interviews/candidate-x.md")).toBe("research");
+  });
 });

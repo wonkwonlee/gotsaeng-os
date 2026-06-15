@@ -31,6 +31,38 @@ describe("extractor", () => {
     ]);
   });
 
+  it("infers item kinds from Korean section headings", () => {
+    const note = parseMarkdown(
+      [
+        "## 할 일",
+        "- 사용자 인증 플로우를 설계한다",
+        "## 질문",
+        "- API 버전 정책을 어떻게 가져갈까?",
+        "## 결정",
+        "- CLI를 먼저 출시하기로 한다",
+        "## 위험",
+        "- 파운데이션 모델이 요약 기능을 흡수할 수 있다",
+        "## 요약",
+        "- 핵심 제품은 컨텍스트 인프라다",
+        "## 통찰",
+        "- 로컬 우선 설계가 사용자 신뢰를 만든다"
+      ].join("\n"),
+      "/vault/meeting.md",
+      "/vault"
+    );
+
+    const items = extractItems(note);
+    const kindOf = (needle: string) =>
+      items.find((item) => item.text.includes(needle))?.kind;
+
+    expect(kindOf("사용자 인증 플로우")).toBe("question");
+    expect(kindOf("API 버전 정책")).toBe("question");
+    expect(kindOf("CLI를 먼저 출시")).toBe("decision");
+    expect(kindOf("요약 기능을 흡수")).toBe("risk");
+    expect(kindOf("핵심 제품은 컨텍스트")).toBe("insight");
+    expect(kindOf("로컬 우선 설계")).toBe("insight");
+  });
+
   it("normalizes TODO markers to action", () => {
     const note = parseMarkdown("- todo: Add tests for YAML parsing.", "/vault/todo.md", "/vault");
 
