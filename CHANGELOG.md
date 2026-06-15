@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.10.7
+
+- Fixed `ACTION_BACKLOG.md` silently dropping action items whose status is `stale`: a dedicated
+  Stale section is now rendered, and the Unknown bucket is a catch-all so no status value can ever
+  vanish from the backlog. (#13)
+- Hardened date parsing: impossible calendar dates (e.g. `2024-13-40`, `2024-02-30`) are now
+  rejected instead of silently rolling over, and the lenient locale/timezone-dependent
+  `new Date(string)` fallback is replaced with a strict ISO-8601 (zoned) allow-list, removing a
+  source of non-deterministic stored dates across machines. (#14)
+- Fixed inline-link stripping corrupting item text when a URL contains parentheses (e.g. Wikipedia
+  `.../Foo_(bar)` links no longer leak a trailing `)` into the extracted text). (#12)
+- No telemetry, network, or LLM calls; local-only behavior is unchanged.
+
 ## 0.10.6
 
 - Mapped the common vault frontmatter aliases `type: memo` and `type: note` to `research`, so notes

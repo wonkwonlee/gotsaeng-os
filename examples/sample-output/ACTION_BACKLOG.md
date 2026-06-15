@@ -13,6 +13,10 @@ Generated: 2026-06-06T00:00:00.000Z
 - Convert scattered founder notes into explicit context markers. (source: 00_inbox/raw-chat-export.md; status: active; priority: high; tags: capture, chat-export, context-engineering)
 - Keep plugin work limited to roadmap documentation for now. (source: 02_decisions/2026-06-06-plugin-vs-framework.md; status: active; priority: medium; tags: architecture, framework, obsidian)
 
+## Stale
+
+- None.
+
 ## Unknown
 
 - Keep v0.1 focused on deterministic Markdown extraction. (source: 00_inbox/raw-chat-export.md; status: unknown; tags: capture, chat-export, context-engineering)

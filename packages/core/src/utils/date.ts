@@ -1,4 +1,11 @@
 const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+// Strict ISO-8601 date-time with a mandatory zone (Z or ±hh:mm). We deliberately
+// do NOT delegate to the lenient `new Date(string)` constructor for arbitrary
+// input: it is implementation- and locale-dependent and silently applies the
+// local timezone to zone-less values, which makes stored dates non-deterministic
+// across machines. Only these two explicit shapes are accepted.
+const ISO_DATETIME_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 export function toIsoTimestamp(date: Date): string {
   return date.toISOString();
@@ -12,7 +19,20 @@ export function parseDateLike(value: string): Date | undefined {
     const month = Number(dateOnly[2]);
     const day = Number(dateOnly[3]);
     const date = new Date(Date.UTC(year, month - 1, day));
-    return Number.isNaN(date.getTime()) ? undefined : date;
+    // Date.UTC rolls overflow fields over (2024-13-40 -> 2025-02-09) instead of
+    // returning NaN, so reject any value whose components did not round-trip.
+    if (
+      date.getUTCFullYear() !== year ||
+      date.getUTCMonth() !== month - 1 ||
+      date.getUTCDate() !== day
+    ) {
+      return undefined;
+    }
+    return date;
+  }
+
+  if (!ISO_DATETIME_PATTERN.test(trimmed)) {
+    return undefined;
   }
 
   const parsed = new Date(trimmed);

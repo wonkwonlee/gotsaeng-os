@@ -63,6 +63,21 @@ describe("extractor", () => {
     expect(kindOf("로컬 우선 설계")).toBe("insight");
   });
 
+  it("strips inline links whose URL contains parentheses", () => {
+    const note = parseMarkdown(
+      "- fact: See [Wikipedia](https://en.wikipedia.org/wiki/Foo_(bar)) for details.",
+      "/vault/links.md",
+      "/vault"
+    );
+
+    expect(extractItems(note)).toMatchObject([
+      {
+        kind: "fact",
+        text: "See Wikipedia for details."
+      }
+    ]);
+  });
+
   it("normalizes TODO markers to action", () => {
     const note = parseMarkdown("- todo: Add tests for YAML parsing.", "/vault/todo.md", "/vault");
 

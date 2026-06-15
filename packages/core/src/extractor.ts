@@ -294,7 +294,9 @@ function cleanExtractedText(text: string): CleanedText {
     .replace(/\s+!(low|medium|high)\b/gi, "")
     .replace(/\[\[[^\]|]+\|([^\]]+)\]\]/g, "$1")
     .replace(/\[\[([^\]]+)\]\]/g, "$1")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    // Tolerate one level of literal/nested parens in the URL (e.g. Wikipedia
+    // links like .../Foo_(bar)) so the trailing ")" does not leak into the text.
+    .replace(/\[([^\]]+)\]\((?:[^()]|\([^()]*\))*\)/g, "$1")
     .replace(/\[|\]/g, "")
     .replace(/[*`~]/g, "")
     .replace(/[⏫🔼🔽]/gu, "")

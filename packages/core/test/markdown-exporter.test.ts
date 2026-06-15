@@ -193,3 +193,28 @@ describe("dedicated register caps", () => {
     }
   });
 });
+
+describe("renderActionBacklog status coverage", () => {
+  const note = makeNote({ path: "/vault/notes/a.md", noteType: "research", updated: "2026-06-01" });
+
+  it("renders actions for every status so none are silently dropped", () => {
+    const statuses: ExtractedItem["status"][] = ["open", "active", "stale", "done", "unknown"];
+    const actions = statuses.map((status) =>
+      makeItem({ note, text: `Action ${status}`, source: "task_list", kind: "action", status })
+    );
+
+    const rendered = renderActionBacklog(makePack({ actions }));
+
+    for (const status of statuses) {
+      expect(rendered).toContain(`Action ${status}`);
+    }
+    expect(rendered).toContain("## Stale");
+  });
+
+  it("keeps an action with an undefined status in the Unknown bucket", () => {
+    const action = makeItem({ note, text: "Action no status", source: "task_list", kind: "action" });
+    const pack = makePack({ actions: [{ ...action, status: undefined }] });
+
+    expect(renderActionBacklog(pack)).toContain("Action no status");
+  });
+});

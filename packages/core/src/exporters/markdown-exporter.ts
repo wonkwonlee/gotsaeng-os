@@ -171,11 +171,19 @@ export function renderDecisionLog(pack: ContextPack): string {
   ].join("\n");
 }
 
+// Statuses that get their own dedicated section. Any action whose status is not
+// one of these (including `undefined` and any future enum value) falls through to
+// the catch-all "Unknown" bucket, so no action can ever vanish from the backlog.
+const NAMED_ACTION_STATUSES = new Set<string>(["open", "active", "stale", "done"]);
+
 export function renderActionBacklog(pack: ContextPack): string {
   const open = pack.actions.filter((item) => item.status === "open");
   const active = pack.actions.filter((item) => item.status === "active");
-  const unknown = pack.actions.filter((item) => item.status === "unknown" || item.status === undefined);
+  const stale = pack.actions.filter((item) => item.status === "stale");
   const done = pack.actions.filter((item) => item.status === "done");
+  const unknown = pack.actions.filter(
+    (item) => item.status === undefined || !NAMED_ACTION_STATUSES.has(item.status)
+  );
 
   return [
     `# Action Backlog: ${pack.projectName}`,
@@ -189,6 +197,10 @@ export function renderActionBacklog(pack: ContextPack): string {
     "## Active",
     "",
     renderCappedRegisterList(active),
+    "",
+    "## Stale",
+    "",
+    renderCappedRegisterList(stale),
     "",
     "## Unknown",
     "",
