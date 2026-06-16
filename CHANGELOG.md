@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.10.8
+
+- Recognized the spaced Korean action marker `할 일` (previously only `할일` was mapped), so a
+  `- 할 일: …` bullet is extracted as an explicit `action`. Also hardened `classifySubheading` so
+  topic keywords take precedence over the numbered-heading heuristic. (#15)
+- Truncated item text now reserves room for the ellipsis so it never exceeds the 360-character cap,
+  and leading `status:`/`priority:`/`!high` metadata at the very start of an item is stripped from
+  the text (matching the status/priority inference). (#16)
+- The CLI version is now derived from `package.json` at runtime instead of a hardcoded constant, so
+  `gotsaeng --version` and `gotsaeng doctor` can never drift from the published version. (#17)
+- No telemetry, network, or LLM calls; local-only behavior is unchanged.
+
 ## 0.10.7
 
 - Fixed `ACTION_BACKLOG.md` silently dropping action items whose status is `stale`: a dedicated

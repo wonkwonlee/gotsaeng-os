@@ -17,6 +17,7 @@ const MARKER_TO_KIND: Record<string, ExtractedItemKind> = {
   action: "action",
   todo: "action",
   할일: "action",
+  "할 일": "action",
   작업: "action",
   risk: "risk",
   위험: "risk",
@@ -289,9 +290,11 @@ type CleanedText = { text: string; truncatedFrom?: number };
 
 function cleanExtractedText(text: string): CleanedText {
   const cleaned = text
-    .replace(/\s+\bstatus:\s*(open|active|done|stale|unknown)\b/gi, "")
-    .replace(/\s+\bpriority:\s*(low|medium|high)\b/gi, "")
-    .replace(/\s+!(low|medium|high)\b/gi, "")
+    // Anchor on start-or-whitespace so metadata at the very beginning of the text
+    // (with no preceding space) is stripped too, matching inferStatus/inferPriority.
+    .replace(/(?:^|\s+)\bstatus:\s*(open|active|done|stale|unknown)\b/gi, "")
+    .replace(/(?:^|\s+)\bpriority:\s*(low|medium|high)\b/gi, "")
+    .replace(/(?:^|\s+)!(low|medium|high)\b/gi, "")
     .replace(/\[\[[^\]|]+\|([^\]]+)\]\]/g, "$1")
     .replace(/\[\[([^\]]+)\]\]/g, "$1")
     // Tolerate one level of literal/nested parens in the URL (e.g. Wikipedia
@@ -315,8 +318,9 @@ function cleanExtractedText(text: string): CleanedText {
   }
 
   if (cleaned.length > MAX_ITEM_TEXT_LENGTH) {
+    // Reserve room for the 3-char ellipsis so the result never exceeds the cap.
     return {
-      text: `${cleaned.slice(0, MAX_ITEM_TEXT_LENGTH - 1).trimEnd()}...`,
+      text: `${cleaned.slice(0, MAX_ITEM_TEXT_LENGTH - 3).trimEnd()}...`,
       truncatedFrom: cleaned.length
     };
   }
@@ -416,12 +420,8 @@ function classifySectionHeading(heading: string): ExtractedItemKind | undefined 
 function classifySubheading(heading: string): ExtractedItemKind | undefined {
   const normalized = heading.toLowerCase();
 
-  if (/^(signal|bucket)\s+\d+/i.test(normalized)) {
-    return "insight";
-  }
-  if (/^\d+\./.test(normalized)) {
-    return "insight";
-  }
+  // Topic keywords win over the generic "numbered/bucketed subheading => insight"
+  // heuristics, so a heading like "### 1. Security risk" classifies as risk.
   if (/(risk|위험)/i.test(normalized)) {
     return "risk";
   }
@@ -430,6 +430,12 @@ function classifySubheading(heading: string): ExtractedItemKind | undefined {
   }
   if (/(decision|verdict|결정)/i.test(normalized)) {
     return "decision";
+  }
+  if (/^(signal|bucket)\s+\d+/i.test(normalized)) {
+    return "insight";
+  }
+  if (/^\d+\./.test(normalized)) {
+    return "insight";
   }
 
   return undefined;

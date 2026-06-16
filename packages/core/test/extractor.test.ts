@@ -78,6 +78,44 @@ describe("extractor", () => {
     ]);
   });
 
+  it("recognizes the spaced Korean 할 일 action marker", () => {
+    const note = parseMarkdown("- 할 일: 우유 사기", "/vault/todo.md", "/vault");
+    const items = extractItems(note);
+
+    expect(items).toMatchObject([{ kind: "action", text: "우유 사기" }]);
+    expect(
+      items[0]?.confidence?.signals.some((s) => s.includes("explicit extraction marker"))
+    ).toBe(true);
+  });
+
+  it("classifies a numbered subheading by its topic keyword, not as insight", () => {
+    const note = parseMarkdown(
+      ["### 1. Security risk", "- mitigate the exposure"].join("\n"),
+      "/vault/risks.md",
+      "/vault"
+    );
+    const kinds = extractItems(note).map((item) => item.kind);
+
+    expect(kinds).toContain("risk");
+    expect(kinds).not.toContain("insight");
+  });
+
+  it("keeps truncated item text within the length cap", () => {
+    const note = parseMarkdown(`- fact: ${"a".repeat(500)}`, "/vault/long.md", "/vault");
+    const [item] = extractItems(note);
+
+    expect(item?.text.length).toBeLessThanOrEqual(360);
+    expect(item?.text.endsWith("...")).toBe(true);
+  });
+
+  it("strips leading priority metadata from item text", () => {
+    const note = parseMarkdown("- action: priority: high finish the report", "/vault/p.md", "/vault");
+
+    expect(extractItems(note)).toMatchObject([
+      { kind: "action", text: "finish the report", priority: "high" }
+    ]);
+  });
+
   it("normalizes TODO markers to action", () => {
     const note = parseMarkdown("- todo: Add tests for YAML parsing.", "/vault/todo.md", "/vault");
 

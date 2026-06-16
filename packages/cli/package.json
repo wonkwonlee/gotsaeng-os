@@ -1,6 +1,6 @@
 {
   "name": "@gotsaeng/cli",
-  "version": "0.10.7",
+  "version": "0.10.8",
   "description": "Command-line interface for GotSaeng OS.",
   "type": "module",
   "license": "MIT",

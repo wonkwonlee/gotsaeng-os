@@ -12,11 +12,20 @@ describe("cli", () => {
   const cliPath = path.resolve(process.cwd(), "packages/cli/dist/index.js");
   const sampleVault = path.resolve(process.cwd(), "examples/sample-vault");
 
+  // The reported version must track packages/cli/package.json, never a hardcoded
+  // constant — see version.ts. Read it here so the assertion cannot silently drift.
+  async function cliPackageVersion(): Promise<string> {
+    const manifest = JSON.parse(
+      await fs.readFile(path.resolve(process.cwd(), "packages/cli/package.json"), "utf8"),
+    ) as { version: string };
+    return manifest.version;
+  }
+
   it("runs doctor", async () => {
     const { stdout } = await execFileAsync(process.execPath, [cliPath, "doctor"]);
 
     expect(stdout).toContain("GotSaeng OS Doctor");
-    expect(stdout).toContain("CLI version: 0.10.0");
+    expect(stdout).toContain(`CLI version: ${await cliPackageVersion()}`);
     expect(stdout).toContain("Write permission: ok");
   });
 
@@ -28,7 +37,7 @@ describe("cli", () => {
     const { stdout } = await execFileAsync(binPath, ["doctor"]);
 
     expect(stdout).toContain("GotSaeng OS Doctor");
-    expect(stdout).toContain("CLI version: 0.10.0");
+    expect(stdout).toContain(`CLI version: ${await cliPackageVersion()}`);
     expect(stdout).toContain("Write permission: ok");
   });
 
