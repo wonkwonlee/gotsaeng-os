@@ -59,9 +59,11 @@ describe("parser", () => {
       "/vault"
     );
 
+    const defaultIssues = validateNoteMetadata(note);
     const compatibilityIssues = validateNoteMetadata(note, { strict: false });
     const strictIssues = validateNoteMetadata(note, { strict: true });
 
+    expect(defaultIssues).toEqual(compatibilityIssues);
     expect(compatibilityIssues.every((issue) => issue.severity === "warning")).toBe(true);
     expect(compatibilityIssues.map((issue) => issue.message)).toEqual([
       "Custom note type: wiki; mapped to research.",
