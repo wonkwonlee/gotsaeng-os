@@ -92,7 +92,7 @@ export function validateNoteMetadata(
   options: ValidationOptions = {}
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  const strict = options.strict ?? true;
+  const strict = options.strict ?? false;
 
   if (!hasExplicitTitle(note)) {
     issues.push({
