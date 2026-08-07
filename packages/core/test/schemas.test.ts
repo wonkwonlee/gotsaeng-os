@@ -89,6 +89,28 @@ describe("CompileOptionsSchema", () => {
       CompileOptionsSchema.parse({ sourceRoot: "/vault", projectName: "Project", staleDays: -5 }),
     ).toThrow();
   });
+
+  it("leaves caps undefined when omitted so extractor.ts/markdown-exporter.ts fall back to their own defaults (#10)", () => {
+    const parsed = CompileOptionsSchema.parse({ sourceRoot: "/vault", projectName: "Project" });
+    expect(parsed.caps).toBeUndefined();
+  });
+
+  it("accepts a partial caps override and rejects non-positive cap values", () => {
+    const parsed = CompileOptionsSchema.parse({
+      sourceRoot: "/vault",
+      projectName: "Project",
+      caps: { register: 50 },
+    });
+    expect(parsed.caps).toEqual({ register: 50 });
+
+    expect(() =>
+      CompileOptionsSchema.parse({
+        sourceRoot: "/vault",
+        projectName: "Project",
+        caps: { perHeading: 0 },
+      }),
+    ).toThrow();
+  });
 });
 
 function validNote(overrides: Record<string, unknown> = {}): Record<string, unknown> {

@@ -67,7 +67,16 @@ const MAX_ITEM_TEXT_LENGTH = 360;
 // section_line items a single heading may emit. Explicit markers are exempt.
 export const MAX_SECTION_LINE_ITEMS_PER_HEADING = 12;
 
-export function extractItems(note: NoteDocument): ExtractedItem[] {
+export type ExtractItemsOptions = {
+  maxSectionLineItemsPerHeading?: number;
+};
+
+export function extractItems(
+  note: NoteDocument,
+  options: ExtractItemsOptions = {},
+): ExtractedItem[] {
+  const maxSectionLineItemsPerHeading =
+    options.maxSectionLineItemsPerHeading ?? MAX_SECTION_LINE_ITEMS_PER_HEADING;
   const items: ExtractedItem[] = [];
   const lines = note.body.split(/\r?\n/);
   let currentSection: SectionContext | undefined;
@@ -101,7 +110,12 @@ export function extractItems(note: NoteDocument): ExtractedItem[] {
       continue;
     }
 
-    const sectionItem = extractSectionLine(line, note, currentSection);
+    const sectionItem = extractSectionLine(
+      line,
+      note,
+      currentSection,
+      maxSectionLineItemsPerHeading,
+    );
     if (sectionItem) {
       items.push(sectionItem);
       if (currentSection) {
@@ -194,6 +208,7 @@ function extractSectionLine(
   line: string,
   note: NoteDocument,
   section: SectionContext | undefined,
+  maxSectionLineItemsPerHeading: number,
 ): ExtractedItem | undefined {
   if (!section?.kind || !shouldUseInferredExtraction(note)) {
     return undefined;
@@ -203,7 +218,7 @@ function extractSectionLine(
     return undefined;
   }
 
-  if (section.emittedCount >= MAX_SECTION_LINE_ITEMS_PER_HEADING) {
+  if (section.emittedCount >= maxSectionLineItemsPerHeading) {
     return undefined;
   }
 
@@ -281,6 +296,7 @@ function createItem(input: {
     priority: inferPriority(input.line),
     created: input.note.created,
     updated: input.note.updated,
+    confidenceSource: input.confidenceSource,
     tags: [...input.note.tags],
   };
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { extractSourceLinks } from "../src/source-links";
+import { buildBacklinkIndex, extractSourceLinks } from "../src/source-links";
 
 describe("Obsidian source links", () => {
   it("extracts source notes from generated Markdown metadata and wikilinks", () => {
@@ -59,5 +59,49 @@ describe("Obsidian source links", () => {
         count: 1,
       },
     ]);
+  });
+});
+
+describe("buildBacklinkIndex", () => {
+  it("aggregates a source note's references across every generated report", () => {
+    const backlinks = buildBacklinkIndex({
+      "REPORT_HUB.md": "- Follow up ([[10_Wiki/source-note.md|Source Note]]; status: open)",
+      "ACTION_BACKLOG.md": [
+        "- Again ([[10_Wiki/source-note.md|Source Note]])",
+        "- Once ([[10_Wiki/source-note.md|Source Note]])",
+      ].join("\n"),
+    });
+
+    expect(backlinks).toEqual([
+      {
+        path: "10_Wiki/source-note.md",
+        label: "Source Note",
+        totalCount: 3,
+        reports: [
+          { fileName: "ACTION_BACKLOG.md", label: "Action Backlog", count: 2 },
+          { fileName: "REPORT_HUB.md", label: "Report Hub", count: 1 },
+        ],
+      },
+    ]);
+  });
+
+  it("ranks notes by total reference count and ignores JSON artifacts and missing files", () => {
+    const backlinks = buildBacklinkIndex({
+      "REPORT_HUB.md": "- [[10_Wiki/rare-note.md|Rare Note]]",
+      "ACTION_BACKLOG.md": [
+        "- [[10_Wiki/popular-note.md|Popular Note]]",
+        "- [[10_Wiki/popular-note.md|Popular Note]]",
+      ].join("\n"),
+      "COMPILE_REPORT.json": JSON.stringify({ items: [{ sourcePath: "10_Wiki/rare-note.md" }] }),
+    });
+
+    expect(backlinks.map((entry) => entry.path)).toEqual([
+      "10_Wiki/popular-note.md",
+      "10_Wiki/rare-note.md",
+    ]);
+  });
+
+  it("returns an empty index when no generated report content is available", () => {
+    expect(buildBacklinkIndex({})).toEqual([]);
   });
 });

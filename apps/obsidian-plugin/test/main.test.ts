@@ -233,6 +233,62 @@ describe("GotSaengObsidianPlugin file navigation", () => {
   });
 });
 
+describe("GotSaengObsidianPlugin output folder visibility command", () => {
+  it("switches from hidden to visible, persists settings, and cleans up the stale hidden folder", async () => {
+    const staleDir = path.join(tempRoot, HIDDEN_OUTPUT_FOLDER);
+    await fs.mkdir(staleDir, { recursive: true });
+    await fs.writeFile(path.join(staleDir, "REPORT_HUB.md"), "stale", "utf8");
+
+    const { plugin } = createPlugin(tempRoot, { ...DEFAULT_SETTINGS });
+
+    await plugin.switchOutputFolderVisibilityCommand("visible");
+
+    expect(plugin.settings.outputFolderVisibility).toBe("visible");
+    expect(plugin.settings.outputFolder).toBe(VISIBLE_OUTPUT_FOLDER);
+
+    const staleDirEntries = await fs.readdir(staleDir).catch(() => []);
+    expect(staleDirEntries).not.toContain("REPORT_HUB.md");
+    expect(
+      recordedNotices.some((notice) =>
+        notice.message.includes(`output folder switched to ${VISIBLE_OUTPUT_FOLDER}`),
+      ),
+    ).toBe(true);
+  });
+
+  it("notifies without changing settings when the requested visibility is already active", async () => {
+    const { plugin } = createPlugin(tempRoot, {
+      ...DEFAULT_SETTINGS,
+      outputFolderVisibility: "hidden",
+      outputFolder: HIDDEN_OUTPUT_FOLDER,
+    });
+
+    await plugin.switchOutputFolderVisibilityCommand("hidden");
+
+    expect(plugin.settings.outputFolder).toBe(HIDDEN_OUTPUT_FOLDER);
+    expect(recordedNotices.some((notice) => notice.message.includes("already hidden"))).toBe(true);
+  });
+});
+
+describe("GotSaengObsidianPlugin readAllOutputFiles", () => {
+  it("reads every generated Markdown artifact and skips missing files and JSON artifacts", async () => {
+    const { plugin } = createPlugin(tempRoot, {
+      ...DEFAULT_SETTINGS,
+      outputFolderVisibility: "visible",
+      outputFolder: VISIBLE_OUTPUT_FOLDER,
+    });
+    const outputDir = path.join(tempRoot, VISIBLE_OUTPUT_FOLDER);
+    await fs.mkdir(outputDir, { recursive: true });
+    await fs.writeFile(path.join(outputDir, "REPORT_HUB.md"), "hub content", "utf8");
+    await fs.writeFile(path.join(outputDir, "COMPILE_REPORT.json"), "{}", "utf8");
+
+    const files = await plugin.readAllOutputFiles();
+
+    expect(files["REPORT_HUB.md"]).toBe("hub content");
+    expect(files["COMPILE_REPORT.json"]).toBeUndefined();
+    expect(files["ACTION_BACKLOG.md"]).toBeUndefined();
+  });
+});
+
 describe("GotSaengObsidianPlugin settings tab", () => {
   // `onload()` calls `loadSettings()`, which always runs persisted data
   // through `normalizeSettings()` (see src/settings.ts) — so, like the real

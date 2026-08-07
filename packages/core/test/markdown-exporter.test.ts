@@ -7,6 +7,7 @@ import {
   renderActionBacklog,
   renderCoverageLines,
   renderEngineeringOps,
+  renderMarkdownFiles,
   renderMemorySnapshot,
   renderOpenQuestions,
   renderRiskRegister,
@@ -47,6 +48,7 @@ function makeItem(input: {
     status: input.status ?? "open",
     created: input.note.created,
     updated: input.note.updated,
+    confidenceSource: input.source,
     tags: [] as string[],
   };
 
@@ -150,6 +152,45 @@ describe("renderRiskRegister", () => {
     ).length;
     expect(sectionPresent).toBe(RISK_REGISTER_CAP - explicitTexts.length);
   });
+
+  it("renders every explicit-marker risk even when explicit markers alone exceed the cap (#18)", () => {
+    const note = makeNote({
+      path: "/vault/30_Research/explicit-heavy.md",
+      noteType: "research",
+      updated: "2026-06-01",
+    });
+    const explicitTexts = Array.from(
+      { length: RISK_REGISTER_CAP + 50 },
+      (_unused, index) => `Explicit overflow risk ${index + 1}`,
+    );
+    const explicitRisks = explicitTexts.map((text) =>
+      makeRiskItem({ note, text, source: "explicit_marker" }),
+    );
+
+    const rendered = renderRiskRegister(makePack({ risks: explicitRisks }));
+
+    for (const text of explicitTexts) {
+      expect(rendered).toContain(text);
+    }
+    expect(rendered).not.toContain("more items omitted");
+  });
+
+  it("overrides the register cap via the caps option (#10)", () => {
+    const note = makeNote({
+      path: "/vault/30_Research/custom-cap.md",
+      noteType: "research",
+      updated: "2026-06-01",
+    });
+    const risks = Array.from({ length: 10 }, (_unused, index) =>
+      makeRiskItem({ note, text: `Risk ${index + 1}`, source: "section_line" }),
+    );
+
+    const rendered = renderRiskRegister(makePack({ risks }), { register: 3 });
+
+    expect(rendered).toContain("... 7 more items omitted");
+    const itemLines = rendered.split("\n").filter((line) => line.startsWith("- Risk "));
+    expect(itemLines).toHaveLength(3);
+  });
 });
 
 describe("dedicated register caps", () => {
@@ -223,6 +264,41 @@ describe("dedicated register caps", () => {
     for (const item of items) {
       expect(rendered).toContain(item.text);
     }
+  });
+});
+
+describe("configurable caps (#10)", () => {
+  it("overrides the Memory Snapshot insights cap independently of the register cap", () => {
+    const note = makeNote({
+      path: "/vault/30_Research/insights.md",
+      noteType: "research",
+      updated: "2026-06-01",
+    });
+    const insights = Array.from({ length: 5 }, (_unused, index) =>
+      makeItem({ note, text: `Insight ${index + 1}`, source: "section_line", kind: "insight" }),
+    );
+
+    const rendered = renderMemorySnapshot(makePack({ insights }), { insights: 2 });
+
+    const insightsSection = sectionOf(rendered, "Insights");
+    expect(insightsSection).toContain("... 3 more items omitted");
+    expect(insightsSection).toContain("Insight 1");
+    expect(insightsSection).not.toContain("Insight 5");
+  });
+
+  it("threads caps through renderMarkdownFiles into every capped register", () => {
+    const note = makeNote({
+      path: "/vault/30_Research/threaded.md",
+      noteType: "research",
+      updated: "2026-06-01",
+    });
+    const risks = Array.from({ length: 6 }, (_unused, index) =>
+      makeRiskItem({ note, text: `Risk ${index + 1}`, source: "section_line" }),
+    );
+
+    const files = renderMarkdownFiles(makePack({ risks }), { register: 2 });
+
+    expect(files["RISK_REGISTER.md"]).toContain("... 4 more items omitted");
   });
 });
 

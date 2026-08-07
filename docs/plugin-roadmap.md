@@ -14,6 +14,8 @@ the plugin.
 - Export LLM Handoff
 - Validate Vault Schema
 - Open Report Hub
+- Switch Output Folder to Hidden
+- Switch Output Folder to Visible
 
 ## Current Behavior
 
@@ -29,6 +31,11 @@ the plugin.
 - Previews `CONTRADICTIONS.md`.
 - Extracts source-note links from generated Markdown and JSON previews and shows source-note
   buttons that open the original vault notes.
+- Shows a Backlinks section below the preview that aggregates source-note references across every
+  generated report, grouped by note and ranked by total reference count.
+- Validates settings input (custom output folder path, stale-day threshold) with an in-app warning
+  banner and inline notices, and lets output-folder visibility be switched from the command palette
+  as well as plugin settings.
 - Infers current objective and surfaces it in core and plugin reports.
 - Surfaces latest average confidence and low-confidence item counts.
 - Surfaces latest contradiction candidate counts.
@@ -41,9 +48,9 @@ the plugin.
 
 ## v0.11 Candidates
 
-- Improve settings validation and user-facing error states.
-- Add source-note backlink sections grouped by note.
-- Add command palette affordances for project-specific output folders.
+All three v0.11 candidates from the previous roadmap revision (settings validation and user-facing
+error states, source-note backlink sections grouped by note, and command palette affordances for
+project-specific output folders) are done — see Current Behavior and Current Commands above.
 
 ## Later Research
 

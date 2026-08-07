@@ -171,6 +171,17 @@ export function updateSettingsWithCustomOutputFolderInput(
   };
 }
 
+export function updateSettingsWithOutputFolderVisibility(
+  settings: GotSaengPluginSettings,
+  visibility: "hidden" | "visible",
+): GotSaengPluginSettings {
+  return {
+    ...settings,
+    outputFolderVisibility: visibility,
+    outputFolder: visibility === "hidden" ? HIDDEN_OUTPUT_FOLDER : VISIBLE_OUTPUT_FOLDER,
+  };
+}
+
 export function updateSettingsWithStaleDaysInput(
   settings: GotSaengPluginSettings,
   value: string,

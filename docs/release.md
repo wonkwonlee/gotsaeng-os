@@ -75,12 +75,15 @@ Development happens in `gotsaeng-os-dev` (full history). The public repository
 Tags, GitHub releases, the release workflow, and the Obsidian submission all operate on
 the **public** repository, so every release must be synced there first.
 
-From a sibling checkout layout (`~/projects/gotsaeng-os-dev` and `~/projects/gotsaeng-os`):
+On this machine, dev and public are permanent sibling checkouts under one parent folder —
+`~/dev/GotSaeng-OS/gotsaeng-os-dev` (dev, canonical trunk) and `~/dev/GotSaeng-OS/gotsaeng-os`
+(public, deploy mirror). Both live under `~/dev/GotSaeng-OS/` and always will; a fresh machine
+setup should recreate this same sibling layout rather than an arbitrary one.
 
 ```bash
-cd ~/projects/gotsaeng-os
-git rm -r -q .                                         # clear tracked files (.git is kept)
-git -C ../gotsaeng-os-dev archive HEAD | tar -x -C .   # extract dev's tracked files only
+cd ~/dev/GotSaeng-OS/gotsaeng-os
+git rm -r -q .                                                 # clear tracked files (.git is kept)
+git -C ../gotsaeng-os-dev archive HEAD | tar -x -C .           # extract dev's tracked files only
 git add -A
 git commit -m "Release <version>"
 git push

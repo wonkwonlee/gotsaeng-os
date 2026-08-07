@@ -56,11 +56,22 @@ notes or PR when completing this checklist.
     `.gotsaeng/context-pack`.
 11. After each visibility switch, confirm stale GotSaeng-managed files from the previous built-in output
     folder are not duplicated. User-authored files in those folders must remain untouched.
-12. Try invalid custom output paths such as `/tmp/outside`, `C:/outside`, `D:outside`, and `../outside`.
+12. Run **GotSaeng OS: Switch Output Folder to Visible** from the command palette (settings tab closed).
+    Confirm the notice reports the new folder, the Report Hub view refreshes, and — same as item 11 —
+    stale GotSaeng-managed files from the folder being vacated are removed immediately (no need to run
+    Compile first). Repeat with **GotSaeng OS: Switch Output Folder to Hidden**.
+13. Run either output-folder switch command a second time while already in that state. Confirm the
+    notice says the output folder is already in that state and no files are touched.
+14. Open **GotSaeng OS: Open Report Hub**, select a generated report that references source notes, and
+    confirm the Backlinks section below the preview lists the referenced notes, ranked by total
+    reference count, with the list of reports that mention each one. Click a Backlinks entry and confirm
+    it opens the matching source note. Recompile a vault with no source-note references anywhere and
+    confirm Backlinks shows its empty-state message instead of an error.
+15. Try invalid custom output paths such as `/tmp/outside`, `C:/outside`, `D:outside`, and `../outside`.
     Confirm the setting is rejected and the previous valid output folder remains active.
-13. Try invalid stale-context thresholds such as `0`, `1.5`, and `30abc`. Confirm the previous valid value
+16. Try invalid stale-context thresholds such as `0`, `1.5`, and `30abc`. Confirm the previous valid value
     remains active.
-14. Disable and re-enable the plugin, then confirm settings persist and commands still run.
+17. Disable and re-enable the plugin, then confirm settings persist and commands still run.
 
 ## Pass criteria
 

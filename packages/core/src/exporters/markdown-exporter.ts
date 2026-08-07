@@ -7,7 +7,7 @@ import {
   inferCurrentObjective,
   selectHighSignalItems,
 } from "../quality";
-import { compareItemsByConfidence, EXPLICIT_MARKER_SIGNAL_LABEL } from "../confidence";
+import { compareItemsByConfidence } from "../confidence";
 import { compareContradictionCandidates } from "../contradictions";
 import { compareItemsByProvenance } from "../provenance";
 import type {
@@ -45,15 +45,29 @@ export const REGISTER_ITEM_CAP = 200;
 // Back-compat alias: the risk register was the first register to adopt the cap.
 export const RISK_REGISTER_CAP = REGISTER_ITEM_CAP;
 
-export function renderMarkdownFiles(pack: ContextPack): Record<GeneratedMarkdownFile, string> {
+// Separate bound for the Memory Snapshot Insights list, which tends to run
+// longer than the other registers on research-heavy vaults.
+export const INSIGHTS_ITEM_CAP = 120;
+
+// Overrides for the per-list caps above. Undefined fields fall back to the
+// module defaults (REGISTER_ITEM_CAP / INSIGHTS_ITEM_CAP).
+export type RegisterCaps = {
+  register?: number;
+  insights?: number;
+};
+
+export function renderMarkdownFiles(
+  pack: ContextPack,
+  caps: RegisterCaps = {},
+): Record<GeneratedMarkdownFile, string> {
   return {
     "PROJECT_CONTEXT.md": renderProjectContext(pack),
-    "MEMORY_SNAPSHOT.md": renderMemorySnapshot(pack),
+    "MEMORY_SNAPSHOT.md": renderMemorySnapshot(pack, caps),
     "DECISION_LOG.md": renderDecisionLog(pack),
-    "ACTION_BACKLOG.md": renderActionBacklog(pack),
-    "RISK_REGISTER.md": renderRiskRegister(pack),
-    "OPEN_QUESTIONS.md": renderOpenQuestions(pack),
-    "STALE_CONTEXT.md": renderStaleContext(pack),
+    "ACTION_BACKLOG.md": renderActionBacklog(pack, caps),
+    "RISK_REGISTER.md": renderRiskRegister(pack, caps),
+    "OPEN_QUESTIONS.md": renderOpenQuestions(pack, caps),
+    "STALE_CONTEXT.md": renderStaleContext(pack, caps),
     "SOURCE_PROVENANCE.md": renderSourceProvenance(pack),
     "CONFIDENCE.md": renderConfidenceMetadata(pack),
     "CONTRADICTIONS.md": renderContradictions(pack),
@@ -65,9 +79,10 @@ export function renderMarkdownFiles(pack: ContextPack): Record<GeneratedMarkdown
 export async function writeMarkdownContextPack(
   pack: ContextPack,
   outputDir: string,
+  caps: RegisterCaps = {},
 ): Promise<string[]> {
   await fs.mkdir(outputDir, { recursive: true });
-  const files = renderMarkdownFiles(pack);
+  const files = renderMarkdownFiles(pack, caps);
 
   for (const fileName of GENERATED_MARKDOWN_FILES) {
     await fs.writeFile(path.join(outputDir, fileName), files[fileName], "utf8");
@@ -122,7 +137,7 @@ export function renderProjectContext(pack: ContextPack): string {
   ].join("\n");
 }
 
-export function renderMemorySnapshot(pack: ContextPack): string {
+export function renderMemorySnapshot(pack: ContextPack, caps: RegisterCaps = {}): string {
   return [
     `# Memory Snapshot: ${pack.projectName}`,
     "",
@@ -130,15 +145,15 @@ export function renderMemorySnapshot(pack: ContextPack): string {
     "",
     "## Durable Facts",
     "",
-    renderCappedRegisterList(pack.facts),
+    renderCappedRegisterList(pack.facts, caps.register ?? REGISTER_ITEM_CAP),
     "",
     "## Insights",
     "",
-    renderCappedRegisterList(pack.insights, 120),
+    renderCappedRegisterList(pack.insights, caps.insights ?? INSIGHTS_ITEM_CAP),
     "",
     "## Assumptions",
     "",
-    renderCappedRegisterList(pack.assumptions),
+    renderCappedRegisterList(pack.assumptions, caps.register ?? REGISTER_ITEM_CAP),
     "",
     "## Recent Updates",
     "",
@@ -183,7 +198,8 @@ export function renderDecisionLog(pack: ContextPack): string {
 // the catch-all "Unknown" bucket, so no action can ever vanish from the backlog.
 const NAMED_ACTION_STATUSES = new Set<string>(["open", "active", "stale", "done"]);
 
-export function renderActionBacklog(pack: ContextPack): string {
+export function renderActionBacklog(pack: ContextPack, caps: RegisterCaps = {}): string {
+  const cap = caps.register ?? REGISTER_ITEM_CAP;
   // `markStale` returns a stale-marked copy instead of mutating the item in
   // `pack.actions`, so staleness has to be resolved by id here. Filtering on
   // `status` alone would leave detector-flagged actions in their original bucket.
@@ -209,34 +225,34 @@ export function renderActionBacklog(pack: ContextPack): string {
     "",
     "## Open",
     "",
-    renderCappedRegisterList(open),
+    renderCappedRegisterList(open, cap),
     "",
     "## Active",
     "",
-    renderCappedRegisterList(active),
+    renderCappedRegisterList(active, cap),
     "",
     "## Stale",
     "",
-    renderCappedRegisterList(stale),
+    renderCappedRegisterList(stale, cap),
     "",
     "## Unknown",
     "",
-    renderCappedRegisterList(unknown),
+    renderCappedRegisterList(unknown, cap),
     "",
     "## Done",
     "",
-    renderCappedRegisterList(done),
+    renderCappedRegisterList(done, cap),
     "",
   ].join("\n");
 }
 
-export function renderRiskRegister(pack: ContextPack): string {
+export function renderRiskRegister(pack: ContextPack, caps: RegisterCaps = {}): string {
   return [
     `# Risk Register: ${pack.projectName}`,
     "",
     `Generated: ${pack.generatedAt}`,
     "",
-    renderCappedRegisterList(pack.risks),
+    renderCappedRegisterList(pack.risks, caps.register ?? REGISTER_ITEM_CAP),
     "",
   ].join("\n");
 }
@@ -244,12 +260,17 @@ export function renderRiskRegister(pack: ContextPack): string {
 // Bound a dedicated register's flat list. Output is unchanged while the list is
 // within the cap; once it exceeds the cap, high-signal items (explicit markers,
 // then confidence score) are ordered first so the trimmed items are the low-signal
-// ones, summarized by renderItemList's omission footer.
+// ones, summarized by renderItemList's omission footer. Explicit-marker items are
+// never dropped: if a register contains more explicit markers than `cap`, the
+// effective limit is raised to fit all of them (see #18) — only non-explicit items
+// are ever trimmed.
 function renderCappedRegisterList(items: ExtractedItem[], cap: number = REGISTER_ITEM_CAP): string {
   if (items.length <= cap) {
     return renderItemList(items);
   }
-  return renderItemList(orderItemsForRegister(items), { limit: cap });
+  const explicitMarkerCount = items.filter(isExplicitMarkerItem).length;
+  const effectiveCap = Math.max(cap, explicitMarkerCount);
+  return renderItemList(orderItemsForRegister(items), { limit: effectiveCap });
 }
 
 function orderItemsForRegister(items: ExtractedItem[]): ExtractedItem[] {
@@ -277,24 +298,21 @@ function compareItemsForRegister(a: ExtractedItem, b: ExtractedItem): number {
 }
 
 function isExplicitMarkerItem(item: ExtractedItem): boolean {
-  return (
-    item.confidence?.signals.some((signal) => signal.includes(EXPLICIT_MARKER_SIGNAL_LABEL)) ??
-    false
-  );
+  return item.confidenceSource === "explicit_marker";
 }
 
-export function renderOpenQuestions(pack: ContextPack): string {
+export function renderOpenQuestions(pack: ContextPack, caps: RegisterCaps = {}): string {
   return [
     `# Open Questions: ${pack.projectName}`,
     "",
     `Generated: ${pack.generatedAt}`,
     "",
-    renderCappedRegisterList(pack.questions),
+    renderCappedRegisterList(pack.questions, caps.register ?? REGISTER_ITEM_CAP),
     "",
   ].join("\n");
 }
 
-export function renderStaleContext(pack: ContextPack): string {
+export function renderStaleContext(pack: ContextPack, caps: RegisterCaps = {}): string {
   const missingUpdated = pack.notes.filter((note) => !note.updated);
 
   return [
@@ -305,7 +323,7 @@ export function renderStaleContext(pack: ContextPack): string {
     "## Stale Items",
     "",
     pack.staleItems.length > 0
-      ? renderCappedRegisterList(pack.staleItems)
+      ? renderCappedRegisterList(pack.staleItems, caps.register ?? REGISTER_ITEM_CAP)
       : "- No stale items detected.",
     "",
     "## Notes Missing Updated Dates",

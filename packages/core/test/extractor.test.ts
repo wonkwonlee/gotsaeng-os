@@ -54,6 +54,28 @@ describe("extractor", () => {
     ]);
   });
 
+  it("tags each item with a typed confidenceSource matching how it was extracted (#9)", () => {
+    const note = parseMarkdown(
+      [
+        "# Source Note",
+        "- risk: Explicit marker risk.",
+        "- [ ] Task-list action.",
+        "## Risks",
+        "- Section-line risk.",
+      ].join("\n"),
+      "/vault/source.md",
+      "/vault",
+    );
+
+    const items = extractItems(note);
+    const sourceOf = (needle: string) =>
+      items.find((item) => item.text.includes(needle))?.confidenceSource;
+
+    expect(sourceOf("Explicit marker risk")).toBe("explicit_marker");
+    expect(sourceOf("Task-list action")).toBe("task_list");
+    expect(sourceOf("Section-line risk")).toBe("section_line");
+  });
+
   it("infers item kinds from Korean section headings", () => {
     const note = parseMarkdown(
       [
@@ -311,6 +333,23 @@ describe("extractor", () => {
 
     const risks = extractItems(note).filter((item) => item.kind === "risk");
     expect(risks.length).toBe(MAX_SECTION_LINE_ITEMS_PER_HEADING);
+  });
+
+  it("overrides the per-heading section_line cap via maxSectionLineItemsPerHeading (#10)", () => {
+    const bullets = Array.from(
+      { length: 30 },
+      (_unused, index) => `- Inferred risk number ${index + 1} about the research direction.`,
+    );
+    const note = parseMarkdown(
+      ["# Research Note", "", "## Risks", "", ...bullets].join("\n"),
+      "/vault/30_Research/custom-cap.md",
+      "/vault",
+    );
+
+    const risks = extractItems(note, { maxSectionLineItemsPerHeading: 5 }).filter(
+      (item) => item.kind === "risk",
+    );
+    expect(risks.length).toBe(5);
   });
 
   it("applies the section_line cap per heading independently", () => {

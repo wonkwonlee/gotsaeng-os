@@ -25,6 +25,75 @@ const GENERATED_MARKDOWN_FILES = new Set(
   ),
 );
 
+export type ReportBacklinkRef = {
+  fileName: string;
+  label: string;
+  count: number;
+};
+
+export type NoteBacklinks = {
+  path: string;
+  label: string;
+  totalCount: number;
+  reports: ReportBacklinkRef[];
+};
+
+/**
+ * Inverts extractSourceLinks across every generated Markdown report: for
+ * each source note, which reports mention it and how many times. Reports are
+ * looked up by artifact label/fileName rather than passed in, so callers
+ * only need a fileName -> content map (e.g. every generated Markdown file).
+ */
+export function buildBacklinkIndex(
+  filesByName: Partial<Record<string, string>>,
+  options: ExtractSourceLinksOptions = {},
+): NoteBacklinks[] {
+  const byPath = new Map<string, NoteBacklinks>();
+
+  for (const artifact of OUTPUT_ARTIFACTS) {
+    if (artifact.format !== "markdown") {
+      continue;
+    }
+
+    const content = filesByName[artifact.fileName];
+    if (!content) {
+      continue;
+    }
+
+    for (const link of extractSourceLinks(content, options)) {
+      const ref: ReportBacklinkRef = {
+        fileName: artifact.fileName,
+        label: artifact.label,
+        count: link.count,
+      };
+      const existing = byPath.get(link.path);
+      if (existing) {
+        existing.totalCount += link.count;
+        existing.reports.push(ref);
+      } else {
+        byPath.set(link.path, {
+          path: link.path,
+          label: link.label,
+          totalCount: link.count,
+          reports: [ref],
+        });
+      }
+    }
+  }
+
+  return [...byPath.values()]
+    .map((entry) => ({
+      ...entry,
+      reports: entry.reports.sort(
+        (left, right) => right.count - left.count || left.label.localeCompare(right.label),
+      ),
+    }))
+    .sort(
+      (left, right) =>
+        right.totalCount - left.totalCount || compareStringsLocale(left.path, right.path),
+    );
+}
+
 export function extractSourceLinks(
   content: string,
   options: ExtractSourceLinksOptions = {},

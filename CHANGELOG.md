@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+## 0.11.0
+
+- Fixed `renderCappedRegisterList` dropping explicit-marker items once a single register contains
+  more than 200 of them: the effective cap is now raised to fit every explicit-marker item, so only
+  lower-signal items are ever trimmed. (wonkwonlee/gotsaeng-os#18)
+- Replaced the string-matching used to identify explicit-marker items (substring-checking the
+  `"explicit extraction marker"` confidence-signal label) with a typed `confidenceSource` field
+  persisted on `ExtractedItem`. The compiler cannot catch a divergence between two free-text labels
+  in different modules; a typed field is checkable and survives label rewording. (wonkwonlee/gotsaeng-os#9)
+- Added a configurable `caps` option to `CompileOptions`: `caps.perHeading` overrides the
+  per-heading inferred-extraction cap (extractor.ts, default 12), and `caps.register` /
+  `caps.insights` override the render-time register caps (markdown-exporter.ts, default 200 / 120).
+  All three are optional and independently overridable via `compileContextPack`/`writeContextPack`.
+  (wonkwonlee/gotsaeng-os#10)
+- Added a Backlinks section to the Obsidian Report Hub view, below the artifact preview. It reads
+  every generated Markdown report, inverts the existing source-note extraction into a per-note
+  index, and lists which reports reference each source note and how many times — ranked by total
+  reference count. Pure aggregation over the existing `extractSourceLinks` output; no new
+  extraction logic.
+- Added two command-palette commands, `Switch Output Folder to Hidden` and `Switch Output Folder to
+Visible`, so the managed output folder can be moved without opening plugin settings. Both reuse
+  the same stale-folder cleanup the settings-tab dropdown and Compile command already rely on, so
+  switching immediately removes GotSaeng-managed files left in the folder being vacated.
 - Added two new generated reports. `ENGINEERING_OPS.md` is a release-gate snapshot: quality
   counts, warning triage, and the provenance/confidence/contradiction summaries in one place, plus
   the full list of generated artifacts. `TEAM_MEMORY.md` is a team-facing handoff: current

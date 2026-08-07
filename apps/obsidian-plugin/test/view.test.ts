@@ -22,6 +22,7 @@ function createFakeController(overrides: Partial<ReportHubController> = {}): Rep
     validateVaultSchemaCommand: vi.fn(async () => {}),
     setSelectedOutputFileName: vi.fn(),
     readOutputFileByName: vi.fn(async () => null),
+    readAllOutputFiles: vi.fn(async () => ({})),
     openOutputFileByName: vi.fn(async () => {}),
     openSourceFileByPath: vi.fn(async () => {}),
     readCurrentCompileReport: vi.fn(async () => null),
@@ -283,5 +284,48 @@ describe("GotSaengReportHubView artifact preview", () => {
     const preview = contentElOf(view).findByClass("gotsaeng-os-artifact-preview");
     const code = preview?.children[0]?.children[0];
     expect(code?.text).toBe("{not valid json");
+  });
+});
+
+describe("GotSaengReportHubView backlinks", () => {
+  it("shows an empty-state message when no report references any source note", async () => {
+    const controller = createFakeController({ readAllOutputFiles: vi.fn(async () => ({})) });
+    const view = createView(controller);
+
+    await view.render();
+
+    const message = contentElOf(view).children.find((el) =>
+      el.text?.includes("No source-note backlinks found yet"),
+    );
+    expect(message).toBeDefined();
+  });
+
+  it("groups source notes by note and lists which reports reference each one", async () => {
+    const controller = createFakeController({
+      readAllOutputFiles: vi.fn(async () => ({
+        "REPORT_HUB.md": "- Follow up ([[10_Wiki/source-note.md|Source Note]]; status: open)",
+        "ACTION_BACKLOG.md": [
+          "- Again ([[10_Wiki/source-note.md|Source Note]])",
+          "- Once ([[10_Wiki/source-note.md|Source Note]])",
+        ].join("\n"),
+      })),
+    });
+    const view = createView(controller);
+
+    await view.render();
+
+    const list = contentElOf(view).findByClass("gotsaeng-os-backlink-list");
+    const entries = list?.findAllByClass("gotsaeng-os-backlink-entry") ?? [];
+    expect(entries).toHaveLength(1);
+
+    const button = entries[0]?.findByClass("gotsaeng-os-backlink-note-button");
+    expect(button?.text).toBe("Source Note (3)");
+
+    button?.dispatch("click");
+    await Promise.resolve();
+    expect(controller.openSourceFileByPath).toHaveBeenCalledWith("10_Wiki/source-note.md");
+
+    const reports = entries[0]?.findByClass("gotsaeng-os-backlink-reports");
+    expect(reports?.text).toBe("Action Backlog (2), Report Hub");
   });
 });

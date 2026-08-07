@@ -14,6 +14,7 @@ import {
 } from "@gotsaeng/core";
 import { Notice, Plugin, PluginSettingTab, Setting, TFile, type App } from "obsidian";
 
+import { OUTPUT_ARTIFACTS } from "./artifacts";
 import { cleanupStaleManagedOutputFolders } from "./output-cleanup";
 import {
   REPORT_HUB_FILE,
@@ -31,6 +32,7 @@ import {
   isHiddenOutputFolder,
   normalizeSettings,
   updateSettingsWithCustomOutputFolderInput,
+  updateSettingsWithOutputFolderVisibility,
   updateSettingsWithStaleDaysInput,
   validateCustomOutputFolderInput,
   validateStaleDaysInput,
@@ -89,6 +91,18 @@ export default class GotSaengObsidianPlugin extends Plugin {
       id: "open-report-hub",
       name: "Open Report Hub",
       callback: () => void this.activateReportHubView(),
+    });
+
+    this.addCommand({
+      id: "switch-output-folder-hidden",
+      name: "Switch Output Folder to Hidden",
+      callback: () => void this.switchOutputFolderVisibilityCommand("hidden"),
+    });
+
+    this.addCommand({
+      id: "switch-output-folder-visible",
+      name: "Switch Output Folder to Visible",
+      callback: () => void this.switchOutputFolderVisibilityCommand("visible"),
     });
   }
 
@@ -168,6 +182,25 @@ export default class GotSaengObsidianPlugin extends Plugin {
     });
   }
 
+  async switchOutputFolderVisibilityCommand(visibility: "hidden" | "visible"): Promise<void> {
+    const label = visibility === "hidden" ? "Hidden" : "Visible";
+    await this.runSafely(`Switch Output Folder to ${label}`, async () => {
+      if (this.settings.outputFolderVisibility === visibility) {
+        new Notice(`GotSaeng OS: output folder is already ${visibility}.`);
+        return;
+      }
+
+      this.settings = updateSettingsWithOutputFolderVisibility(this.settings, visibility);
+      await this.saveSettings();
+
+      const pathInfo = resolveOutputPath(this.app, this.settings.outputFolder);
+      await this.cleanupStaleOutputFolders(pathInfo);
+
+      new Notice(`GotSaeng OS: output folder switched to ${this.settings.outputFolder}.`);
+      await this.refreshReportHubViews();
+    });
+  }
+
   async openOutputFileByName(fileName: string): Promise<void> {
     const pathInfo = resolveOutputPath(this.app, this.settings.outputFolder);
     this.setSelectedOutputFileName(fileName);
@@ -214,6 +247,22 @@ export default class GotSaengObsidianPlugin extends Plugin {
       }
       throw error;
     }
+  }
+
+  async readAllOutputFiles(): Promise<Partial<Record<string, string>>> {
+    const files: Partial<Record<string, string>> = {};
+    for (const artifact of OUTPUT_ARTIFACTS) {
+      if (artifact.format !== "markdown") {
+        continue;
+      }
+
+      const content = await this.readOutputFileByName(artifact.fileName);
+      if (content !== null) {
+        files[artifact.fileName] = content;
+      }
+    }
+
+    return files;
   }
 
   async readCurrentCompileReport(): Promise<CompileReport | null> {
@@ -410,12 +459,11 @@ class GotSaengSettingTab extends PluginSettingTab {
           .addOption("custom", "Custom path")
           .setValue(this.plugin.settings.outputFolderVisibility)
           .onChange(async (value) => {
-            this.plugin.settings.outputFolderVisibility = value as OutputFolderVisibility;
-            if (value === "hidden") {
-              this.plugin.settings.outputFolder = HIDDEN_OUTPUT_FOLDER;
-            } else if (value === "visible") {
-              this.plugin.settings.outputFolder = VISIBLE_OUTPUT_FOLDER;
-            }
+            const visibility = value as OutputFolderVisibility;
+            this.plugin.settings =
+              visibility === "hidden" || visibility === "visible"
+                ? updateSettingsWithOutputFolderVisibility(this.plugin.settings, visibility)
+                : { ...this.plugin.settings, outputFolderVisibility: visibility };
             await this.plugin.saveSettings();
             this.display();
           });

@@ -17,16 +17,16 @@ Compile your scattered Markdown notes into model-ready context packs — local-f
 > Requires Node.js 20 or newer. No install needed.
 
 ```bash
-npx -y @gotsaeng/cli@0.10.8 compile <vault> --output <dir> --project "<name>"
+npx -y @gotsaeng/cli@0.11.0 compile <vault> --output <dir> --project "<name>"
 ```
 
 Both `--output` and `--project` are required flags. Copy-paste example using the included sample vault:
 
 ```bash
-npx -y @gotsaeng/cli@0.10.8 compile ./examples/sample-vault --output ./out --project "GotSaeng OS"
+npx -y @gotsaeng/cli@0.11.0 compile ./examples/sample-vault --output ./out --project "GotSaeng OS"
 ```
 
-This writes 13 artifacts to `./out/` including `PROJECT_CONTEXT.md`, `MEMORY_SNAPSHOT.md`,
+This writes 15 artifacts to `./out/` including `PROJECT_CONTEXT.md`, `MEMORY_SNAPSHOT.md`,
 `DECISION_LOG.md`, `MEMORY_DIFF.md`, `COMPILE_REPORT.json`, and more.
 
 ## See it in action
@@ -172,6 +172,8 @@ Then enable **GotSaeng OS** in Obsidian community plugin settings. The adapter a
 - Export LLM Handoff
 - Validate Vault Schema
 - Open Report Hub
+- Switch Output Folder to Hidden
+- Switch Output Folder to Visible
 
 The default output folder is `.gotsaeng/context-pack` inside the current vault. That hidden folder
 keeps generated files out of the normal note tree, but the Report Hub view can preview every output
@@ -196,7 +198,9 @@ The contradictions output surfaces deterministic candidate cues from explicit ma
 and contradiction-related language. It is a review queue, not a semantic contradiction engine.
 The live Report Hub preview extracts source-note references from Markdown and JSON artifacts and
 shows vault-note buttons above the preview. This keeps `.gotsaeng/context-pack` hidden while still
-making compiled context auditable from inside Obsidian.
+making compiled context auditable from inside Obsidian. Below the preview, a Backlinks section
+aggregates source-note references across every generated report, grouped by note and ranked by
+total reference count, so you can see which reports cite a given note without opening each one.
 
 ## Develop from Source
 

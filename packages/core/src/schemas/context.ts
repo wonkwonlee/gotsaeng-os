@@ -22,6 +22,19 @@ export const ExtractedItemPrioritySchema = z.enum(["low", "medium", "high"]);
 
 export type ExtractedItemPriority = z.infer<typeof ExtractedItemPrioritySchema>;
 
+// How an item was extracted from its source note. Explicit markers (e.g. `risk:`)
+// are the only source the "never dropped by a register cap" guarantee applies to,
+// so exporters check this typed field rather than sniffing a confidence signal
+// label string.
+export const ExtractionConfidenceSourceSchema = z.enum([
+  "explicit_marker",
+  "task_list",
+  "section_line",
+  "heading_inference",
+]);
+
+export type ExtractionConfidenceSource = z.infer<typeof ExtractionConfidenceSourceSchema>;
+
 export const SourceProvenanceLevelSchema = z.enum(["strong", "moderate", "weak"]);
 
 export type SourceProvenanceLevel = z.infer<typeof SourceProvenanceLevelSchema>;
@@ -86,6 +99,7 @@ export const ExtractedItemSchema = z.object({
   updated: z.string().optional(),
   provenance: SourceProvenanceSchema.optional(),
   confidence: ConfidenceMetadataSchema.optional(),
+  confidenceSource: ExtractionConfidenceSourceSchema.optional(),
   tags: z.array(z.string()),
 });
 

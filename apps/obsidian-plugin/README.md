@@ -13,6 +13,8 @@ logic stays in `packages/core`.
 - Export LLM Handoff
 - Validate Vault Schema
 - Open Report Hub
+- Switch Output Folder to Hidden
+- Switch Output Folder to Visible
 
 The Report Hub view provides command buttons, shortcuts to generated reports, and latest compile
 metrics. The generated `REPORT_HUB.md` includes Obsidian wikilinks back to source notes.
@@ -22,12 +24,15 @@ actions, top questions, top risks, stale context, and warning triage.
 By default, output is written to `.gotsaeng/context-pack`, which Obsidian may hide from the normal
 file explorer. The Report Hub view can preview every generated Markdown and JSON artifact directly.
 It also extracts source-note references from the selected preview and shows buttons that open the
-original vault notes.
-Use plugin settings to switch to the visible `Gotsaeng/Context Pack` folder when you want generated
-files to appear as ordinary vault files. When switching between the hidden and visible managed output
-folders, the next generated command removes stale GotSaeng-managed output files from the alternate
-folder so the vault does not keep duplicate context packs. User-created files in those folders are
-left untouched.
+original vault notes. Below the preview, a Backlinks section aggregates source-note references
+across every generated report (not just the one being previewed), ranked by total reference count,
+so you can see at a glance which reports cite a given note.
+Use plugin settings, or the `Switch Output Folder to Hidden` / `Switch Output Folder to Visible`
+command-palette commands, to move generated files between the hidden and visible managed output
+folders without opening the settings tab. Either way, switching removes stale GotSaeng-managed
+output files from the alternate folder — immediately for the command-palette commands, on the next
+generated command for the settings-tab dropdown — so the vault does not keep duplicate context
+packs. User-created files in those folders are left untouched.
 
 The core compiler writes `MEMORY_DIFF.md` and `CONTEXT_MANIFEST.json`. The plugin previews both
 files from the Report Hub so previous/current compile changes can be inspected even when the output

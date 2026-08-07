@@ -12,6 +12,7 @@ import {
   normalizeSettings,
   normalizeStaleDays,
   updateSettingsWithCustomOutputFolderInput,
+  updateSettingsWithOutputFolderVisibility,
   updateSettingsWithStaleDaysInput,
   resolveOutputFolderForVisibility,
   validateCustomOutputFolderInput,
@@ -128,6 +129,25 @@ describe("Obsidian plugin settings", () => {
         outputFolder: "D:outside",
       }),
     ).toEqual(DEFAULT_SETTINGS);
+  });
+
+  it("switches output folder visibility to the matching managed folder", () => {
+    const customSettings = {
+      ...DEFAULT_SETTINGS,
+      outputFolderVisibility: "custom" as const,
+      outputFolder: "Reports/GotSaeng",
+    };
+
+    expect(updateSettingsWithOutputFolderVisibility(customSettings, "hidden")).toEqual({
+      ...customSettings,
+      outputFolderVisibility: "hidden",
+      outputFolder: HIDDEN_OUTPUT_FOLDER,
+    });
+    expect(updateSettingsWithOutputFolderVisibility(customSettings, "visible")).toEqual({
+      ...customSettings,
+      outputFolderVisibility: "visible",
+      outputFolder: VISIBLE_OUTPUT_FOLDER,
+    });
   });
 
   it("surfaces stale-day validation messages", () => {

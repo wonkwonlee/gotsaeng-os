@@ -3,9 +3,17 @@ import { ItemView, MarkdownRenderer, type WorkspaceLeaf } from "obsidian";
 
 import { DEFAULT_OUTPUT_ARTIFACT, OUTPUT_ARTIFACTS, type OutputArtifact } from "./artifacts";
 import type { GotSaengPluginSettings } from "./settings";
-import { extractSourceLinks, type SourceLink } from "./source-links";
+import {
+  buildBacklinkIndex,
+  extractSourceLinks,
+  type NoteBacklinks,
+  type SourceLink,
+} from "./source-links";
 
 export const GOTSAENG_REPORT_VIEW_TYPE = "gotsaeng-report-hub";
+
+const BACKLINK_NOTE_LIMIT = 20;
+const BACKLINK_REPORT_LIMIT = 6;
 
 export type ReportHubController = {
   settings: GotSaengPluginSettings;
@@ -16,6 +24,7 @@ export type ReportHubController = {
   validateVaultSchemaCommand(): Promise<void>;
   setSelectedOutputFileName(fileName: string): void;
   readOutputFileByName(fileName: string): Promise<string | null>;
+  readAllOutputFiles(): Promise<Partial<Record<string, string>>>;
   openOutputFileByName(fileName: string): Promise<void>;
   openSourceFileByPath(sourcePath: string): Promise<void>;
   readCurrentCompileReport(): Promise<CompileReport | null>;
@@ -112,6 +121,7 @@ export class GotSaengReportHubView extends ItemView {
     }
 
     await this.renderArtifactPreview(contentEl, selectedFileName);
+    await this.renderBacklinks(contentEl);
   }
 
   private addActionButton(parent: HTMLElement, label: string, action: () => Promise<void>): void {
@@ -182,6 +192,52 @@ export class GotSaengReportHubView extends ItemView {
     }
 
     await MarkdownRenderer.render(this.app, content, preview, filePath, this);
+  }
+
+  private async renderBacklinks(parent: HTMLElement): Promise<void> {
+    parent.createEl("h3", { text: "Backlinks" });
+    parent.createEl("p", {
+      text: "Source notes referenced across every generated report, most-referenced first.",
+      cls: "gotsaeng-os-view-note",
+    });
+
+    const files = await this.controller.readAllOutputFiles();
+    const backlinks = buildBacklinkIndex(files, {
+      outputFolder: this.controller.settings.outputFolder,
+    }).slice(0, BACKLINK_NOTE_LIMIT);
+
+    if (backlinks.length === 0) {
+      parent.createEl("p", {
+        text: "No source-note backlinks found yet. Run Compile first.",
+        cls: "gotsaeng-os-view-note",
+      });
+      return;
+    }
+
+    const list = parent.createDiv({ cls: "gotsaeng-os-backlink-list" });
+    for (const note of backlinks) {
+      this.addBacklinkEntry(list, note);
+    }
+  }
+
+  private addBacklinkEntry(parent: HTMLElement, note: NoteBacklinks): void {
+    const entry = parent.createDiv({ cls: "gotsaeng-os-backlink-entry" });
+    const button = entry.createEl("button", {
+      text: `${note.label} (${note.totalCount})`,
+      cls: "gotsaeng-os-backlink-note-button",
+    });
+    button.title = note.path;
+    button.addEventListener("click", () => {
+      void this.controller.openSourceFileByPath(note.path);
+    });
+
+    entry.createEl("p", {
+      text: note.reports
+        .slice(0, BACKLINK_REPORT_LIMIT)
+        .map((report) => (report.count > 1 ? `${report.label} (${report.count})` : report.label))
+        .join(", "),
+      cls: "gotsaeng-os-backlink-reports",
+    });
   }
 
   private renderSourceLinks(parent: HTMLElement, sourceLinks: SourceLink[]): void {

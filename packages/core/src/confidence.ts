@@ -3,21 +3,24 @@ import type {
   ConfidenceLevel,
   ConfidenceMetadata,
   ExtractedItem,
+  ExtractionConfidenceSource,
 } from "./schemas/context";
 import type { NoteDocument } from "./schemas/note";
 import { compareStrings } from "./utils/path";
 import { sortRecord } from "./utils/record";
 
-// The Markdown exporter matches this label to keep explicit-marker items above
-// REGISTER_ITEM_CAP. Sharing the constant is what keeps the two sides in step —
-// it must not be inlined as a bare string on either end.
+// The signal label surfaced in CONFIDENCE.md when an item came from an explicit
+// marker. Exporters that need to identify explicit-marker items programmatically
+// should check `item.confidenceSource === "explicit_marker"` instead — see
+// isExplicitMarkerItem in markdown-exporter.ts — rather than matching this
+// human-readable string.
 export const EXPLICIT_MARKER_SIGNAL_LABEL = "explicit extraction marker";
 
-export type ExtractionConfidenceSource =
-  | "explicit_marker"
-  | "task_list"
-  | "section_line"
-  | "heading_inference";
+// Re-exported so `import { type ExtractionConfidenceSource } from "./confidence"`
+// keeps working at every existing call site; the schema in schemas/context.ts is
+// the single source of truth (it also backs the `confidenceSource` field persisted
+// on ExtractedItem).
+export type { ExtractionConfidenceSource };
 
 type ConfidenceSignal = {
   label: string;

@@ -28,7 +28,7 @@ import { detectStaleItems } from "./stale";
 import { scanMarkdownFiles, scanSourceFiles } from "./scanner";
 import { toIsoTimestamp } from "./utils/date";
 import { compareStrings } from "./utils/path";
-import { writeMarkdownContextPack } from "./exporters/markdown-exporter";
+import { writeMarkdownContextPack, type RegisterCaps } from "./exporters/markdown-exporter";
 import { writeCompileReport } from "./exporters/json-exporter";
 
 export async function compileContextPack(options: CompileOptions): Promise<ContextPack> {
@@ -58,7 +58,9 @@ export async function compileContextPack(options: CompileOptions): Promise<Conte
   const extractedItems = sortExtractedItems(
     applySourceProvenance(
       notes,
-      notes.flatMap((note) => extractItems(note)),
+      notes.flatMap((note) =>
+        extractItems(note, { maxSectionLineItemsPerHeading: parsedOptions.caps?.perHeading }),
+      ),
     ),
   );
   const contradictions = detectContradictionCandidates(notes);
@@ -117,11 +119,12 @@ export async function compileContextPack(options: CompileOptions): Promise<Conte
 export async function writeContextPack(
   pack: ContextPack,
   outputDir: string,
+  caps: RegisterCaps = {},
 ): Promise<ContextPack["report"]> {
   const previousManifest = await readPreviousContextManifest(outputDir);
   const manifest = createContextManifest(pack);
   const memoryDiff = diffContextManifests(previousManifest.manifest, manifest, pack.generatedAt);
-  const markdownFiles = await writeMarkdownContextPack(pack, outputDir);
+  const markdownFiles = await writeMarkdownContextPack(pack, outputDir, caps);
   await writeMemoryDiff(memoryDiff, outputDir);
   await writeContextManifest(manifest, outputDir);
 
