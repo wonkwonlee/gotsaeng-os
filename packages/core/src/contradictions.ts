@@ -2,15 +2,18 @@ import type {
   CompileReport,
   ContradictionCandidate,
   ContradictionSignal,
-  ContradictionSeverity
+  ContradictionSeverity,
 } from "./schemas/context";
 import type { NoteDocument } from "./schemas/note";
 import { createDeterministicId, normalizeTextForId } from "./utils/hash";
+import { stripLinkSyntax } from "./utils/markdown-text";
 import { compareStrings } from "./utils/path";
+import { sortRecord } from "./utils/record";
 
 const CONTRADICTION_HEADING_PATTERN =
   /\b(contradictions?|conflicts?|inconsistenc(?:y|ies)|uncertainty|uncertainties|tensions?)\b|모순|충돌|불확실/iu;
-const EXPLICIT_MARKER_PATTERN = /^\s*[-*]?\s*(?:contradiction|conflict|inconsistency|uncertainty|모순|충돌|불확실)\s*:\s*(?<text>.+)$/iu;
+const EXPLICIT_MARKER_PATTERN =
+  /^\s*[-*]?\s*(?:contradiction|conflict|inconsistency|uncertainty|모순|충돌|불확실)\s*:\s*(?<text>.+)$/iu;
 const KEYWORD_CUE_PATTERN =
   /\b(contradicts?|conflicts? with|inconsistent with|cannot both be true|on the other hand|however|but|uncertain|uncertainty|tension)\b|모순|충돌|불확실/iu;
 const BULLET_PATTERN = /^\s*[-*]\s+(?:\[[ xX]\]\s+)?(?<text>.+)$/u;
@@ -29,7 +32,7 @@ export function detectContradictionCandidates(notes: NoteDocument[]): Contradict
 }
 
 export function createContradictionStats(
-  candidates: ContradictionCandidate[]
+  candidates: ContradictionCandidate[],
 ): NonNullable<CompileReport["contradictionStats"]> {
   const bySignal: Record<string, number> = {};
 
@@ -41,11 +44,14 @@ export function createContradictionStats(
     totalCandidates: candidates.length,
     bySignal: sortRecord(bySignal),
     reviewItems: candidates.filter((candidate) => candidate.severity === "review").length,
-    watchItems: candidates.filter((candidate) => candidate.severity === "watch").length
+    watchItems: candidates.filter((candidate) => candidate.severity === "watch").length,
   };
 }
 
-export function compareContradictionCandidates(a: ContradictionCandidate, b: ContradictionCandidate): number {
+export function compareContradictionCandidates(
+  a: ContradictionCandidate,
+  b: ContradictionCandidate,
+): number {
   return (
     compareStrings(severityRank(a.severity), severityRank(b.severity)) ||
     compareStrings(a.sourcePath, b.sourcePath) ||
@@ -67,14 +73,20 @@ function detectNoteContradictions(note: NoteDocument): ContradictionCandidate[] 
       headings.push({
         title: heading.text,
         level: heading.level,
-        contradictionSection: CONTRADICTION_HEADING_PATTERN.test(heading.text)
+        contradictionSection: CONTRADICTION_HEADING_PATTERN.test(heading.text),
       });
       continue;
     }
 
     const explicit = EXPLICIT_MARKER_PATTERN.exec(line);
     if (explicit?.groups?.["text"]) {
-      const candidate = createCandidate(note, explicit.groups["text"], "explicit_marker", "review", headings);
+      const candidate = createCandidate(
+        note,
+        explicit.groups["text"],
+        "explicit_marker",
+        "review",
+        headings,
+      );
       if (candidate) {
         candidates.push(candidate);
       }
@@ -112,7 +124,7 @@ function createCandidate(
   rawText: string,
   signal: ContradictionSignal,
   severity: ContradictionSeverity,
-  headings: HeadingContext[]
+  headings: HeadingContext[],
 ): ContradictionCandidate | undefined {
   const text = cleanCandidateText(rawText);
   if (!text) {
@@ -122,7 +134,7 @@ function createCandidate(
   const evidence = [
     `signal: ${signal}`,
     ...headings.map((heading) => `heading: ${heading.title}`),
-    note.updated ? `updated: ${note.updated}` : "updated: missing"
+    note.updated ? `updated: ${note.updated}` : "updated: missing",
   ];
 
   return {
@@ -133,15 +145,12 @@ function createCandidate(
     severity,
     text,
     evidence,
-    tags: [...note.tags]
+    tags: [...note.tags],
   };
 }
 
 function cleanCandidateText(text: string): string {
-  const cleaned = text
-    .replace(/\[\[[^\]|]+\|([^\]]+)\]\]/g, "$1")
-    .replace(/\[\[([^\]]+)\]\]/g, "$1")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+  const cleaned = stripLinkSyntax(text)
     .replace(/\[|\]/g, "")
     .replace(/[*`~]/g, "")
     .replace(/^#+\s+/, "")
@@ -169,7 +178,7 @@ function parseHeading(line: string): { level: number; text: string } | undefined
 
   return {
     level: marker.length,
-    text: text.trim()
+    text: text.trim(),
   };
 }
 
@@ -191,8 +200,4 @@ function dedupeCandidates(candidates: ContradictionCandidate[]): ContradictionCa
 
 function severityRank(severity: ContradictionSeverity): string {
   return severity === "review" ? "0" : "1";
-}
-
-function sortRecord(record: Record<string, number>): Record<string, number> {
-  return Object.fromEntries(Object.entries(record).sort(([left], [right]) => compareStrings(left, right)));
 }

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   createContradictionStats,
   detectContradictionCandidates,
-  parseMarkdown
+  parseMarkdown,
 } from "../src/index";
 
 describe("contradiction candidates", () => {
@@ -17,10 +17,10 @@ describe("contradiction candidates", () => {
         "---",
         "# Research",
         "",
-        "- contradiction: The roadmap says plugin-first, but the architecture says framework-first."
+        "- contradiction: The roadmap says plugin-first, but the architecture says framework-first.",
       ].join("\n"),
       "/vault/research.md",
-      "/vault"
+      "/vault",
     );
 
     const candidates = detectContradictionCandidates([note]);
@@ -30,9 +30,29 @@ describe("contradiction candidates", () => {
         sourcePath: "research.md",
         signal: "explicit_marker",
         severity: "review",
-        text: "The roadmap says plugin-first, but the architecture says framework-first."
-      }
+        text: "The roadmap says plugin-first, but the architecture says framework-first.",
+      },
     ]);
+  });
+
+  it("strips inline links whose URL contains parentheses", () => {
+    const note = parseMarkdown(
+      [
+        "---",
+        "type: research",
+        "updated: 2026-06-06",
+        "---",
+        "# Research",
+        "",
+        "- contradiction: See [Foo](https://en.wikipedia.org/wiki/Bar_(baz)) but the roadmap disagrees.",
+      ].join("\n"),
+      "/vault/research.md",
+      "/vault",
+    );
+
+    const candidates = detectContradictionCandidates([note]);
+
+    expect(candidates[0]?.text).toBe("See Foo but the roadmap disagrees.");
   });
 
   it("collects section-heading and keyword cues without semantic verification", () => {
@@ -50,24 +70,27 @@ describe("contradiction candidates", () => {
         "",
         "## Notes",
         "",
-        "- However, the old release checklist says publish immediately."
+        "- However, the old release checklist says publish immediately.",
       ].join("\n"),
       "/vault/project.md",
-      "/vault"
+      "/vault",
     );
 
     const candidates = detectContradictionCandidates([note]);
     const stats = createContradictionStats(candidates);
 
-    expect(candidates.map((candidate) => candidate.signal)).toEqual(["section_heading", "keyword_cue"]);
+    expect(candidates.map((candidate) => candidate.signal)).toEqual([
+      "section_heading",
+      "keyword_cue",
+    ]);
     expect(stats).toEqual({
       totalCandidates: 2,
       bySignal: {
         keyword_cue: 1,
-        section_heading: 1
+        section_heading: 1,
       },
       reviewItems: 1,
-      watchItems: 1
+      watchItems: 1,
     });
   });
 });

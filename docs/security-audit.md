@@ -1,6 +1,6 @@
 # Security and Privacy Audit Notes
 
-Last reviewed: 2026-06-09.
+Last reviewed: 2026-08-07.
 
 ## Scope
 
@@ -15,6 +15,18 @@ This audit covers the v0.10 local release surface:
 It verifies product behavior claims: no telemetry, no hidden network calls, no credential
 collection, no cloud sync, and no current LLM API calls. It is not a substitute for a package CVE
 or supply-chain audit before publishing.
+
+## MCP and Authentication Boundary
+
+The repository contains no MCP server configuration, MCP client runtime, OAuth flow, bearer-token
+handling, or plugin authentication. The Obsidian adapter stores only local plugin settings through
+Obsidian's `loadData()`/`saveData()` APIs and does not authenticate to a service.
+
+The only authentication-related release mechanism is npm Trusted Publisher OIDC in the public
+repository's tag-triggered workflow. It publishes `@gotsaeng/core` and `@gotsaeng/cli`; it is not
+part of the compiler or Obsidian plugin runtime. Development repositories must not be tagged for
+release. MCPs configured in a developer's global Codex or Claude environment are outside this
+repository's product and release boundary and must not be copied into project files.
 
 ## Runtime Behavior Findings
 

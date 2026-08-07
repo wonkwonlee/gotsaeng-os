@@ -8,6 +8,6 @@ export default defineConfig({
   clean: true,
   target: "node20",
   banner: {
-    js: "#!/usr/bin/env node"
-  }
+    js: "#!/usr/bin/env node",
+  },
 });

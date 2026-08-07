@@ -27,7 +27,7 @@ export class GotSaengReportHubView extends ItemView {
 
   constructor(
     leaf: WorkspaceLeaf,
-    private readonly controller: ReportHubController
+    private readonly controller: ReportHubController,
   ) {
     super(leaf);
   }
@@ -53,12 +53,14 @@ export class GotSaengReportHubView extends ItemView {
     contentEl.createEl("h2", { text: "GotSaeng OS" });
     contentEl.createEl("p", {
       text: "Local context compiler for the current vault.",
-      cls: "gotsaeng-os-view-note"
+      cls: "gotsaeng-os-view-note",
     });
 
     const actions = contentEl.createDiv({ cls: "gotsaeng-os-action-grid" });
     this.addActionButton(actions, "Compile", () => this.controller.compileContextPackCommand());
-    this.addActionButton(actions, "Weekly Review", () => this.controller.generateWeeklyReviewCommand());
+    this.addActionButton(actions, "Weekly Review", () =>
+      this.controller.generateWeeklyReviewCommand(),
+    );
     this.addActionButton(actions, "LLM Handoff", () => this.controller.exportLlmHandoffCommand());
     this.addActionButton(actions, "Validate", () => this.controller.validateVaultSchemaCommand());
 
@@ -70,31 +72,40 @@ export class GotSaengReportHubView extends ItemView {
       this.addStat(stats, "Items", String(report.extractionStats?.totalItems ?? 0));
       this.addStat(stats, "Warnings", String(report.warnings.length));
       this.addStat(stats, "Parse errors", String(report.parseErrors.length));
-      this.addStat(stats, "Missing updated", String(report.sourceCoverage?.notesMissingUpdated ?? 0));
+      this.addStat(
+        stats,
+        "Missing updated",
+        String(report.sourceCoverage?.notesMissingUpdated ?? 0),
+      );
       this.addStat(stats, "Avg provenance", String(report.provenanceStats?.averageScore ?? 0));
       this.addStat(stats, "Weak provenance", String(report.provenanceStats?.weakItems ?? 0));
       this.addStat(stats, "Avg confidence", String(report.confidenceStats?.averageScore ?? 0));
       this.addStat(stats, "Low confidence", String(report.confidenceStats?.lowItems ?? 0));
-      this.addStat(stats, "Contradictions", String(report.contradictionStats?.totalCandidates ?? 0));
+      this.addStat(
+        stats,
+        "Contradictions",
+        String(report.contradictionStats?.totalCandidates ?? 0),
+      );
     } else {
       stats.createEl("p", {
         text: "No compile report found yet. Run Compile to create one.",
-        cls: "gotsaeng-os-view-note"
+        cls: "gotsaeng-os-view-note",
       });
     }
 
     contentEl.createEl("h3", { text: "Output" });
     contentEl.createEl("p", {
       text: `${this.controller.settings.outputFolder} (${this.controller.settings.outputFolderVisibility})`,
-      cls: "gotsaeng-os-output-path"
+      cls: "gotsaeng-os-output-path",
     });
 
     contentEl.createEl("h3", { text: "Context Pack Files" });
     contentEl.createEl("p", {
       text: "Hidden folders stay out of the file explorer, but generated files can still be read here.",
-      cls: "gotsaeng-os-view-note"
+      cls: "gotsaeng-os-view-note",
     });
-    const selectedFileName = this.controller.selectedOutputFileName ?? DEFAULT_OUTPUT_ARTIFACT.fileName;
+    const selectedFileName =
+      this.controller.selectedOutputFileName ?? DEFAULT_OUTPUT_ARTIFACT.fileName;
     const files = contentEl.createDiv({ cls: "gotsaeng-os-artifact-grid" });
     for (const artifact of OUTPUT_ARTIFACTS) {
       this.addArtifactButton(files, artifact, selectedFileName);
@@ -110,10 +121,14 @@ export class GotSaengReportHubView extends ItemView {
     });
   }
 
-  private addArtifactButton(parent: HTMLElement, artifact: OutputArtifact, selectedFileName: string): void {
+  private addArtifactButton(
+    parent: HTMLElement,
+    artifact: OutputArtifact,
+    selectedFileName: string,
+  ): void {
     const button = parent.createEl("button", {
       text: artifact.label,
-      cls: "gotsaeng-os-artifact-button"
+      cls: "gotsaeng-os-artifact-button",
     });
     if (artifact.fileName === selectedFileName) {
       button.addClass("is-active");
@@ -136,25 +151,29 @@ export class GotSaengReportHubView extends ItemView {
   }
 
   private async renderArtifactPreview(parent: HTMLElement, fileName: string): Promise<void> {
-    const artifact = OUTPUT_ARTIFACTS.find((item) => item.fileName === fileName) ?? DEFAULT_OUTPUT_ARTIFACT;
+    const artifact =
+      OUTPUT_ARTIFACTS.find((item) => item.fileName === fileName) ?? DEFAULT_OUTPUT_ARTIFACT;
     const filePath = `${this.controller.settings.outputFolder}/${artifact.fileName}`;
 
     parent.createEl("h3", { text: artifact.label });
     parent.createEl("p", {
       text: filePath,
-      cls: "gotsaeng-os-output-path"
+      cls: "gotsaeng-os-output-path",
     });
 
     const content = await this.controller.readOutputFileByName(artifact.fileName);
     if (content === null) {
       parent.createEl("p", {
         text: `No ${artifact.fileName} file found yet. Run the matching command or Compile first.`,
-        cls: "gotsaeng-os-view-note"
+        cls: "gotsaeng-os-view-note",
       });
       return;
     }
 
-    this.renderSourceLinks(parent, extractSourceLinks(content, { outputFolder: this.controller.settings.outputFolder }));
+    this.renderSourceLinks(
+      parent,
+      extractSourceLinks(content, { outputFolder: this.controller.settings.outputFolder }),
+    );
 
     const preview = parent.createDiv({ cls: "gotsaeng-os-artifact-preview" });
     if (artifact.format === "json") {
@@ -172,7 +191,7 @@ export class GotSaengReportHubView extends ItemView {
     if (sourceLinks.length === 0) {
       panel.createEl("p", {
         text: "No source-note links found in this preview.",
-        cls: "gotsaeng-os-view-note"
+        cls: "gotsaeng-os-view-note",
       });
       return;
     }
@@ -181,7 +200,7 @@ export class GotSaengReportHubView extends ItemView {
     for (const sourceLink of sourceLinks) {
       const button = grid.createEl("button", {
         text: formatSourceLinkLabel(sourceLink),
-        cls: "gotsaeng-os-source-button"
+        cls: "gotsaeng-os-source-button",
       });
       button.title = sourceLink.path;
       button.addEventListener("click", () => {

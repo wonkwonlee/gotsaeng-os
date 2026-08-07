@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { OUTPUT_ARTIFACTS } from "./artifacts";
 import { HIDDEN_OUTPUT_FOLDER, VISIBLE_OUTPUT_FOLDER, normalizeOutputFolder } from "./settings";
+import { isInsidePath } from "./vault-path";
 
 export type OutputCleanupResult = {
   outputFolder: string;
@@ -95,9 +96,4 @@ function isExpectedNonEmptyOrMissingDirectoryError(error: unknown): boolean {
     "code" in error &&
     (error.code === "ENOTEMPTY" || error.code === "ENOENT" || error.code === "EEXIST")
   );
-}
-
-function isInsidePath(parent: string, child: string): boolean {
-  const relative = path.relative(parent, child);
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }

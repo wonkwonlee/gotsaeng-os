@@ -38,7 +38,7 @@ const OBJECTIVE_HEADINGS = [
   "Focus",
   "Current Focus",
   "프로젝트 목표",
-  "목표"
+  "목표",
 ];
 const MAX_OBJECTIVE_LENGTH = 220;
 const WARNING_EXAMPLE_LIMIT = 8;
@@ -55,7 +55,7 @@ export function inferCurrentObjective(pack: ContextPack): ObjectiveInference {
         text: fromFrontmatter,
         sourcePath: note.path,
         confidence: "explicit",
-        reason: "Read from project note frontmatter."
+        reason: "Read from project note frontmatter.",
       };
     }
 
@@ -65,41 +65,45 @@ export function inferCurrentObjective(pack: ContextPack): ObjectiveInference {
         text: fromSection,
         sourcePath: note.path,
         confidence: "explicit",
-        reason: "Read from a project note objective section."
+        reason: "Read from a project note objective section.",
       };
     }
   }
 
   const highPriorityAction = pack.actions.find(
-    (item) => item.priority === "high" && (item.status === "open" || item.status === "active")
+    (item) => item.priority === "high" && (item.status === "open" || item.status === "active"),
   );
   if (highPriorityAction) {
     return {
       text: highPriorityAction.text,
       sourcePath: highPriorityAction.sourcePath,
       confidence: "inferred",
-      reason: "Inferred from the first high-priority open action."
+      reason: "Inferred from the first high-priority open action.",
     };
   }
 
-  const activeAction = pack.actions.find((item) => item.status === "open" || item.status === "active");
+  const activeAction = pack.actions.find(
+    (item) => item.status === "open" || item.status === "active",
+  );
   if (activeAction) {
     return {
       text: activeAction.text,
       sourcePath: activeAction.sourcePath,
       confidence: "inferred",
-      reason: "Inferred from the first open action."
+      reason: "Inferred from the first open action.",
     };
   }
 
   return {
     text: "No explicit objective found.",
     confidence: "none",
-    reason: "No objective frontmatter, objective section, or open action was found."
+    reason: "No objective frontmatter, objective section, or open action was found.",
   };
 }
 
-export function groupItemsBySource<T extends { sourcePath: string; sourceTitle: string }>(items: T[]): SourceGroup<T>[] {
+export function groupItemsBySource<T extends { sourcePath: string; sourceTitle: string }>(
+  items: T[],
+): SourceGroup<T>[] {
   const groups = new Map<string, SourceGroup<T>>();
 
   for (const item of items) {
@@ -110,18 +114,18 @@ export function groupItemsBySource<T extends { sourcePath: string; sourceTitle: 
       groups.set(item.sourcePath, {
         sourcePath: item.sourcePath,
         sourceTitle: item.sourceTitle,
-        items: [item]
+        items: [item],
       });
     }
   }
 
   return [...groups.values()].sort((left, right) => {
-      const count = right.items.length - left.items.length;
-      if (count !== 0) {
-        return count;
-      }
-      return compareStrings(left.sourcePath, right.sourcePath);
-    });
+    const count = right.items.length - left.items.length;
+    if (count !== 0) {
+      return count;
+    }
+    return compareStrings(left.sourcePath, right.sourcePath);
+  });
 }
 
 export function selectHighSignalItems(items: ExtractedItem[], limit: number): ExtractedItem[] {
@@ -133,7 +137,9 @@ export function createWarningTriage(report: CompileReport): WarningTriage {
   const missingUpdated = report.warnings
     .filter((warning) => warning.startsWith("Missing updated field: "))
     .map((warning) => warning.replace("Missing updated field: ", ""));
-  const otherWarnings = report.warnings.filter((warning) => !warning.startsWith("Missing updated field: "));
+  const otherWarnings = report.warnings.filter(
+    (warning) => !warning.startsWith("Missing updated field: "),
+  );
 
   const items: WarningTriageItem[] = [];
   if (parseErrors.length > 0) {
@@ -141,7 +147,7 @@ export function createWarningTriage(report: CompileReport): WarningTriage {
       label: "Parse errors",
       count: parseErrors.length,
       severity: "error",
-      examples: parseErrors.slice(0, WARNING_EXAMPLE_LIMIT)
+      examples: parseErrors.slice(0, WARNING_EXAMPLE_LIMIT),
     });
   }
   if (missingUpdated.length > 0) {
@@ -149,7 +155,7 @@ export function createWarningTriage(report: CompileReport): WarningTriage {
       label: "Notes missing updated dates",
       count: missingUpdated.length,
       severity: "warning",
-      examples: missingUpdated.slice(0, WARNING_EXAMPLE_LIMIT)
+      examples: missingUpdated.slice(0, WARNING_EXAMPLE_LIMIT),
     });
   }
   if (otherWarnings.length > 0) {
@@ -157,14 +163,14 @@ export function createWarningTriage(report: CompileReport): WarningTriage {
       label: "Other warnings",
       count: otherWarnings.length,
       severity: "warning",
-      examples: otherWarnings.slice(0, WARNING_EXAMPLE_LIMIT)
+      examples: otherWarnings.slice(0, WARNING_EXAMPLE_LIMIT),
     });
   }
 
   return {
     totalWarnings: report.warnings.length,
     totalParseErrors: report.parseErrors.length,
-    items
+    items,
   };
 }
 
@@ -212,12 +218,17 @@ function extractSectionFirstLine(markdown: string, heading: string): string | un
 }
 
 function compareNotesByPriority(left: NoteDocument, right: NoteDocument): number {
-  const priority = compareStrings(priorityRank(right.frontmatter["priority"]), priorityRank(left.frontmatter["priority"]));
+  const priority = compareStrings(
+    priorityRank(right.frontmatter["priority"]),
+    priorityRank(left.frontmatter["priority"]),
+  );
   if (priority !== 0) {
     return priority;
   }
 
-  return compareStrings(right.updated ?? "", left.updated ?? "") || compareStrings(left.path, right.path);
+  return (
+    compareStrings(right.updated ?? "", left.updated ?? "") || compareStrings(left.path, right.path)
+  );
 }
 
 function compareItemsBySignal(left: ExtractedItem, right: ExtractedItem): number {
@@ -235,8 +246,16 @@ function compareItemsBySignal(left: ExtractedItem, right: ExtractedItem): number
 }
 
 function signalScore(item: ExtractedItem): number {
-  const priorityScore = item.priority === "high" ? 50 : item.priority === "medium" ? 25 : item.priority === "low" ? 5 : 0;
-  const statusScore = item.status === "active" ? 20 : item.status === "open" ? 15 : item.status === "unknown" ? 3 : 0;
+  const priorityScore =
+    item.priority === "high"
+      ? 50
+      : item.priority === "medium"
+        ? 25
+        : item.priority === "low"
+          ? 5
+          : 0;
+  const statusScore =
+    item.status === "active" ? 20 : item.status === "open" ? 15 : item.status === "unknown" ? 3 : 0;
   const updatedScore = item.updated ? 5 : 0;
   return priorityScore + statusScore + updatedScore;
 }

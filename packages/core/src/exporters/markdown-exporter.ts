@@ -5,12 +5,17 @@ import {
   createWarningTriage,
   groupItemsBySource,
   inferCurrentObjective,
-  selectHighSignalItems
+  selectHighSignalItems,
 } from "../quality";
-import { compareItemsByConfidence } from "../confidence";
+import { compareItemsByConfidence, EXPLICIT_MARKER_SIGNAL_LABEL } from "../confidence";
 import { compareContradictionCandidates } from "../contradictions";
 import { compareItemsByProvenance } from "../provenance";
-import type { ContextPack, ContradictionCandidate, ExtractedItem } from "../schemas/context";
+import type {
+  CompileReport,
+  ContextPack,
+  ContradictionCandidate,
+  ExtractedItem,
+} from "../schemas/context";
 import type { NoteDocument } from "../schemas/note";
 import { compareStrings } from "../utils/path";
 
@@ -24,7 +29,9 @@ export const GENERATED_MARKDOWN_FILES = [
   "STALE_CONTEXT.md",
   "SOURCE_PROVENANCE.md",
   "CONFIDENCE.md",
-  "CONTRADICTIONS.md"
+  "CONTRADICTIONS.md",
+  "ENGINEERING_OPS.md",
+  "TEAM_MEMORY.md",
 ] as const;
 
 export type GeneratedMarkdownFile = (typeof GENERATED_MARKDOWN_FILES)[number];
@@ -38,9 +45,6 @@ export const REGISTER_ITEM_CAP = 200;
 // Back-compat alias: the risk register was the first register to adopt the cap.
 export const RISK_REGISTER_CAP = REGISTER_ITEM_CAP;
 
-// Confidence signal label emitted by scoreExtractionConfidence for explicit markers.
-const EXPLICIT_MARKER_CONFIDENCE_SIGNAL = "explicit extraction marker";
-
 export function renderMarkdownFiles(pack: ContextPack): Record<GeneratedMarkdownFile, string> {
   return {
     "PROJECT_CONTEXT.md": renderProjectContext(pack),
@@ -52,13 +56,15 @@ export function renderMarkdownFiles(pack: ContextPack): Record<GeneratedMarkdown
     "STALE_CONTEXT.md": renderStaleContext(pack),
     "SOURCE_PROVENANCE.md": renderSourceProvenance(pack),
     "CONFIDENCE.md": renderConfidenceMetadata(pack),
-    "CONTRADICTIONS.md": renderContradictions(pack)
+    "CONTRADICTIONS.md": renderContradictions(pack),
+    "ENGINEERING_OPS.md": renderEngineeringOps(pack),
+    "TEAM_MEMORY.md": renderTeamMemory(pack),
   };
 }
 
 export async function writeMarkdownContextPack(
   pack: ContextPack,
-  outputDir: string
+  outputDir: string,
 ): Promise<string[]> {
   await fs.mkdir(outputDir, { recursive: true });
   const files = renderMarkdownFiles(pack);
@@ -94,7 +100,12 @@ export function renderProjectContext(pack: ContextPack): string {
     "",
     "## Active Actions",
     "",
-    renderItemList(selectHighSignalItems(pack.actions.filter((item) => item.status === "open" || item.status === "active"), 25)),
+    renderItemList(
+      selectHighSignalItems(
+        pack.actions.filter((item) => item.status === "open" || item.status === "active"),
+        25,
+      ),
+    ),
     "",
     "## Risks",
     "",
@@ -107,7 +118,7 @@ export function renderProjectContext(pack: ContextPack): string {
     "## Source Notes",
     "",
     renderSourceNotes(pack.notes),
-    ""
+    "",
   ].join("\n");
 }
 
@@ -135,28 +146,24 @@ export function renderMemorySnapshot(pack: ContextPack): string {
     "",
     "## Source Coverage",
     "",
-    `- Files scanned: ${pack.report.filesScanned}`,
-    `- Markdown files parsed: ${pack.report.markdownFilesParsed}`,
-    `- Files skipped: ${pack.report.filesSkipped}`,
-    `- Warnings: ${pack.report.warnings.length}`,
-    ...renderCoverageLines(pack),
+    ...renderCoverageLines(pack.report),
     "",
     "## Source Provenance",
     "",
-    renderProvenanceSummary(pack),
+    renderProvenanceSummary(pack.report),
     "",
     "## Confidence Metadata",
     "",
-    renderConfidenceSummary(pack),
+    renderConfidenceSummary(pack.report),
     "",
     "## Contradiction Candidates",
     "",
-    renderContradictionSummary(pack),
+    renderContradictionSummary(pack.report),
     "",
     "## Warning Triage",
     "",
-    renderWarningTriage(pack),
-    ""
+    renderWarningTriage(pack.report),
+    "",
   ].join("\n");
 }
 
@@ -167,7 +174,7 @@ export function renderDecisionLog(pack: ContextPack): string {
     `Generated: ${pack.generatedAt}`,
     "",
     renderGroupedItems(pack.decisions),
-    ""
+    "",
   ].join("\n");
 }
 
@@ -177,12 +184,22 @@ export function renderDecisionLog(pack: ContextPack): string {
 const NAMED_ACTION_STATUSES = new Set<string>(["open", "active", "stale", "done"]);
 
 export function renderActionBacklog(pack: ContextPack): string {
-  const open = pack.actions.filter((item) => item.status === "open");
-  const active = pack.actions.filter((item) => item.status === "active");
-  const stale = pack.actions.filter((item) => item.status === "stale");
-  const done = pack.actions.filter((item) => item.status === "done");
-  const unknown = pack.actions.filter(
-    (item) => item.status === undefined || !NAMED_ACTION_STATUSES.has(item.status)
+  // `markStale` returns a stale-marked copy instead of mutating the item in
+  // `pack.actions`, so staleness has to be resolved by id here. Filtering on
+  // `status` alone would leave detector-flagged actions in their original bucket.
+  // `done` is terminal: the detector flags any old item, but a finished action
+  // has not gone cold, so it stays in Done.
+  const staleIds = new Set(pack.staleItems.map((item) => item.id));
+  const isStale = (item: ExtractedItem): boolean =>
+    item.status === "stale" || (staleIds.has(item.id) && item.status !== "done");
+
+  const stale = pack.actions.filter(isStale);
+  const live = pack.actions.filter((item) => !isStale(item));
+  const open = live.filter((item) => item.status === "open");
+  const active = live.filter((item) => item.status === "active");
+  const done = live.filter((item) => item.status === "done");
+  const unknown = live.filter(
+    (item) => item.status === undefined || !NAMED_ACTION_STATUSES.has(item.status),
   );
 
   return [
@@ -209,7 +226,7 @@ export function renderActionBacklog(pack: ContextPack): string {
     "## Done",
     "",
     renderCappedRegisterList(done),
-    ""
+    "",
   ].join("\n");
 }
 
@@ -220,7 +237,7 @@ export function renderRiskRegister(pack: ContextPack): string {
     `Generated: ${pack.generatedAt}`,
     "",
     renderCappedRegisterList(pack.risks),
-    ""
+    "",
   ].join("\n");
 }
 
@@ -261,7 +278,8 @@ function compareItemsForRegister(a: ExtractedItem, b: ExtractedItem): number {
 
 function isExplicitMarkerItem(item: ExtractedItem): boolean {
   return (
-    item.confidence?.signals.some((signal) => signal.includes(EXPLICIT_MARKER_CONFIDENCE_SIGNAL)) ?? false
+    item.confidence?.signals.some((signal) => signal.includes(EXPLICIT_MARKER_SIGNAL_LABEL)) ??
+    false
   );
 }
 
@@ -272,7 +290,7 @@ export function renderOpenQuestions(pack: ContextPack): string {
     `Generated: ${pack.generatedAt}`,
     "",
     renderCappedRegisterList(pack.questions),
-    ""
+    "",
   ].join("\n");
 }
 
@@ -286,12 +304,14 @@ export function renderStaleContext(pack: ContextPack): string {
     "",
     "## Stale Items",
     "",
-    pack.staleItems.length > 0 ? renderCappedRegisterList(pack.staleItems) : "- No stale items detected.",
+    pack.staleItems.length > 0
+      ? renderCappedRegisterList(pack.staleItems)
+      : "- No stale items detected.",
     "",
     "## Notes Missing Updated Dates",
     "",
     missingUpdated.length > 0 ? renderSourceNotes(missingUpdated) : "- None.",
-    ""
+    "",
   ].join("\n");
 }
 
@@ -314,7 +334,7 @@ export function renderSourceProvenance(pack: ContextPack): string {
     "",
     "## Summary",
     "",
-    renderProvenanceSummary(pack),
+    renderProvenanceSummary(pack.report),
     "",
     "## Weak Provenance Items",
     "",
@@ -327,7 +347,7 @@ export function renderSourceProvenance(pack: ContextPack): string {
     "## Provenance Warnings",
     "",
     renderProvenanceItemList(warningItems, { limit: 80, includeWarnings: true }),
-    ""
+    "",
   ].join("\n");
 }
 
@@ -350,7 +370,7 @@ export function renderConfidenceMetadata(pack: ContextPack): string {
     "",
     "## Summary",
     "",
-    renderConfidenceSummary(pack),
+    renderConfidenceSummary(pack.report),
     "",
     "## Low Confidence Items",
     "",
@@ -368,7 +388,7 @@ export function renderConfidenceMetadata(pack: ContextPack): string {
     "",
     "- Confidence scores describe extraction reliability from local metadata and patterns.",
     "- Confidence scores do not verify whether a claim is factually true.",
-    ""
+    "",
   ].join("\n");
 }
 
@@ -387,7 +407,7 @@ export function renderContradictions(pack: ContextPack): string {
     "",
     "## Summary",
     "",
-    renderContradictionSummary(pack),
+    renderContradictionSummary(pack.report),
     "",
     "## Review Candidates",
     "",
@@ -401,7 +421,115 @@ export function renderContradictions(pack: ContextPack): string {
     "",
     "- Candidates are deterministic local cues from headings, markers, and explicit contradiction language.",
     "- This report does not prove that sources are semantically inconsistent.",
-    ""
+    "",
+  ].join("\n");
+}
+
+/**
+ * A release-gate snapshot: everything already computed for the other reports,
+ * collected into one place so a maintainer can eyeball quality signals before
+ * merging or publishing without opening every individual report.
+ */
+export function renderEngineeringOps(pack: ContextPack): string {
+  return [
+    `# Engineering Ops: ${pack.projectName}`,
+    "",
+    `Generated: ${pack.generatedAt}`,
+    "",
+    "## Quality Snapshot",
+    "",
+    ...renderCoverageLines(pack.report),
+    `- Parse errors: ${pack.report.parseErrors.length}`,
+    `- Generated Markdown reports: ${GENERATED_MARKDOWN_FILES.length}`,
+    "",
+    "## Warning Triage",
+    "",
+    renderWarningTriage(pack.report),
+    "",
+    "## Source Provenance",
+    "",
+    renderProvenanceSummary(pack.report),
+    "",
+    "## Confidence Metadata",
+    "",
+    renderConfidenceSummary(pack.report),
+    "",
+    "## Contradiction Candidates",
+    "",
+    renderContradictionSummary(pack.report),
+    "",
+    "## Generated Artifacts",
+    "",
+    renderGeneratedArtifactList(),
+    "",
+    "## Release Gate Notes",
+    "",
+    "- Run typecheck, tests, build, and lint before publishing or merging release work.",
+    "- Keep releases local-only unless a future task explicitly changes that scope.",
+    "- Treat provenance, confidence, and contradiction reports as review aids, not semantic proof.",
+    "",
+  ].join("\n");
+}
+
+/**
+ * A team-facing handoff: current objective, active work, and the queues worth a
+ * second pair of eyes, so a teammate picking up the vault does not have to read
+ * every individual report to know where to start.
+ */
+export function renderTeamMemory(pack: ContextPack): string {
+  const objective = inferCurrentObjective(pack);
+  const activeActions = pack.actions.filter(
+    (item) => item.status === "open" || item.status === "active",
+  );
+
+  return [
+    `# Team Memory: ${pack.projectName}`,
+    "",
+    `Generated: ${pack.generatedAt}`,
+    "",
+    "## Current Objective",
+    "",
+    `${objective.text} (source: ${objective.sourcePath ?? "none"}; confidence: ${objective.confidence})`,
+    "",
+    "## Active Work",
+    "",
+    renderGroupedItems(selectHighSignalItems(activeActions, 30), {
+      headingLevel: 3,
+      limitPerSource: 8,
+    }),
+    "",
+    "## Decisions",
+    "",
+    renderGroupedItems(pack.decisions, { headingLevel: 3, limitPerSource: 8 }),
+    "",
+    "## Risks",
+    "",
+    renderGroupedItems(selectHighSignalItems(pack.risks, 20), {
+      headingLevel: 3,
+      limitPerSource: 8,
+    }),
+    "",
+    "## Open Questions",
+    "",
+    renderGroupedItems(selectHighSignalItems(pack.questions, 20), {
+      headingLevel: 3,
+      limitPerSource: 8,
+    }),
+    "",
+    "## Stale Follow-up",
+    "",
+    renderItemList(selectHighSignalItems(pack.staleItems, 20)),
+    "",
+    "## Review Queues",
+    "",
+    renderTeamReviewQueues(pack),
+    "",
+    "## Handoff Notes",
+    "",
+    "- This report is generated from local Markdown only.",
+    "- Use source paths to inspect or update the underlying notes before changing shared context.",
+    "- Keep team-facing decisions in source notes so the next compile can carry them forward.",
+    "",
   ].join("\n");
 }
 
@@ -415,7 +543,9 @@ function renderItemList(items: ExtractedItem[], options: { limit?: number } = {}
   const omitted = items.length - rendered.length;
 
   if (omitted > 0) {
-    rendered.push(`- ... ${omitted} more items omitted from this view. See COMPILE_REPORT.json for totals.`);
+    rendered.push(
+      `- ... ${omitted} more items omitted from this view. See COMPILE_REPORT.json for totals.`,
+    );
   }
 
   return rendered.join("\n");
@@ -426,7 +556,7 @@ function renderItem(item: ExtractedItem): string {
     `source: ${item.sourcePath}`,
     item.status ? `status: ${item.status}` : undefined,
     item.priority ? `priority: ${item.priority}` : undefined,
-    item.tags.length > 0 ? `tags: ${item.tags.join(", ")}` : undefined
+    item.tags.length > 0 ? `tags: ${item.tags.join(", ")}` : undefined,
   ]
     .filter((value): value is string => value !== undefined)
     .join("; ");
@@ -434,7 +564,10 @@ function renderItem(item: ExtractedItem): string {
   return `- ${item.text} (${metadata})`;
 }
 
-function renderGroupedItems(items: ExtractedItem[], options: { headingLevel?: 2 | 3; limitPerSource?: number } = {}): string {
+function renderGroupedItems(
+  items: ExtractedItem[],
+  options: { headingLevel?: 2 | 3; limitPerSource?: number } = {},
+): string {
   if (items.length === 0) {
     return "- None.";
   }
@@ -443,7 +576,9 @@ function renderGroupedItems(items: ExtractedItem[], options: { headingLevel?: 2 
   const headingPrefix = "#".repeat(options.headingLevel ?? 2);
   return groupItemsBySource(items)
     .map((group) => {
-      const renderedItems = limit ? renderItemList(group.items, { limit }) : renderItemList(group.items);
+      const renderedItems = limit
+        ? renderItemList(group.items, { limit })
+        : renderItemList(group.items);
       return [`${headingPrefix} ${group.sourcePath}`, "", renderedItems, ""].join("\n");
     })
     .join("\n")
@@ -476,10 +611,22 @@ function renderRecentUpdates(notes: NoteDocument[]): string {
     .join("\n");
 }
 
-function renderCoverageLines(pack: ContextPack): string[] {
-  const lines: string[] = [];
-  const stats = pack.report.extractionStats;
-  const coverage = pack.report.sourceCoverage;
+/**
+ * Coverage lines for a compile report. Shared with the Obsidian Report Hub, which
+ * omits the note-type breakdown to keep its summary short.
+ */
+export function renderCoverageLines(
+  report: CompileReport,
+  options: { includeNoteTypes?: boolean } = {},
+): string[] {
+  const stats = report.extractionStats;
+  const coverage = report.sourceCoverage;
+  const lines: string[] = [
+    `- Files scanned: ${report.filesScanned}`,
+    `- Markdown files parsed: ${report.markdownFilesParsed}`,
+    `- Files skipped: ${report.filesSkipped}`,
+    `- Warnings: ${report.warnings.length}`,
+  ];
 
   if (stats) {
     lines.push(`- Extracted items: ${stats.totalItems}`);
@@ -494,7 +641,7 @@ function renderCoverageLines(pack: ContextPack): string[] {
       .sort(([left], [right]) => compareStrings(left, right))
       .map(([noteType, count]) => `${noteType}: ${count}`)
       .join(", ");
-    if (noteTypeSummary) {
+    if (noteTypeSummary && options.includeNoteTypes !== false) {
       lines.push(`- Note types: ${noteTypeSummary}`);
     }
   }
@@ -502,22 +649,35 @@ function renderCoverageLines(pack: ContextPack): string[] {
   return lines;
 }
 
-function renderWarningTriage(pack: ContextPack): string {
-  const triage = pack.report.warningTriage ?? createWarningTriage(pack.report);
+/**
+ * Warning triage for a compile report. Shared with the Obsidian Report Hub, which
+ * caps examples per row so the in-app note stays readable.
+ */
+export function renderWarningTriage(
+  report: CompileReport,
+  options: { maxExamples?: number } = {},
+): string {
+  const triage = report.warningTriage ?? createWarningTriage(report);
   if (triage.items.length === 0) {
     return "- None.";
   }
 
   return triage.items
     .map((item) => {
-      const examples = item.examples.map((example) => `  - ${example}`).join("\n");
-      return [`- ${item.label}: ${item.count} (${item.severity})`, examples].filter(Boolean).join("\n");
+      const shown =
+        options.maxExamples === undefined
+          ? item.examples
+          : item.examples.slice(0, options.maxExamples);
+      const examples = shown.map((example) => `  - ${example}`).join("\n");
+      return [`- ${item.label}: ${item.count} (${item.severity})`, examples]
+        .filter(Boolean)
+        .join("\n");
     })
     .join("\n");
 }
 
-function renderProvenanceSummary(pack: ContextPack): string {
-  const stats = pack.report.provenanceStats;
+export function renderProvenanceSummary(report: CompileReport): string {
+  const stats = report.provenanceStats;
   if (!stats) {
     return "- No provenance stats available.";
   }
@@ -532,12 +692,12 @@ function renderProvenanceSummary(pack: ContextPack): string {
     `- Strong items: ${stats.strongItems}`,
     `- Moderate items: ${stats.moderateItems}`,
     `- Weak items: ${stats.weakItems}`,
-    `- By level: ${levels || "none"}`
+    `- By level: ${levels || "none"}`,
   ].join("\n");
 }
 
-function renderConfidenceSummary(pack: ContextPack): string {
-  const stats = pack.report.confidenceStats;
+export function renderConfidenceSummary(report: CompileReport): string {
+  const stats = report.confidenceStats;
   if (!stats) {
     return "- No confidence stats available.";
   }
@@ -551,12 +711,12 @@ function renderConfidenceSummary(pack: ContextPack): string {
     `- Average score: ${stats.averageScore}`,
     `- High confidence items: ${stats.highItems}`,
     `- Low confidence items: ${stats.lowItems}`,
-    `- By level: ${levels || "none"}`
+    `- By level: ${levels || "none"}`,
   ].join("\n");
 }
 
-function renderContradictionSummary(pack: ContextPack): string {
-  const stats = pack.report.contradictionStats;
+export function renderContradictionSummary(report: CompileReport): string {
+  const stats = report.contradictionStats;
   if (!stats) {
     return "- No contradiction stats available.";
   }
@@ -570,13 +730,13 @@ function renderContradictionSummary(pack: ContextPack): string {
     `- Candidates: ${stats.totalCandidates}`,
     `- Review items: ${stats.reviewItems}`,
     `- Watchlist items: ${stats.watchItems}`,
-    `- By signal: ${signals || "none"}`
+    `- By signal: ${signals || "none"}`,
   ].join("\n");
 }
 
 function renderProvenanceItemList(
   items: ExtractedItem[],
-  options: { limit?: number; includeWarnings?: boolean } = {}
+  options: { limit?: number; includeWarnings?: boolean } = {},
 ): string {
   if (items.length === 0) {
     return "- None.";
@@ -587,7 +747,9 @@ function renderProvenanceItemList(
   const omitted = items.length - rendered.length;
 
   if (omitted > 0) {
-    rendered.push(`- ... ${omitted} more items omitted from this provenance view. See COMPILE_REPORT.json for totals.`);
+    rendered.push(
+      `- ... ${omitted} more items omitted from this provenance view. See COMPILE_REPORT.json for totals.`,
+    );
   }
 
   return rendered.join("\n");
@@ -595,14 +757,14 @@ function renderProvenanceItemList(
 
 function renderProvenanceItem(
   item: ExtractedItem,
-  options: { includeWarnings?: boolean } = {}
+  options: { includeWarnings?: boolean } = {},
 ): string {
   const provenance = item.provenance;
   const details = [
     `source: ${item.sourcePath}`,
     `kind: ${item.kind}`,
     `status: ${item.status ?? "unknown"}`,
-    provenance ? `provenance: ${provenance.level} ${provenance.score}` : "provenance: unavailable"
+    provenance ? `provenance: ${provenance.level} ${provenance.score}` : "provenance: unavailable",
   ];
   const rendered = [`- ${item.text} (${details.join("; ")})`];
 
@@ -619,7 +781,7 @@ function renderProvenanceItem(
 
 function renderConfidenceItemList(
   items: ExtractedItem[],
-  options: { limit?: number; includeWarnings?: boolean } = {}
+  options: { limit?: number; includeWarnings?: boolean } = {},
 ): string {
   if (items.length === 0) {
     return "- None.";
@@ -630,7 +792,9 @@ function renderConfidenceItemList(
   const omitted = items.length - rendered.length;
 
   if (omitted > 0) {
-    rendered.push(`- ... ${omitted} more items omitted from this confidence view. See COMPILE_REPORT.json for totals.`);
+    rendered.push(
+      `- ... ${omitted} more items omitted from this confidence view. See COMPILE_REPORT.json for totals.`,
+    );
   }
 
   return rendered.join("\n");
@@ -638,14 +802,14 @@ function renderConfidenceItemList(
 
 function renderConfidenceItem(
   item: ExtractedItem,
-  options: { includeWarnings?: boolean } = {}
+  options: { includeWarnings?: boolean } = {},
 ): string {
   const confidence = item.confidence;
   const details = [
     `source: ${item.sourcePath}`,
     `kind: ${item.kind}`,
     `status: ${item.status ?? "unknown"}`,
-    confidence ? `confidence: ${confidence.level} ${confidence.score}` : "confidence: unavailable"
+    confidence ? `confidence: ${confidence.level} ${confidence.score}` : "confidence: unavailable",
   ];
   const rendered = [`- ${item.text} (${details.join("; ")})`];
 
@@ -662,18 +826,22 @@ function renderConfidenceItem(
 
 function renderContradictionCandidateList(
   candidates: ContradictionCandidate[],
-  options: { limit?: number; includeEvidence?: boolean } = {}
+  options: { limit?: number; includeEvidence?: boolean } = {},
 ): string {
   if (candidates.length === 0) {
     return "- None.";
   }
 
   const limit = options.limit ?? candidates.length;
-  const rendered = candidates.slice(0, limit).map((candidate) => renderContradictionCandidate(candidate, options));
+  const rendered = candidates
+    .slice(0, limit)
+    .map((candidate) => renderContradictionCandidate(candidate, options));
   const omitted = candidates.length - rendered.length;
 
   if (omitted > 0) {
-    rendered.push(`- ... ${omitted} more candidates omitted from this contradictions view. See COMPILE_REPORT.json for totals.`);
+    rendered.push(
+      `- ... ${omitted} more candidates omitted from this contradictions view. See COMPILE_REPORT.json for totals.`,
+    );
   }
 
   return rendered.join("\n");
@@ -681,12 +849,12 @@ function renderContradictionCandidateList(
 
 function renderContradictionCandidate(
   candidate: ContradictionCandidate,
-  options: { includeEvidence?: boolean } = {}
+  options: { includeEvidence?: boolean } = {},
 ): string {
   const details = [
     `source: ${candidate.sourcePath}`,
     `signal: ${candidate.signal}`,
-    `severity: ${candidate.severity}`
+    `severity: ${candidate.severity}`,
   ];
   const rendered = [`- ${candidate.text} (${details.join("; ")})`];
 
@@ -705,6 +873,30 @@ function getAllItems(pack: ContextPack): ExtractedItem[] {
     ...pack.risks,
     ...pack.assumptions,
     ...pack.questions,
-    ...pack.insights
+    ...pack.insights,
   ];
+}
+
+function renderGeneratedArtifactList(): string {
+  const artifacts = [
+    ...GENERATED_MARKDOWN_FILES,
+    "MEMORY_DIFF.md",
+    "CONTEXT_MANIFEST.json",
+    "COMPILE_REPORT.json",
+  ];
+  return artifacts.map((artifact) => `- ${artifact}`).join("\n");
+}
+
+function renderTeamReviewQueues(pack: ContextPack): string {
+  const lowConfidence = getAllItems(pack).filter((item) => item.confidence?.level === "low").length;
+  const weakProvenance = pack.report.provenanceStats?.weakItems ?? 0;
+  const contradictionCandidates = pack.report.contradictionStats?.totalCandidates ?? 0;
+
+  return [
+    `- Low confidence items: ${lowConfidence}`,
+    `- Weak provenance items: ${weakProvenance}`,
+    `- Contradiction candidates: ${contradictionCandidates}`,
+    `- Warnings: ${pack.report.warnings.length}`,
+    `- Parse errors: ${pack.report.parseErrors.length}`,
+  ].join("\n");
 }

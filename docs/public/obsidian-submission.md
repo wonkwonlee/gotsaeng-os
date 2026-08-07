@@ -1,4 +1,4 @@
-# Obsidian Community Plugin Submission — GotSaeng OS
+# Historical Obsidian Community Plugin Submission — GotSaeng OS
 
 > **Process update (2026-06):** Obsidian no longer accepts pull requests to
 > `obsidianmd/obsidian-releases` (the repo has PR creation disabled). Submissions go through
@@ -10,9 +10,20 @@
 
 ## Pre-submission checklist
 
+> **This records the `0.10.4` submission.** This is an immutable historical record, not the
+> current release checklist. The version numbers below are deliberately left as
+> they were; they are a record of what was submitted, not a template to edit in place. For a new
+> submission, copy this list and substitute the release version.
+>
+> The first three rows are now automated: `pnpm check:versions` verifies them (plus the root
+> `manifest.json`/`versions.json` copies and the README pins) and runs in CI. Note that the
+> workspace no longer has five `package.json` files — `@gotsaeng/shared` was removed after
+> `0.10.8`, and the check discovers packages rather than assuming a count.
+
 - [x] `apps/obsidian-plugin/manifest.json` `version` == `0.10.4`
 - [x] `apps/obsidian-plugin/versions.json` contains key `"0.10.4"`
-- [x] All five `package.json` files have `"version": "0.10.4"`
+- [x] The five workspace `package.json` files present at that historical release had
+      `"version": "0.10.4"`
 - [x] Git tag `0.10.4` on the public repo (NO `v` prefix — must exactly match manifest version)
 - [x] GitHub release `0.10.4` with assets: `main.js`, `manifest.json`, `styles.css`
 - [x] Release assets are from `apps/obsidian-plugin/dist/` after a clean `pnpm build`

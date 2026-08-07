@@ -36,7 +36,7 @@ export function createValidateCommand(): Command {
             }
           } catch (error) {
             errors.push(
-              `${path.relative(rootPath, filePath)}: ${error instanceof Error ? error.message : String(error)}`
+              `${path.relative(rootPath, filePath)}: ${error instanceof Error ? error.message : String(error)}`,
             );
           }
         }
@@ -47,8 +47,8 @@ export function createValidateCommand(): Command {
             markdownFiles: files.length,
             mode: strict ? "strict" : "compatibility",
             warnings,
-            errors
-          })
+            errors,
+          }),
         );
         process.exitCode = errors.length > 0 ? 1 : 0;
       } catch (error) {
@@ -59,9 +59,9 @@ export function createValidateCommand(): Command {
             checks: [
               "The source vault path exists and is a directory.",
               "Markdown files are readable by the current user.",
-              "YAML frontmatter blocks are closed with a second --- line."
-            ]
-          })
+              "YAML frontmatter blocks are closed with a second --- line.",
+            ],
+          }),
         );
         process.exitCode = 1;
       }

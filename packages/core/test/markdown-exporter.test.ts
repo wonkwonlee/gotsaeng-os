@@ -5,11 +5,15 @@ import {
   REGISTER_ITEM_CAP,
   RISK_REGISTER_CAP,
   renderActionBacklog,
+  renderCoverageLines,
+  renderEngineeringOps,
   renderMemorySnapshot,
   renderOpenQuestions,
-  renderRiskRegister
+  renderRiskRegister,
+  renderTeamMemory,
+  renderWarningTriage,
 } from "../src/exporters/markdown-exporter";
-import type { ContextPack, ExtractedItem } from "../src/schemas/context";
+import type { CompileReport, ContextPack, ExtractedItem } from "../src/schemas/context";
 import type { NoteDocument, NoteType } from "../src/schemas/note";
 
 function makeNote(input: { path: string; noteType: NoteType; updated?: string }): NoteDocument {
@@ -22,7 +26,7 @@ function makeNote(input: { path: string; noteType: NoteType; updated?: string })
     noteType: input.noteType,
     tags: [],
     updated: input.updated,
-    raw: ""
+    raw: "",
   };
 }
 
@@ -43,12 +47,12 @@ function makeItem(input: {
     status: input.status ?? "open",
     created: input.note.created,
     updated: input.note.updated,
-    tags: [] as string[]
+    tags: [] as string[],
   };
 
   return {
     ...base,
-    confidence: scoreExtractionConfidence(input.note, base, input.source)
+    confidence: scoreExtractionConfidence(input.note, base, input.source),
   };
 }
 
@@ -81,10 +85,14 @@ function makePack(overrides: Partial<ContextPack> = {}): ContextPack {
       filesSkipped: 0,
       parseErrors: [],
       warnings: [],
-      generatedFiles: []
+      generatedFiles: [],
     },
-    ...overrides
+    ...overrides,
   };
+}
+
+function sectionOf(markdown: string, heading: string): string {
+  return markdown.split(/^## /m).find((section) => section.startsWith(`${heading}\n`)) ?? "";
 }
 
 describe("renderRiskRegister", () => {
@@ -96,17 +104,23 @@ describe("renderRiskRegister", () => {
     const strongNote = makeNote({
       path: "/vault/30_Research/strong.md",
       noteType: "research",
-      updated: "2026-06-01"
+      updated: "2026-06-01",
     });
 
-    const explicitTexts = Array.from({ length: 5 }, (_unused, index) => `Explicit risk ${index + 1}`);
-    const sectionTexts = Array.from({ length: 250 }, (_unused, index) => `Section risk ${index + 1}`);
+    const explicitTexts = Array.from(
+      { length: 5 },
+      (_unused, index) => `Explicit risk ${index + 1}`,
+    );
+    const sectionTexts = Array.from(
+      { length: 250 },
+      (_unused, index) => `Section risk ${index + 1}`,
+    );
 
     const sectionRisks = sectionTexts.map((text) =>
-      makeRiskItem({ note: strongNote, text, source: "section_line" })
+      makeRiskItem({ note: strongNote, text, source: "section_line" }),
     );
     const explicitRisks = explicitTexts.map((text) =>
-      makeRiskItem({ note: weakNote, text, source: "explicit_marker" })
+      makeRiskItem({ note: weakNote, text, source: "explicit_marker" }),
     );
 
     // Explicit risks have lower confidence than section risks, and are placed
@@ -131,7 +145,9 @@ describe("renderRiskRegister", () => {
 
     // Lower-confidence section risks are the ones trimmed once the cap is hit.
     // The trailing word boundary keeps "Section risk 1" from matching "Section risk 10".
-    const sectionPresent = sectionTexts.filter((text) => new RegExp(`${text}\\b`).test(rendered)).length;
+    const sectionPresent = sectionTexts.filter((text) =>
+      new RegExp(`${text}\\b`).test(rendered),
+    ).length;
     expect(sectionPresent).toBe(RISK_REGISTER_CAP - explicitTexts.length);
   });
 });
@@ -145,13 +161,17 @@ describe("dedicated register caps", () => {
     const strongNote = makeNote({
       path: "/vault/30_Research/strong.md",
       noteType: "research",
-      updated: "2026-06-01"
+      updated: "2026-06-01",
     });
     const explicitTexts = Array.from({ length: 5 }, (_unused, i) => `Explicit ${kind} ${i + 1}`);
     const sectionTexts = Array.from({ length: 250 }, (_unused, i) => `Section ${kind} ${i + 1}`);
     const items = [
-      ...sectionTexts.map((text) => makeItem({ note: strongNote, text, source: "section_line", kind, status })),
-      ...explicitTexts.map((text) => makeItem({ note: weakNote, text, source: "explicit_marker", kind, status }))
+      ...sectionTexts.map((text) =>
+        makeItem({ note: strongNote, text, source: "section_line", kind, status }),
+      ),
+      ...explicitTexts.map((text) =>
+        makeItem({ note: weakNote, text, source: "explicit_marker", kind, status }),
+      ),
     ];
     return { explicitTexts, sectionTexts, items };
   }
@@ -161,7 +181,9 @@ describe("dedicated register caps", () => {
       expect(rendered).toContain(text);
     }
     expect(rendered).toContain("more items omitted");
-    const sectionPresent = sectionTexts.filter((text) => new RegExp(`${text}\\b`).test(rendered)).length;
+    const sectionPresent = sectionTexts.filter((text) =>
+      new RegExp(`${text}\\b`).test(rendered),
+    ).length;
     expect(sectionPresent).toBe(REGISTER_ITEM_CAP - explicitTexts.length);
   }
 
@@ -181,9 +203,19 @@ describe("dedicated register caps", () => {
   });
 
   it("leaves a register unchanged when it is within the cap", () => {
-    const note = makeNote({ path: "/vault/notes/a.md", noteType: "research", updated: "2026-06-01" });
+    const note = makeNote({
+      path: "/vault/notes/a.md",
+      noteType: "research",
+      updated: "2026-06-01",
+    });
     const items = Array.from({ length: 3 }, (_unused, i) =>
-      makeItem({ note, text: `Question ${i + 1}`, source: "section_line", kind: "question", status: "open" })
+      makeItem({
+        note,
+        text: `Question ${i + 1}`,
+        source: "section_line",
+        kind: "question",
+        status: "open",
+      }),
     );
     const rendered = renderOpenQuestions(makePack({ questions: items }));
 
@@ -200,7 +232,7 @@ describe("renderActionBacklog status coverage", () => {
   it("renders actions for every status so none are silently dropped", () => {
     const statuses: ExtractedItem["status"][] = ["open", "active", "stale", "done", "unknown"];
     const actions = statuses.map((status) =>
-      makeItem({ note, text: `Action ${status}`, source: "task_list", kind: "action", status })
+      makeItem({ note, text: `Action ${status}`, source: "task_list", kind: "action", status }),
     );
 
     const rendered = renderActionBacklog(makePack({ actions }));
@@ -212,9 +244,274 @@ describe("renderActionBacklog status coverage", () => {
   });
 
   it("keeps an action with an undefined status in the Unknown bucket", () => {
-    const action = makeItem({ note, text: "Action no status", source: "task_list", kind: "action" });
+    const action = makeItem({
+      note,
+      text: "Action no status",
+      source: "task_list",
+      kind: "action",
+    });
     const pack = makePack({ actions: [{ ...action, status: undefined }] });
 
     expect(renderActionBacklog(pack)).toContain("Action no status");
+  });
+
+  it("routes detector-flagged stale actions into the Stale section only", () => {
+    // detectStaleItems returns stale-marked *copies*, so the original in
+    // pack.actions still reads "open". The backlog must follow pack.staleItems.
+    const action = makeItem({
+      note,
+      text: "Revisit the old checklist",
+      source: "task_list",
+      kind: "action",
+    });
+    const pack = makePack({ actions: [action], staleItems: [{ ...action, status: "stale" }] });
+
+    const rendered = renderActionBacklog(pack);
+
+    expect(sectionOf(rendered, "Stale")).toContain("Revisit the old checklist");
+    expect(sectionOf(rendered, "Open")).not.toContain("Revisit the old checklist");
+  });
+
+  it("keeps a done action in Done even when the detector flags it as stale", () => {
+    const action = makeItem({
+      note,
+      text: "Ship the quickstart",
+      source: "task_list",
+      kind: "action",
+      status: "done",
+    });
+    const pack = makePack({ actions: [action], staleItems: [{ ...action, status: "stale" }] });
+
+    const rendered = renderActionBacklog(pack);
+
+    expect(sectionOf(rendered, "Done")).toContain("Ship the quickstart");
+    expect(sectionOf(rendered, "Stale")).not.toContain("Ship the quickstart");
+  });
+
+  it("ignores stale items that are not actions", () => {
+    const risk = makeItem({ note, text: "A stale risk", source: "task_list", kind: "risk" });
+    const action = makeItem({ note, text: "A live action", source: "task_list", kind: "action" });
+    const pack = makePack({ actions: [action], staleItems: [{ ...risk, status: "stale" }] });
+
+    const rendered = renderActionBacklog(pack);
+
+    expect(sectionOf(rendered, "Open")).toContain("A live action");
+    expect(rendered).not.toContain("A stale risk");
+  });
+});
+
+// The Obsidian Report Hub renders these through the same functions with trimming
+// options, so both shapes are exercised here rather than duplicated in the plugin.
+describe("shared report summaries", () => {
+  function makeReport(overrides: Partial<CompileReport> = {}): CompileReport {
+    return {
+      filesScanned: 9,
+      markdownFilesParsed: 7,
+      filesSkipped: 2,
+      parseErrors: [],
+      warnings: [],
+      generatedFiles: [],
+      ...overrides,
+    };
+  }
+
+  it("includes the note-type breakdown by default and omits it on request", () => {
+    const report = makeReport({
+      sourceCoverage: {
+        notesWithUpdated: 5,
+        notesMissingUpdated: 2,
+        noteTypes: { project: 4, research: 3 },
+      },
+    });
+
+    expect(renderCoverageLines(report).join("\n")).toContain(
+      "- Note types: project: 4, research: 3",
+    );
+    expect(renderCoverageLines(report, { includeNoteTypes: false }).join("\n")).not.toContain(
+      "Note types",
+    );
+  });
+
+  it("always reports the scan counters regardless of the note-type option", () => {
+    const lines = renderCoverageLines(makeReport(), { includeNoteTypes: false });
+
+    expect(lines).toContain("- Files scanned: 9");
+    expect(lines).toContain("- Markdown files parsed: 7");
+    expect(lines).toContain("- Files skipped: 2");
+    expect(lines).toContain("- Warnings: 0");
+  });
+
+  it("caps triage examples only when maxExamples is given", () => {
+    const report = makeReport({
+      warningTriage: {
+        totalWarnings: 6,
+        totalParseErrors: 0,
+        items: [
+          {
+            label: "Missing updated field",
+            count: 6,
+            severity: "warning",
+            examples: ["a.md", "b.md", "c.md", "d.md", "e.md", "f.md"],
+          },
+        ],
+      },
+    });
+
+    expect(renderWarningTriage(report)).toContain("f.md");
+    expect(renderWarningTriage(report, { maxExamples: 5 })).not.toContain("f.md");
+    expect(renderWarningTriage(report, { maxExamples: 5 })).toContain("e.md");
+  });
+
+  it("reports missing stats instead of throwing", () => {
+    expect(renderWarningTriage(makeReport())).toBe("- None.");
+  });
+});
+
+describe("renderEngineeringOps", () => {
+  it("collects the quality snapshot, review summaries, and the generated artifact list", () => {
+    const note = makeNote({
+      path: "/vault/notes/a.md",
+      noteType: "research",
+      updated: "2026-06-01",
+    });
+    const item = makeRiskItem({ note, text: "A risk worth flagging.", source: "section_line" });
+    const pack = makePack({
+      risks: [item],
+      report: {
+        filesScanned: 12,
+        markdownFilesParsed: 9,
+        filesSkipped: 3,
+        parseErrors: [{ path: "bad.md", message: "boom" }],
+        warnings: ["a.md: Missing updated field"],
+        generatedFiles: [],
+        sourceCoverage: { notesWithUpdated: 8, notesMissingUpdated: 1, noteTypes: { research: 9 } },
+        provenanceStats: {
+          averageScore: 70,
+          strongItems: 2,
+          moderateItems: 1,
+          weakItems: 0,
+          byLevel: { strong: 2, moderate: 1 },
+        },
+        confidenceStats: { averageScore: 60, highItems: 1, lowItems: 0, byLevel: { high: 1 } },
+        contradictionStats: { totalCandidates: 3, reviewItems: 1, watchItems: 2, bySignal: {} },
+      },
+    });
+
+    const rendered = renderEngineeringOps(pack);
+
+    expect(rendered).toContain("# Engineering Ops: Research Vault");
+    expect(rendered).toContain("- Files scanned: 12");
+    expect(rendered).toContain("- Parse errors: 1");
+    expect(rendered).toContain("## Warning Triage");
+    expect(rendered).toContain("## Source Provenance");
+    expect(rendered).toContain("- Average score: 70");
+    expect(rendered).toContain("## Confidence Metadata");
+    expect(rendered).toContain("- Average score: 60");
+    expect(rendered).toContain("## Contradiction Candidates");
+    expect(rendered).toContain("- Candidates: 3");
+    expect(rendered).toContain("## Generated Artifacts");
+    expect(rendered).toContain("- ENGINEERING_OPS.md");
+    expect(rendered).toContain("- MEMORY_DIFF.md");
+    expect(rendered).toContain("- COMPILE_REPORT.json");
+    expect(rendered).toContain("## Release Gate Notes");
+  });
+});
+
+describe("renderTeamMemory", () => {
+  it("surfaces the current objective, active work, and review queues for a handoff", () => {
+    const note = makeNote({
+      path: "/vault/notes/a.md",
+      noteType: "project",
+      updated: "2026-06-01",
+    });
+    const activeAction = makeItem({
+      note,
+      text: "Ship the handoff report.",
+      source: "task_list",
+      kind: "action",
+      status: "open",
+    });
+    const doneAction = makeItem({
+      note,
+      text: "Already finished this one.",
+      source: "task_list",
+      kind: "action",
+      status: "done",
+    });
+    const decision = makeItem({
+      note,
+      text: "Adopt the new report format.",
+      source: "explicit_marker",
+      kind: "decision",
+    });
+    const risk = makeItem({
+      note,
+      text: "Reports could go stale.",
+      source: "section_line",
+      kind: "risk",
+    });
+    const question = makeItem({
+      note,
+      text: "Who owns weekly review?",
+      source: "section_line",
+      kind: "question",
+    });
+    const staleItem = { ...activeAction, status: "stale" as const };
+
+    const pack = makePack({
+      actions: [activeAction, doneAction],
+      decisions: [decision],
+      risks: [risk],
+      questions: [question],
+      staleItems: [staleItem],
+      report: {
+        filesScanned: 5,
+        markdownFilesParsed: 5,
+        filesSkipped: 0,
+        parseErrors: [],
+        warnings: [],
+        generatedFiles: [],
+        provenanceStats: {
+          averageScore: 80,
+          strongItems: 3,
+          moderateItems: 0,
+          weakItems: 1,
+          byLevel: {},
+        },
+        contradictionStats: { totalCandidates: 2, reviewItems: 1, watchItems: 1, bySignal: {} },
+      },
+    });
+
+    const rendered = renderTeamMemory(pack);
+
+    expect(rendered).toContain("# Team Memory: Research Vault");
+    expect(rendered).toContain("## Current Objective");
+    expect(rendered).toContain("## Active Work");
+    expect(rendered).toContain("Ship the handoff report.");
+    // A finished action is not "active work".
+    expect(rendered.split("## Active Work")[1]?.split("## Decisions")[0]).not.toContain(
+      "Already finished this one.",
+    );
+    expect(rendered).toContain("## Decisions");
+    expect(rendered).toContain("Adopt the new report format.");
+    expect(rendered).toContain("## Risks");
+    expect(rendered).toContain("Reports could go stale.");
+    expect(rendered).toContain("## Open Questions");
+    expect(rendered).toContain("Who owns weekly review?");
+    expect(rendered).toContain("## Stale Follow-up");
+    expect(rendered).toContain("## Review Queues");
+    expect(rendered).toContain("- Weak provenance items: 1");
+    expect(rendered).toContain("- Contradiction candidates: 2");
+    expect(rendered).toContain("## Handoff Notes");
+  });
+
+  it("falls back to zero counts in the review queues when stats are missing", () => {
+    const pack = makePack();
+
+    const rendered = renderTeamMemory(pack);
+
+    expect(rendered).toContain("- Low confidence items: 0");
+    expect(rendered).toContain("- Weak provenance items: 0");
+    expect(rendered).toContain("- Contradiction candidates: 0");
   });
 });

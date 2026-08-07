@@ -2,10 +2,11 @@ import type {
   CompileReport,
   ExtractedItem,
   SourceProvenance,
-  SourceProvenanceLevel
+  SourceProvenanceLevel,
 } from "./schemas/context";
 import type { NoteDocument } from "./schemas/note";
 import { compareStrings } from "./utils/path";
+import { sortRecord } from "./utils/record";
 
 type ProvenanceSignal = {
   label: string;
@@ -14,19 +15,25 @@ type ProvenanceSignal = {
 
 const PROVENANCE_CALIBRATION = "v0.10-local-metadata";
 
-export function applySourceProvenance(notes: NoteDocument[], items: ExtractedItem[]): ExtractedItem[] {
+export function applySourceProvenance(
+  notes: NoteDocument[],
+  items: ExtractedItem[],
+): ExtractedItem[] {
   const notesByPath = new Map(notes.map((note) => [note.path, note]));
 
   return items.map((item) => {
     const note = notesByPath.get(item.sourcePath);
     return {
       ...item,
-      provenance: scoreSourceProvenance(note, item)
+      provenance: scoreSourceProvenance(note, item),
     };
   });
 }
 
-export function scoreSourceProvenance(note: NoteDocument | undefined, item?: ExtractedItem): SourceProvenance {
+export function scoreSourceProvenance(
+  note: NoteDocument | undefined,
+  item?: ExtractedItem,
+): SourceProvenance {
   const signals: ProvenanceSignal[] = [{ label: "baseline local Markdown source", impact: 45 }];
   const warnings: string[] = [];
 
@@ -83,7 +90,9 @@ export function scoreSourceProvenance(note: NoteDocument | undefined, item?: Ext
   return finalizeProvenance(signals, warnings);
 }
 
-export function createProvenanceStats(items: ExtractedItem[]): NonNullable<CompileReport["provenanceStats"]> {
+export function createProvenanceStats(
+  items: ExtractedItem[],
+): NonNullable<CompileReport["provenanceStats"]> {
   const scoredItems = items.filter((item) => item.provenance);
   const byLevel: Record<string, number> = {};
 
@@ -93,14 +102,15 @@ export function createProvenanceStats(items: ExtractedItem[]): NonNullable<Compi
   }
 
   const totalScore = scoredItems.reduce((sum, item) => sum + (item.provenance?.score ?? 0), 0);
-  const averageScore = scoredItems.length > 0 ? roundToOneDecimal(totalScore / scoredItems.length) : 0;
+  const averageScore =
+    scoredItems.length > 0 ? roundToOneDecimal(totalScore / scoredItems.length) : 0;
 
   return {
     averageScore,
     byLevel: sortRecord(byLevel),
     weakItems: byLevel["weak"] ?? 0,
     moderateItems: byLevel["moderate"] ?? 0,
-    strongItems: byLevel["strong"] ?? 0
+    strongItems: byLevel["strong"] ?? 0,
   };
 }
 
@@ -120,8 +130,10 @@ function finalizeProvenance(signals: ProvenanceSignal[], warnings: string[]): So
     score,
     level: scoreToLevel(score),
     calibration: PROVENANCE_CALIBRATION,
-    signals: signals.map((signal) => `${signal.impact >= 0 ? "+" : ""}${signal.impact}: ${signal.label}`),
-    warnings: [...new Set(warnings)].sort()
+    signals: signals.map(
+      (signal) => `${signal.impact >= 0 ? "+" : ""}${signal.impact}: ${signal.label}`,
+    ),
+    warnings: [...new Set(warnings)].sort(),
   };
 }
 
@@ -155,8 +167,4 @@ function hasKnownFrontmatterStatus(note: NoteDocument): boolean {
 
 function roundToOneDecimal(value: number): number {
   return Math.round(value * 10) / 10;
-}
-
-function sortRecord(record: Record<string, number>): Record<string, number> {
-  return Object.fromEntries(Object.entries(record).sort(([left], [right]) => compareStrings(left, right)));
 }

@@ -2,10 +2,16 @@ import type {
   CompileReport,
   ConfidenceLevel,
   ConfidenceMetadata,
-  ExtractedItem
+  ExtractedItem,
 } from "./schemas/context";
 import type { NoteDocument } from "./schemas/note";
 import { compareStrings } from "./utils/path";
+import { sortRecord } from "./utils/record";
+
+// The Markdown exporter matches this label to keep explicit-marker items above
+// REGISTER_ITEM_CAP. Sharing the constant is what keeps the two sides in step —
+// it must not be inlined as a bare string on either end.
+export const EXPLICIT_MARKER_SIGNAL_LABEL = "explicit extraction marker";
 
 export type ExtractionConfidenceSource =
   | "explicit_marker"
@@ -22,7 +28,7 @@ export function scoreExtractionConfidence(
   note: NoteDocument,
   item: ExtractedItem,
   source: ExtractionConfidenceSource,
-  options: { truncation?: { originalLength: number; maxLength: number } } = {}
+  options: { truncation?: { originalLength: number; maxLength: number } } = {},
 ): ConfidenceMetadata {
   const signals: ConfidenceSignal[] = [{ label: "deterministic local extraction", impact: 35 }];
   const warnings: string[] = [];
@@ -31,7 +37,7 @@ export function scoreExtractionConfidence(
 
   if (options.truncation) {
     warnings.push(
-      `Extracted text truncated from ${options.truncation.originalLength} characters to the ${options.truncation.maxLength}-character limit (source: ${note.path}).`
+      `Extracted text truncated from ${options.truncation.originalLength} characters to the ${options.truncation.maxLength}-character limit (source: ${note.path}).`,
     );
   }
 
@@ -66,7 +72,9 @@ export function scoreExtractionConfidence(
   return finalizeConfidence(signals, warnings);
 }
 
-export function createConfidenceStats(items: ExtractedItem[]): NonNullable<CompileReport["confidenceStats"]> {
+export function createConfidenceStats(
+  items: ExtractedItem[],
+): NonNullable<CompileReport["confidenceStats"]> {
   const scoredItems = items.filter((item) => item.confidence);
   const byLevel: Record<string, number> = {};
 
@@ -76,13 +84,14 @@ export function createConfidenceStats(items: ExtractedItem[]): NonNullable<Compi
   }
 
   const totalScore = scoredItems.reduce((sum, item) => sum + (item.confidence?.score ?? 0), 0);
-  const averageScore = scoredItems.length > 0 ? roundToOneDecimal(totalScore / scoredItems.length) : 0;
+  const averageScore =
+    scoredItems.length > 0 ? roundToOneDecimal(totalScore / scoredItems.length) : 0;
 
   return {
     averageScore,
     byLevel: sortRecord(byLevel),
     lowItems: byLevel["low"] ?? 0,
-    highItems: byLevel["high"] ?? 0
+    highItems: byLevel["high"] ?? 0,
   };
 }
 
@@ -95,12 +104,12 @@ export function compareItemsByConfidence(a: ExtractedItem, b: ExtractedItem): nu
   );
 }
 
-function addExtractionSourceSignal(signals: ConfidenceSignal[], source: ExtractionConfidenceSource): void {
+function addExtractionSourceSignal(
+  signals: ConfidenceSignal[],
+  source: ExtractionConfidenceSource,
+): void {
   if (source === "explicit_marker") {
-    // NOTE: exporters/markdown-exporter.ts string-matches this exact label
-    // (EXPLICIT_MARKER_CONFIDENCE_SIGNAL) to keep explicit-marker risks above
-    // RISK_REGISTER_CAP. Do not reword without updating that consumer.
-    signals.push({ label: "explicit extraction marker", impact: 35 });
+    signals.push({ label: EXPLICIT_MARKER_SIGNAL_LABEL, impact: 35 });
     return;
   }
   if (source === "task_list") {
@@ -121,8 +130,10 @@ function finalizeConfidence(signals: ConfidenceSignal[], warnings: string[]): Co
   return {
     score,
     level: scoreToLevel(score),
-    signals: signals.map((signal) => `${signal.impact >= 0 ? "+" : ""}${signal.impact}: ${signal.label}`),
-    warnings: [...new Set(warnings)].sort()
+    signals: signals.map(
+      (signal) => `${signal.impact >= 0 ? "+" : ""}${signal.impact}: ${signal.label}`,
+    ),
+    warnings: [...new Set(warnings)].sort(),
   };
 }
 
@@ -142,8 +153,4 @@ function clampScore(value: number): number {
 
 function roundToOneDecimal(value: number): number {
   return Math.round(value * 10) / 10;
-}
-
-function sortRecord(record: Record<string, number>): Record<string, number> {
-  return Object.fromEntries(Object.entries(record).sort(([left], [right]) => compareStrings(left, right)));
 }

@@ -7,7 +7,7 @@ export const CompileOptionsSchema = z.object({
   projectName: z.string().min(1),
   staleDays: z.number().int().positive().default(90),
   generatedAt: z.string().optional(),
-  ignoreGlobs: z.array(z.string()).optional()
+  ignoreGlobs: z.array(z.string()).optional(),
 });
 
 export type CompileOptions = z.input<typeof CompileOptionsSchema> & {

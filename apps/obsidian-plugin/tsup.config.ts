@@ -12,5 +12,5 @@ export default defineConfig({
   target: "es2022",
   external: ["obsidian"],
   noExternal: ["@gotsaeng/core", "fast-glob", "gray-matter", "zod"],
-  outExtension: () => ({ js: ".js" })
+  outExtension: () => ({ js: ".js" }),
 });

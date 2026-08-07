@@ -19,7 +19,7 @@ export function detectStaleItems(input: StaleDetectionInput): ExtractedItem[] {
   const staleNotePaths = new Set(
     input.notes
       .filter((note) => isOlderThan(note.updated, staleDays, now))
-      .map((note) => note.path)
+      .map((note) => note.path),
   );
 
   for (const item of input.items) {
@@ -49,6 +49,6 @@ export function detectStaleItems(input: StaleDetectionInput): ExtractedItem[] {
 export function markStale(item: ExtractedItem): ExtractedItem {
   return {
     ...item,
-    status: "stale"
+    status: "stale",
   };
 }

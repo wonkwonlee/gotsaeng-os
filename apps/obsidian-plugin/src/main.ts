@@ -37,7 +37,12 @@ import {
   type GotSaengPluginSettings,
   type OutputFolderVisibility,
 } from "./settings";
-import { buildOutputIgnoreGlobs, resolveOutputPath, toVaultRelativePath, type VaultPathInfo } from "./vault-path";
+import {
+  buildOutputIgnoreGlobs,
+  resolveOutputPath,
+  toVaultRelativePath,
+  type VaultPathInfo,
+} from "./vault-path";
 import { GOTSAENG_REPORT_VIEW_TYPE, GotSaengReportHubView } from "./view";
 
 const VALIDATION_REPORT_FILE = "VALIDATION_REPORT.md";

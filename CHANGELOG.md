@@ -1,5 +1,35 @@
 # Changelog
 
+## Unreleased
+
+- Added two new generated reports. `ENGINEERING_OPS.md` is a release-gate snapshot: quality
+  counts, warning triage, and the provenance/confidence/contradiction summaries in one place, plus
+  the full list of generated artifacts. `TEAM_MEMORY.md` is a team-facing handoff: current
+  objective, active work, decisions, risks, open questions, stale follow-up, and review-queue
+  counts. Both compose existing renderers — no new extraction logic, no external calls.
+- Fixed inline-link stripping in contradiction candidates: the parenthesized-URL fix shipped in
+  0.10.7 was applied to the extractor but not to the duplicated cleanup in `contradictions.ts`, so
+  Wikipedia-style links still leaked a trailing `)`. Both call sites now share one
+  `stripLinkSyntax` helper.
+- Fixed `ACTION_BACKLOG.md` never showing detector-flagged stale actions. `detectStaleItems`
+  returns stale-marked copies rather than mutating `pack.actions`, so the `## Stale` section only
+  ever caught items already labelled stale in the source note. The backlog now resolves staleness
+  from `pack.staleItems`; `done` stays terminal.
+- Marker names are escaped before being interpolated into the extraction regexes and sorted
+  longest-first, so a marker containing a regex metacharacter can no longer corrupt the pattern and
+  a marker cannot shadow another marker it is a prefix of.
+- The confidence signal label the exporter matches on to protect explicit-marker items from the
+  register cap is now a single shared constant instead of two independent string literals.
+- The Obsidian Report Hub now imports core's coverage/provenance/confidence/contradiction/
+  warning-triage renderers instead of holding byte-identical copies. Generated output is unchanged.
+- Removed `@gotsaeng/shared`: two branding constants that nothing imported.
+- Added `pnpm check:versions`, which enforces the release version-agreement invariant that was
+  previously checked by hand, and wired it plus `pnpm format:check` into CI and the clean-clone
+  release smoke.
+- Test coverage 73.2% → 87.5% statements. `apps/obsidian-plugin/src/main.ts` and `view.ts` went
+  from untested to covered, including the vault-cleanup path that deletes files.
+- No telemetry, network, or LLM calls; local-only behavior is unchanged.
+
 ## 0.10.8
 
 - Recognized the spaced Korean action marker `할 일` (previously only `할일` was mapped), so a

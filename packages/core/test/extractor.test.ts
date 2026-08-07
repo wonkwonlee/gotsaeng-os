@@ -1,7 +1,30 @@
 import { describe, expect, it } from "vitest";
 
-import { extractItems, MAX_SECTION_LINE_ITEMS_PER_HEADING } from "../src/extractor";
+import {
+  buildMarkerAlternation,
+  extractItems,
+  MAX_SECTION_LINE_ITEMS_PER_HEADING,
+} from "../src/extractor";
 import { parseMarkdown } from "../src/parser";
+
+describe("buildMarkerAlternation", () => {
+  it("escapes regex metacharacters so a marker name cannot alter the pattern", () => {
+    const pattern = new RegExp(`^(?<marker>${buildMarkerAlternation(["a.b", "c(d)"])}):`, "iu");
+
+    expect(pattern.exec("a.b: text")?.groups?.["marker"]).toBe("a.b");
+    expect(pattern.exec("c(d): text")?.groups?.["marker"]).toBe("c(d)");
+    // An unescaped "." would match any character here.
+    expect(pattern.exec("axb: text")).toBeNull();
+  });
+
+  it("orders a longer marker ahead of the shorter marker it contains", () => {
+    expect(buildMarkerAlternation(["할일", "할 일"])).toBe("할 일|할일");
+  });
+
+  it("is deterministic for names of equal length", () => {
+    expect(buildMarkerAlternation(["risk", "fact"])).toBe(buildMarkerAlternation(["fact", "risk"]));
+  });
+});
 
 describe("extractor", () => {
   it("extracts supported marker kinds", () => {
@@ -14,10 +37,10 @@ describe("extractor", () => {
         "- risk: Generic AI note summarization may be absorbed by foundation models.",
         "- assumption: Early users are likely Obsidian power users.",
         "- question: Should the first plugin support Dataview?",
-        "- insight: The real product is context infrastructure."
+        "- insight: The real product is context infrastructure.",
       ].join("\n"),
       "/vault/source.md",
-      "/vault"
+      "/vault",
     );
 
     expect(extractItems(note).map((item) => item.kind)).toEqual([
@@ -27,7 +50,7 @@ describe("extractor", () => {
       "fact",
       "insight",
       "question",
-      "risk"
+      "risk",
     ]);
   });
 
@@ -45,15 +68,14 @@ describe("extractor", () => {
         "## 요약",
         "- 핵심 제품은 컨텍스트 인프라다",
         "## 통찰",
-        "- 로컬 우선 설계가 사용자 신뢰를 만든다"
+        "- 로컬 우선 설계가 사용자 신뢰를 만든다",
       ].join("\n"),
       "/vault/meeting.md",
-      "/vault"
+      "/vault",
     );
 
     const items = extractItems(note);
-    const kindOf = (needle: string) =>
-      items.find((item) => item.text.includes(needle))?.kind;
+    const kindOf = (needle: string) => items.find((item) => item.text.includes(needle))?.kind;
 
     expect(kindOf("사용자 인증 플로우")).toBe("question");
     expect(kindOf("API 버전 정책")).toBe("question");
@@ -67,14 +89,14 @@ describe("extractor", () => {
     const note = parseMarkdown(
       "- fact: See [Wikipedia](https://en.wikipedia.org/wiki/Foo_(bar)) for details.",
       "/vault/links.md",
-      "/vault"
+      "/vault",
     );
 
     expect(extractItems(note)).toMatchObject([
       {
         kind: "fact",
-        text: "See Wikipedia for details."
-      }
+        text: "See Wikipedia for details.",
+      },
     ]);
   });
 
@@ -84,7 +106,7 @@ describe("extractor", () => {
 
     expect(items).toMatchObject([{ kind: "action", text: "우유 사기" }]);
     expect(
-      items[0]?.confidence?.signals.some((s) => s.includes("explicit extraction marker"))
+      items[0]?.confidence?.signals.some((s) => s.includes("explicit extraction marker")),
     ).toBe(true);
   });
 
@@ -92,7 +114,7 @@ describe("extractor", () => {
     const note = parseMarkdown(
       ["### 1. Security risk", "- mitigate the exposure"].join("\n"),
       "/vault/risks.md",
-      "/vault"
+      "/vault",
     );
     const kinds = extractItems(note).map((item) => item.kind);
 
@@ -109,10 +131,14 @@ describe("extractor", () => {
   });
 
   it("strips leading priority metadata from item text", () => {
-    const note = parseMarkdown("- action: priority: high finish the report", "/vault/p.md", "/vault");
+    const note = parseMarkdown(
+      "- action: priority: high finish the report",
+      "/vault/p.md",
+      "/vault",
+    );
 
     expect(extractItems(note)).toMatchObject([
-      { kind: "action", text: "finish the report", priority: "high" }
+      { kind: "action", text: "finish the report", priority: "high" },
     ]);
   });
 
@@ -122,8 +148,8 @@ describe("extractor", () => {
     expect(extractItems(note)).toMatchObject([
       {
         kind: "action",
-        text: "Add tests for YAML parsing."
-      }
+        text: "Add tests for YAML parsing.",
+      },
     ]);
   });
 
@@ -157,7 +183,7 @@ describe("extractor", () => {
     const note = parseMarkdown(
       ["- [ ] action: Add compiler tests.", "- [x] todo: Write README quickstart."].join("\n"),
       "/vault/tasks.md",
-      "/vault"
+      "/vault",
     );
 
     const items = extractItems(note);
@@ -169,7 +195,7 @@ describe("extractor", () => {
     const note = parseMarkdown(
       ["- action: Ship compiler. priority: high", "Risk: Scope can creep. !medium"].join("\n"),
       "/vault/priorities.md",
-      "/vault"
+      "/vault",
     );
 
     const items = extractItems(note);
@@ -179,9 +205,15 @@ describe("extractor", () => {
 
   it("extracts plain Obsidian task lists as actions with section context", () => {
     const note = parseMarkdown(
-      ["# TODO", "", "### Personal", "- [ ] GitHub profile update ⏫", "- [x] Write release notes"].join("\n"),
+      [
+        "# TODO",
+        "",
+        "### Personal",
+        "- [ ] GitHub profile update ⏫",
+        "- [x] Write release notes",
+      ].join("\n"),
       "/vault/02_Daily/TODO.md",
-      "/vault"
+      "/vault",
     );
 
     const items = extractItems(note);
@@ -190,13 +222,13 @@ describe("extractor", () => {
         kind: "action",
         text: "Personal: GitHub profile update",
         status: "open",
-        priority: "high"
+        priority: "high",
       },
       {
         kind: "action",
         text: "Personal: Write release notes",
-        status: "done"
-      }
+        status: "done",
+      },
     ]);
   });
 
@@ -204,36 +236,32 @@ describe("extractor", () => {
     const note = parseMarkdown(
       ["1. [ ] action: Deploy the app.", "2. [x] todo: Verify the release."].join("\n"),
       "/vault/tasks.md",
-      "/vault"
+      "/vault",
     );
 
     expect(extractItems(note)).toMatchObject([
       {
         kind: "action",
         text: "Deploy the app.",
-        status: "open"
+        status: "open",
       },
       {
         kind: "action",
         text: "Verify the release.",
-        status: "done"
-      }
+        status: "done",
+      },
     ]);
   });
 
   it("extracts numbered task lists without explicit markers", () => {
-    const note = parseMarkdown(
-      "1. [ ] Deploy the app.",
-      "/vault/02_Daily/TODO.md",
-      "/vault"
-    );
+    const note = parseMarkdown("1. [ ] Deploy the app.", "/vault/02_Daily/TODO.md", "/vault");
 
     expect(extractItems(note)).toMatchObject([
       {
         kind: "action",
         text: "Deploy the app.",
-        status: "open"
-      }
+        status: "open",
+      },
     ]);
   });
 
@@ -249,36 +277,36 @@ describe("extractor", () => {
         "## Key Points",
         "",
         "### 1. Context needs source-aware recovery",
-        "The compiler should keep source paths visible."
+        "The compiler should keep source paths visible.",
       ].join("\n"),
       "/vault/10_Wiki/pattern.md",
-      "/vault"
+      "/vault",
     );
 
     expect(extractItems(note).filter((item) => item.kind === "insight")).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          text: "This page captures a durable operating pattern for long-running context."
+          text: "This page captures a durable operating pattern for long-running context.",
         }),
         expect.objectContaining({
-          text: "Context needs source-aware recovery"
+          text: "Context needs source-aware recovery",
         }),
         expect.objectContaining({
-          text: "The compiler should keep source paths visible."
-        })
-      ])
+          text: "The compiler should keep source paths visible.",
+        }),
+      ]),
     );
   });
 
   it("caps inferred section_line items per heading", () => {
     const bullets = Array.from(
       { length: 30 },
-      (_unused, index) => `- Inferred risk number ${index + 1} about the research direction.`
+      (_unused, index) => `- Inferred risk number ${index + 1} about the research direction.`,
     );
     const note = parseMarkdown(
       ["# Research Note", "", "## Risks", "", ...bullets].join("\n"),
       "/vault/30_Research/risks.md",
-      "/vault"
+      "/vault",
     );
 
     const risks = extractItems(note).filter((item) => item.kind === "risk");
@@ -288,11 +316,11 @@ describe("extractor", () => {
   it("applies the section_line cap per heading independently", () => {
     const firstBullets = Array.from(
       { length: 30 },
-      (_unused, index) => `- Risk A number ${index + 1} for the first section.`
+      (_unused, index) => `- Risk A number ${index + 1} for the first section.`,
     );
     const secondBullets = Array.from(
       { length: 30 },
-      (_unused, index) => `- Risk B number ${index + 1} for the second section.`
+      (_unused, index) => `- Risk B number ${index + 1} for the second section.`,
     );
     const note = parseMarkdown(
       [
@@ -304,10 +332,10 @@ describe("extractor", () => {
         "",
         "## Additional Risks",
         "",
-        ...secondBullets
+        ...secondBullets,
       ].join("\n"),
       "/vault/30_Research/multi.md",
-      "/vault"
+      "/vault",
     );
 
     const risks = extractItems(note).filter((item) => item.kind === "risk");
@@ -317,16 +345,16 @@ describe("extractor", () => {
   it("never caps explicit marker items even beyond the section cap", () => {
     const englishMarkers = Array.from(
       { length: 18 },
-      (_unused, index) => `- risk: Explicit risk number ${index + 1}.`
+      (_unused, index) => `- risk: Explicit risk number ${index + 1}.`,
     );
     const koreanMarkers = Array.from(
       { length: 18 },
-      (_unused, index) => `- 위험: 명시적 위험 ${index + 1}.`
+      (_unused, index) => `- 위험: 명시적 위험 ${index + 1}.`,
     );
     const note = parseMarkdown(
       ["# Research Note", "", "## Risks", "", ...englishMarkers, ...koreanMarkers].join("\n"),
       "/vault/30_Research/explicit.md",
-      "/vault"
+      "/vault",
     );
 
     const risks = extractItems(note).filter((item) => item.kind === "risk");

@@ -1,14 +1,18 @@
 import path from "node:path";
 
 import {
-  createWarningTriage,
   groupItemsBySource,
   inferCurrentObjective,
+  renderConfidenceSummary,
+  renderContradictionSummary,
+  renderCoverageLines,
+  renderProvenanceSummary,
+  renderWarningTriage,
   selectHighSignalItems,
   type CompileReport,
   type ContextPack,
   type ExtractedItem,
-  type ValidationIssue
+  type ValidationIssue,
 } from "@gotsaeng/core";
 
 export type ValidationResult = {
@@ -26,10 +30,15 @@ export type ReportHubOptions = {
 
 const HUB_ITEM_LIMIT = 12;
 const WEEKLY_ITEM_LIMIT = 10;
+// The Report Hub trims core's summaries for in-app reading: no note-type
+// breakdown, and at most this many triage examples per row.
+const HUB_TRIAGE_EXAMPLE_LIMIT = 5;
 
 export function renderReportHub(pack: ContextPack, options: ReportHubOptions): string {
   const generatedAt = options.generatedAt ?? pack.generatedAt;
-  const activeActions = pack.actions.filter((item) => item.status === "open" || item.status === "active");
+  const activeActions = pack.actions.filter(
+    (item) => item.status === "open" || item.status === "active",
+  );
   const objective = inferCurrentObjective(pack);
 
   return [
@@ -80,20 +89,20 @@ export function renderReportHub(pack: ContextPack, options: ReportHubOptions): s
     "",
     "## Source Provenance",
     "",
-    renderSourceProvenance(pack.report),
+    renderProvenanceSummary(pack.report),
     "",
     "## Confidence Metadata",
     "",
-    renderConfidenceMetadata(pack.report),
+    renderConfidenceSummary(pack.report),
     "",
     "## Contradiction Candidates",
     "",
-    renderContradictionCandidates(pack.report),
+    renderContradictionSummary(pack.report),
     "",
     "## Notes Needing Metadata",
     "",
     renderMissingUpdatedNotes(pack, HUB_ITEM_LIMIT),
-    ""
+    "",
   ].join("\n");
 }
 
@@ -127,12 +136,14 @@ export function renderValidationReport(input: {
     "## Errors",
     "",
     renderStringList(input.result.errors),
-    ""
+    "",
   ].join("\n");
 }
 
 export function renderWeeklyReview(pack: ContextPack): string {
-  const activeActions = pack.actions.filter((item) => item.status === "open" || item.status === "active");
+  const activeActions = pack.actions.filter(
+    (item) => item.status === "open" || item.status === "active",
+  );
   const objective = inferCurrentObjective(pack);
   const questions = selectHighSignalItems(pack.questions, WEEKLY_ITEM_LIMIT);
   const risks = selectHighSignalItems(pack.risks, WEEKLY_ITEM_LIMIT);
@@ -168,7 +179,7 @@ export function renderWeeklyReview(pack: ContextPack): string {
     "",
     "## Warning Triage",
     "",
-    renderWarningTriage(pack.report),
+    renderHubWarningTriage(pack.report),
     "",
     "## Source Coverage",
     "",
@@ -176,16 +187,19 @@ export function renderWeeklyReview(pack: ContextPack): string {
     "",
     "## Source Provenance",
     "",
-    renderSourceProvenance(pack.report),
+    renderProvenanceSummary(pack.report),
     "",
     "## Contradiction Candidates",
     "",
-    renderContradictionCandidates(pack.report),
-    ""
+    renderContradictionSummary(pack.report),
+    "",
   ].join("\n");
 }
 
-export function renderLlmHandoff(pack: ContextPack, files: Partial<Record<string, string>>): string {
+export function renderLlmHandoff(
+  pack: ContextPack,
+  files: Partial<Record<string, string>>,
+): string {
   return [
     `# LLM Handoff: ${pack.projectName}`,
     "",
@@ -216,7 +230,7 @@ export function renderLlmHandoff(pack: ContextPack, files: Partial<Record<string
     "## Open Questions",
     "",
     stripTitle(files["OPEN_QUESTIONS.md"] ?? ""),
-    ""
+    "",
   ].join("\n");
 }
 
@@ -232,6 +246,14 @@ function renderStringList(items: string[]): string {
   return items.map((item) => `- ${item}`).join("\n");
 }
 
+function renderSourceCoverage(report: CompileReport): string {
+  return renderCoverageLines(report, { includeNoteTypes: false }).join("\n");
+}
+
+function renderHubWarningTriage(report: CompileReport): string {
+  return renderWarningTriage(report, { maxExamples: HUB_TRIAGE_EXAMPLE_LIMIT });
+}
+
 function renderItemList(
   items: Array<{
     text: string;
@@ -239,7 +261,7 @@ function renderItemList(
     status?: string;
     priority?: string;
   }>,
-  limit: number
+  limit: number,
 ): string {
   if (items.length === 0) {
     return "- None.";
@@ -249,7 +271,7 @@ function renderItemList(
     const metadata = [
       `source: ${item.sourcePath}`,
       item.status ? `status: ${item.status}` : undefined,
-      item.priority ? `priority: ${item.priority}` : undefined
+      item.priority ? `priority: ${item.priority}` : undefined,
     ]
       .filter((value): value is string => value !== undefined)
       .join("; ");
@@ -265,102 +287,6 @@ function renderItemList(
   return rendered.join("\n");
 }
 
-function renderSourceCoverage(report: CompileReport): string {
-  const stats = report.extractionStats;
-  const coverage = report.sourceCoverage;
-  const lines = [
-    `- Files scanned: ${report.filesScanned}`,
-    `- Markdown files parsed: ${report.markdownFilesParsed}`,
-    `- Files skipped: ${report.filesSkipped}`,
-    `- Warnings: ${report.warnings.length}`
-  ];
-
-  if (stats) {
-    lines.push(`- Extracted items: ${stats.totalItems}`);
-    lines.push(`- Notes with extracted items: ${stats.notesWithItems}`);
-    lines.push(`- Notes without extracted items: ${stats.notesWithoutItems}`);
-  }
-
-  if (coverage) {
-    lines.push(`- Notes with updated dates: ${coverage.notesWithUpdated}`);
-    lines.push(`- Notes missing updated dates: ${coverage.notesMissingUpdated}`);
-  }
-
-  return lines.join("\n");
-}
-
-function renderSourceProvenance(report: CompileReport): string {
-  const stats = report.provenanceStats;
-  if (!stats) {
-    return "- No provenance stats available.";
-  }
-
-  const levels = Object.entries(stats.byLevel)
-    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-    .map(([level, count]) => `${level}: ${count}`)
-    .join(", ");
-
-  return [
-    `- Average score: ${stats.averageScore}`,
-    `- Strong items: ${stats.strongItems}`,
-    `- Moderate items: ${stats.moderateItems}`,
-    `- Weak items: ${stats.weakItems}`,
-    `- By level: ${levels || "none"}`
-  ].join("\n");
-}
-
-function renderConfidenceMetadata(report: CompileReport): string {
-  const stats = report.confidenceStats;
-  if (!stats) {
-    return "- No confidence stats available.";
-  }
-
-  const levels = Object.entries(stats.byLevel)
-    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-    .map(([level, count]) => `${level}: ${count}`)
-    .join(", ");
-
-  return [
-    `- Average score: ${stats.averageScore}`,
-    `- High confidence items: ${stats.highItems}`,
-    `- Low confidence items: ${stats.lowItems}`,
-    `- By level: ${levels || "none"}`
-  ].join("\n");
-}
-
-function renderContradictionCandidates(report: CompileReport): string {
-  const stats = report.contradictionStats;
-  if (!stats) {
-    return "- No contradiction stats available.";
-  }
-
-  const signals = Object.entries(stats.bySignal)
-    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-    .map(([signal, count]) => `${signal}: ${count}`)
-    .join(", ");
-
-  return [
-    `- Candidates: ${stats.totalCandidates}`,
-    `- Review items: ${stats.reviewItems}`,
-    `- Watchlist items: ${stats.watchItems}`,
-    `- By signal: ${signals || "none"}`
-  ].join("\n");
-}
-
-function renderWarningTriage(report: CompileReport): string {
-  const triage = report.warningTriage ?? createWarningTriage(report);
-  if (triage.items.length === 0) {
-    return "- None.";
-  }
-
-  return triage.items
-    .map((item) => {
-      const examples = item.examples.slice(0, 5).map((example) => `  - ${example}`).join("\n");
-      return [`- ${item.label}: ${item.count} (${item.severity})`, examples].filter(Boolean).join("\n");
-    })
-    .join("\n");
-}
-
 function renderCoreReportLinks(outputFolder: string, generatedFiles: string[]): string {
   const files = generatedFiles.filter((fileName) => fileName !== "COMPILE_REPORT.json");
   if (files.length === 0) {
@@ -368,7 +294,10 @@ function renderCoreReportLinks(outputFolder: string, generatedFiles: string[]): 
   }
 
   return files
-    .map((fileName) => `- ${toVaultWikiLink(`${outputFolder}/${fileName}`, titleFromReportFile(fileName))}`)
+    .map(
+      (fileName) =>
+        `- ${toVaultWikiLink(`${outputFolder}/${fileName}`, titleFromReportFile(fileName))}`,
+    )
     .join("\n");
 }
 
@@ -377,7 +306,7 @@ function renderPluginReportLinks(outputFolder: string): string {
     `- ${toVaultWikiLink(`${outputFolder}/${REPORT_HUB_FILE}`, "Report Hub")}`,
     `- ${toVaultWikiLink(`${outputFolder}/WEEKLY_REVIEW_CONTEXT.md`, "Weekly Review Context")}`,
     `- ${toVaultWikiLink(`${outputFolder}/LLM_HANDOFF.md`, "LLM Handoff")}`,
-    `- ${toVaultWikiLink(`${outputFolder}/VALIDATION_REPORT.md`, "Validation Report")}`
+    `- ${toVaultWikiLink(`${outputFolder}/VALIDATION_REPORT.md`, "Validation Report")}`,
   ].join("\n");
 }
 
@@ -390,7 +319,7 @@ function renderHubItemList(items: ExtractedItem[], limit: number): string {
     const metadata = [
       toVaultWikiLink(item.sourcePath, item.sourcePath),
       item.status ? `status: ${item.status}` : undefined,
-      item.priority ? `priority: ${item.priority}` : undefined
+      item.priority ? `priority: ${item.priority}` : undefined,
     ]
       .filter((value): value is string => value !== undefined)
       .join("; ");
@@ -416,7 +345,7 @@ function renderGroupedHubItems(items: ExtractedItem[], limitPerSource: number): 
       return [
         `### ${toVaultWikiLink(group.sourcePath, group.sourcePath)}`,
         "",
-        renderHubItemList(group.items, limitPerSource)
+        renderHubItemList(group.items, limitPerSource),
       ].join("\n");
     })
     .join("\n\n");
@@ -430,7 +359,10 @@ function renderMissingUpdatedNotes(pack: ContextPack, limit: number): string {
 
   const rendered = notes
     .slice(0, limit)
-    .map((note) => `- ${toVaultWikiLink(note.path, note.path)} (${note.noteType}; title: ${note.title})`);
+    .map(
+      (note) =>
+        `- ${toVaultWikiLink(note.path, note.path)} (${note.noteType}; title: ${note.title})`,
+    );
 
   const omitted = notes.length - rendered.length;
   if (omitted > 0) {

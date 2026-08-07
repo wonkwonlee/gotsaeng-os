@@ -12,12 +12,14 @@ import {
   renderMemoryDiff,
   writeContextPack,
   type ContextPack,
-  type ExtractedItem
+  type ExtractedItem,
 } from "../src/index";
 
 describe("memory diff", () => {
   it("creates a baseline diff when no previous manifest exists", () => {
-    const manifest = createContextManifest(createPack([createItem("action", "Write tests.", "open")]));
+    const manifest = createContextManifest(
+      createPack([createItem("action", "Write tests.", "open")]),
+    );
     const diff = diffContextManifests(null, manifest, "2026-06-06T00:00:00.000Z");
 
     expect(diff.previousManifestFound).toBe(false);
@@ -25,7 +27,7 @@ describe("memory diff", () => {
       newlyAdded: 0,
       changed: 0,
       newlyStale: 0,
-      resolved: 0
+      resolved: 0,
     });
     expect(renderMemoryDiff(diff)).toContain("establishes the local memory diff baseline");
   });
@@ -35,15 +37,15 @@ describe("memory diff", () => {
       createPack([
         createItem("action", "Ship plugin.", "open", { priority: "medium" }),
         createItem("risk", "Metadata can drift.", "unknown", { stale: true }),
-        createItem("question", "What should v0.7 do?", "open")
-      ])
+        createItem("question", "What should v0.7 do?", "open"),
+      ]),
     );
     const current = createContextManifest(
       createPack([
         createItem("action", "Ship plugin.", "done", { priority: "high" }),
         createItem("risk", "Metadata can drift.", "unknown"),
-        createItem("action", "Write memory diff.", "open", { stale: true })
-      ])
+        createItem("action", "Write memory diff.", "open", { stale: true }),
+      ]),
     );
 
     const diff = diffContextManifests(previous, current, "2026-06-06T00:00:00.000Z");
@@ -52,25 +54,42 @@ describe("memory diff", () => {
       newlyAdded: 1,
       changed: 2,
       newlyStale: 1,
-      resolved: 3
+      resolved: 3,
     });
     expect(diff.newlyAdded[0]?.text).toBe("Write memory diff.");
-    expect(diff.changed.map((item) => item.current.text)).toEqual(["Ship plugin.", "Metadata can drift."]);
-    expect(diff.changed.find((item) => item.current.text === "Ship plugin.")?.changes.map((change) => change.field)).toContain(
-      "confidenceScore"
-    );
+    expect(diff.changed.map((item) => item.current.text)).toEqual([
+      "Ship plugin.",
+      "Metadata can drift.",
+    ]);
+    expect(
+      diff.changed
+        .find((item) => item.current.text === "Ship plugin.")
+        ?.changes.map((change) => change.field),
+    ).toContain("confidenceScore");
     expect(diff.newlyStale[0]?.text).toBe("Write memory diff.");
-    expect(diff.resolved.map((item) => item.reason)).toEqual(["now_done", "removed_or_rewritten", "no_longer_stale"]);
+    expect(diff.resolved.map((item) => item.reason)).toEqual([
+      "now_done",
+      "removed_or_rewritten",
+      "no_longer_stale",
+    ]);
   });
 
   it("writes a second compile diff against the previous manifest", async () => {
     const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), "gotsaeng-memory-diff-"));
 
-    await writeContextPack(createPack([createItem("action", "Write memory diff.", "open")]), outputDir);
-    await writeContextPack(createPack([createItem("action", "Write memory diff.", "done")]), outputDir);
+    await writeContextPack(
+      createPack([createItem("action", "Write memory diff.", "open")]),
+      outputDir,
+    );
+    await writeContextPack(
+      createPack([createItem("action", "Write memory diff.", "done")]),
+      outputDir,
+    );
 
     const diff = await fs.readFile(path.join(outputDir, MEMORY_DIFF_FILE), "utf8");
-    const manifest = JSON.parse(await fs.readFile(path.join(outputDir, CONTEXT_MANIFEST_FILE), "utf8")) as {
+    const manifest = JSON.parse(
+      await fs.readFile(path.join(outputDir, CONTEXT_MANIFEST_FILE), "utf8"),
+    ) as {
       itemCount: number;
     };
 
@@ -108,14 +127,14 @@ function createPack(items: ExtractedItem[]): ContextPack {
         byKind: {},
         byStatus: {},
         notesWithItems: 1,
-        notesWithoutItems: 0
+        notesWithoutItems: 0,
       },
       sourceCoverage: {
         noteTypes: { project: 1 },
         notesWithUpdated: 1,
-        notesMissingUpdated: 0
-      }
-    }
+        notesMissingUpdated: 0,
+      },
+    },
   };
 }
 
@@ -126,7 +145,7 @@ function createItem(
   options: {
     priority?: ExtractedItem["priority"];
     stale?: boolean;
-  } = {}
+  } = {},
 ): ExtractedItem {
   return {
     id: `${kind}:source.md:${text}`,
@@ -141,8 +160,8 @@ function createItem(
       score: options.priority === "high" ? 88 : options.priority === "medium" ? 78 : 70,
       level: options.priority === "high" ? "high" : "medium",
       signals: [],
-      warnings: []
+      warnings: [],
     },
-    tags: options.stale ? ["stale-test"] : []
+    tags: options.stale ? ["stale-test"] : [],
   };
 }

@@ -30,6 +30,12 @@ export logic. It should remain framework-agnostic and free of CLI-specific behav
 commands, stores adapter settings, resolves the current vault path, and delegates compilation to
 `packages/core` instead of reimplementing parsing, extraction, stale detection, or export logic.
 
+This extends to report rendering. The Report Hub's coverage, provenance, confidence,
+contradiction, and warning-triage summaries are `packages/core` functions imported directly, not
+adapter-local copies; where the in-app view differs it passes an option (`includeNoteTypes`,
+`maxExamples`) rather than forking the renderer. The one deliberate exception is the hub's own
+item list, which drops tags and uses a different omission footer.
+
 ## Data Flow
 
 1. The scanner recursively finds local Markdown files.
@@ -46,9 +52,9 @@ commands, stores adapter settings, resolves the current vault path, and delegate
 10. Exporters write human-readable Markdown and structured JSON.
 11. The memory diff writer compares the previous local manifest against the current compile.
 12. The CLI prints terminal summaries, while the Obsidian adapter writes local reports into the
-   current vault.
+    current vault.
 13. The Obsidian adapter writes `REPORT_HUB.md` and exposes a Report Hub view for source-aware
-   navigation without changing the core model-ready output.
+    navigation without changing the core model-ready output.
 14. Quality helpers infer objectives, group extracted items by source, triage warnings, and select
     high-signal review items.
 

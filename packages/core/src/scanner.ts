@@ -11,7 +11,7 @@ const DEFAULT_IGNORES = [
   "**/.obsidian/**",
   "**/.gotsaeng/**",
   "**/dist/**",
-  "**/coverage/**"
+  "**/coverage/**",
 ];
 
 async function assertDirectory(rootPath: string): Promise<string> {
@@ -34,13 +34,18 @@ export async function scanSourceFiles(rootPath: string, options?: ScanOptions): 
     onlyFiles: true,
     absolute: true,
     dot: false,
-    ignore: [...DEFAULT_IGNORES, ...(options?.ignoreGlobs ?? [])]
+    ignore: [...DEFAULT_IGNORES, ...(options?.ignoreGlobs ?? [])],
   });
 
-  return files.map((file) => path.resolve(file)).sort((a, b) => compareStrings(normalizePath(a), normalizePath(b)));
+  return files
+    .map((file) => path.resolve(file))
+    .sort((a, b) => compareStrings(normalizePath(a), normalizePath(b)));
 }
 
-export async function scanMarkdownFiles(rootPath: string, options?: ScanOptions): Promise<string[]> {
+export async function scanMarkdownFiles(
+  rootPath: string,
+  options?: ScanOptions,
+): Promise<string[]> {
   const files = await scanSourceFiles(rootPath, options);
   return files.filter((file) => /\.(md|markdown)$/i.test(file));
 }

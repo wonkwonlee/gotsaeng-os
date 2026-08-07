@@ -32,15 +32,11 @@ export function renderCompileSummary(input: CompileSummaryInput): string {
     ...input.report.generatedFiles.map((file) => `- ${file}`),
     "",
     "Done.",
-    ""
+    "",
   ].join("\n");
 }
 
-export function renderCliError(input: {
-  title: string;
-  reason: string;
-  checks: string[];
-}): string {
+export function renderCliError(input: { title: string; reason: string; checks: string[] }): string {
   return [
     input.title,
     "",
@@ -48,7 +44,7 @@ export function renderCliError(input: {
     "",
     "Check:",
     ...input.checks.map((check) => `- ${check}`),
-    ""
+    "",
   ].join("\n");
 }
 
@@ -59,7 +55,12 @@ export function renderValidationSummary(input: {
   warnings: string[];
   errors: string[];
 }): string {
-  const status = input.errors.length > 0 ? "invalid" : input.warnings.length > 0 ? "valid with warnings" : "valid";
+  const status =
+    input.errors.length > 0
+      ? "invalid"
+      : input.warnings.length > 0
+        ? "valid with warnings"
+        : "valid";
   const sections = [
     "GotSaeng OS Vault Validation",
     "",
@@ -69,7 +70,7 @@ export function renderValidationSummary(input: {
     `Status: ${status}`,
     `Warnings: ${input.warnings.length}`,
     `Errors: ${input.errors.length}`,
-    ""
+    "",
   ];
 
   if (input.warnings.length > 0) {

@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import type { ContextPack, ExtractedItem } from "@gotsaeng/core";
 
-import { renderLlmHandoff, renderReportHub, renderValidationReport, renderWeeklyReview } from "../src/reports";
+import {
+  renderLlmHandoff,
+  renderReportHub,
+  renderValidationReport,
+  renderWeeklyReview,
+} from "../src/reports";
 
 describe("Obsidian plugin reports", () => {
   it("renders a validation report in compatibility mode", () => {
@@ -14,8 +19,8 @@ describe("Obsidian plugin reports", () => {
       result: {
         filesChecked: 2,
         warnings: ["note.md: Missing updated field."],
-        errors: []
-      }
+        errors: [],
+      },
     });
 
     expect(report).toContain("# Vault Validation: GotSaeng OS");
@@ -28,10 +33,10 @@ describe("Obsidian plugin reports", () => {
     const pack = createPack({
       actions: [
         createItem("action", "Ship Obsidian adapter.", "project.md", "open", "high"),
-        createItem("action", "Archived task.", "archive.md", "done")
+        createItem("action", "Archived task.", "archive.md", "done"),
       ],
       questions: [createItem("question", "Should v0.3 add memory diff?", "roadmap.md", "unknown")],
-      risks: [createItem("risk", "Plugin UX can drift from CLI behavior.", "risk.md", "unknown")]
+      risks: [createItem("risk", "Plugin UX can drift from CLI behavior.", "risk.md", "unknown")],
     });
 
     const markdown = renderWeeklyReview(pack);
@@ -48,7 +53,7 @@ describe("Obsidian plugin reports", () => {
   it("combines generated context pack files into an LLM handoff", () => {
     const markdown = renderLlmHandoff(createPack({}), {
       "PROJECT_CONTEXT.md": "# Project Context: GotSaeng OS\n\n## Key Facts\n\n- fact",
-      "MEMORY_SNAPSHOT.md": "# Memory Snapshot: GotSaeng OS\n\n## Insights\n\n- insight"
+      "MEMORY_SNAPSHOT.md": "# Memory Snapshot: GotSaeng OS\n\n## Insights\n\n- insight",
     });
 
     expect(markdown).toContain("# LLM Handoff: GotSaeng OS");
@@ -71,8 +76,8 @@ describe("Obsidian plugin reports", () => {
           frontmatter: {},
           noteType: "research",
           tags: [],
-          raw: ""
-        }
+          raw: "",
+        },
       ],
       report: {
         ...createPack({}).report,
@@ -82,32 +87,32 @@ describe("Obsidian plugin reports", () => {
           byKind: { action: 1, question: 1, risk: 1 },
           byStatus: { open: 2, unknown: 1 },
           notesWithItems: 2,
-          notesWithoutItems: 0
+          notesWithoutItems: 0,
         },
         sourceCoverage: {
           noteTypes: { research: 1 },
           notesWithUpdated: 0,
-          notesMissingUpdated: 1
+          notesMissingUpdated: 1,
         },
         provenanceStats: {
           averageScore: 72,
           byLevel: { moderate: 3 },
           weakItems: 0,
           moderateItems: 3,
-          strongItems: 0
+          strongItems: 0,
         },
         contradictionStats: {
           totalCandidates: 1,
           bySignal: { keyword_cue: 1 },
           reviewItems: 0,
-          watchItems: 1
-        }
-      }
+          watchItems: 1,
+        },
+      },
     });
 
     const markdown = renderReportHub(pack, {
       outputFolder: ".gotsaeng/context-pack",
-      generatedAt: "2026-06-06T00:00:00.000Z"
+      generatedAt: "2026-06-06T00:00:00.000Z",
     });
 
     expect(markdown).toContain("# GotSaeng OS Report Hub: GotSaeng OS");
@@ -150,16 +155,16 @@ function createPack(overrides: Partial<ContextPack>): ContextPack {
         byKind: {},
         byStatus: {},
         notesWithItems: 0,
-        notesWithoutItems: 1
+        notesWithoutItems: 1,
       },
       sourceCoverage: {
         noteTypes: { project: 1 },
         notesWithUpdated: 1,
-        notesMissingUpdated: 0
+        notesMissingUpdated: 0,
       },
-      generatedFiles: []
+      generatedFiles: [],
     },
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -168,7 +173,7 @@ function createItem(
   text: string,
   sourcePath: string,
   status: ExtractedItem["status"],
-  priority?: ExtractedItem["priority"]
+  priority?: ExtractedItem["priority"],
 ): ExtractedItem {
   return {
     id: `${kind}:${sourcePath}:${text}`,
@@ -178,6 +183,6 @@ function createItem(
     text,
     status,
     priority,
-    tags: []
+    tags: [],
   };
 }

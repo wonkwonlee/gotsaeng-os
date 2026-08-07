@@ -80,6 +80,8 @@ Priority can be inferred from `priority: high`, `priority: medium`, `priority: l
 - `SOURCE_PROVENANCE.md`
 - `CONFIDENCE.md`
 - `CONTRADICTIONS.md`
+- `ENGINEERING_OPS.md`
+- `TEAM_MEMORY.md`
 - `MEMORY_DIFF.md`
 - `CONTEXT_MANIFEST.json`
 - `COMPILE_REPORT.json`
@@ -143,6 +145,27 @@ uncertainty cues. Each candidate includes:
 - `evidence`: local evidence such as source headings, signal type, and updated metadata
 
 This is not semantic contradiction detection. It creates a local review queue that a human can
+verify by reading the source note.
+
+## Engineering Ops
+
+`ENGINEERING_OPS.md` is a release-gate snapshot. It does not compute anything new — it collects
+the quality snapshot (file/warning/parse-error counts), the warning triage, and the provenance,
+confidence, and contradiction summaries that also appear in their own dedicated reports, plus the
+full list of generated artifacts. Use it to eyeball quality signals before merging or publishing
+without opening every individual report.
+
+## Team Memory
+
+`TEAM_MEMORY.md` is a team-facing handoff. It surfaces the current objective, active work grouped
+by source note, decisions, risks, open questions, stale follow-up items, and a set of review-queue
+counts (low-confidence items, weak-provenance items, contradiction candidates, warnings, parse
+errors). It exists so a teammate picking up the vault does not have to read every individual report
+to know where to start.
+
+Both reports are generated from the same local compiler signals as every other report in this
+document. Neither calls an external service or introduces new extraction logic — they only compose
+existing renderers.
 audit from source notes.
 
 ## Memory Diff

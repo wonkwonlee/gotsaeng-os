@@ -1,6 +1,6 @@
 import type { CompileReport, ContextPack, ExtractedItem } from "./schemas/context";
 import type { NoteDocument } from "./schemas/note";
-import { compareStrings } from "./utils/path";
+import { sortRecord } from "./utils/record";
 import { createConfidenceStats } from "./confidence";
 import { createContradictionStats } from "./contradictions";
 import { createProvenanceStats } from "./provenance";
@@ -8,7 +8,7 @@ import { createProvenanceStats } from "./provenance";
 export function createCompileReport(input: Omit<CompileReport, "generatedFiles">): CompileReport {
   return {
     ...input,
-    generatedFiles: []
+    generatedFiles: [],
   };
 }
 
@@ -21,11 +21,14 @@ export function getItemCounts(pack: ContextPack): Record<string, number> {
     assumptions: pack.assumptions.length,
     questions: pack.questions.length,
     insights: pack.insights.length,
-    stale: pack.staleItems.length
+    stale: pack.staleItems.length,
   };
 }
 
-export function createExtractionStats(notes: NoteDocument[], items: ExtractedItem[]): NonNullable<CompileReport["extractionStats"]> {
+export function createExtractionStats(
+  notes: NoteDocument[],
+  items: ExtractedItem[],
+): NonNullable<CompileReport["extractionStats"]> {
   const byKind: Record<string, number> = {};
   const byStatus: Record<string, number> = {};
   const sourcePathsWithItems = new Set<string>();
@@ -41,11 +44,13 @@ export function createExtractionStats(notes: NoteDocument[], items: ExtractedIte
     byKind: sortRecord(byKind),
     byStatus: sortRecord(byStatus),
     notesWithItems: sourcePathsWithItems.size,
-    notesWithoutItems: notes.length - sourcePathsWithItems.size
+    notesWithoutItems: notes.length - sourcePathsWithItems.size,
   };
 }
 
-export function createSourceCoverage(notes: NoteDocument[]): NonNullable<CompileReport["sourceCoverage"]> {
+export function createSourceCoverage(
+  notes: NoteDocument[],
+): NonNullable<CompileReport["sourceCoverage"]> {
   const noteTypes: Record<string, number> = {};
 
   for (const note of notes) {
@@ -55,14 +60,8 @@ export function createSourceCoverage(notes: NoteDocument[]): NonNullable<Compile
   return {
     noteTypes: sortRecord(noteTypes),
     notesWithUpdated: notes.filter((note) => note.updated).length,
-    notesMissingUpdated: notes.filter((note) => !note.updated).length
+    notesMissingUpdated: notes.filter((note) => !note.updated).length,
   };
 }
 
 export { createConfidenceStats, createContradictionStats, createProvenanceStats };
-
-function sortRecord(record: Record<string, number>): Record<string, number> {
-  return Object.fromEntries(
-    Object.entries(record).sort(([left], [right]) => compareStrings(left, right))
-  );
-}

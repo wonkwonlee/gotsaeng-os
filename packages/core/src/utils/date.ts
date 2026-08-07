@@ -68,7 +68,11 @@ export function isValidDateLike(value: unknown): boolean {
   return parseDateLike(value) !== undefined;
 }
 
-export function isOlderThan(dateValue: string | undefined, thresholdDays: number, now: Date): boolean {
+export function isOlderThan(
+  dateValue: string | undefined,
+  thresholdDays: number,
+  now: Date,
+): boolean {
   if (!dateValue) {
     return false;
   }

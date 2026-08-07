@@ -19,9 +19,11 @@ describe("Obsidian output artifacts", () => {
       "SOURCE_PROVENANCE.md",
       "CONFIDENCE.md",
       "CONTRADICTIONS.md",
+      "ENGINEERING_OPS.md",
+      "TEAM_MEMORY.md",
       "VALIDATION_REPORT.md",
       "CONTEXT_MANIFEST.json",
-      "COMPILE_REPORT.json"
+      "COMPILE_REPORT.json",
     ]);
   });
 });

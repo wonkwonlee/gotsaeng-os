@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isValidDateLike, normalizeDateValue, parseDateLike } from "../src/utils/date";
+import { isOlderThan, isValidDateLike, normalizeDateValue, parseDateLike } from "../src/utils/date";
 
 describe("parseDateLike", () => {
   it("accepts real calendar dates", () => {
@@ -17,7 +17,9 @@ describe("parseDateLike", () => {
 
   it("accepts strict ISO-8601 date-times with an explicit zone", () => {
     expect(parseDateLike("2026-06-15T08:30:00Z")?.toISOString()).toBe("2026-06-15T08:30:00.000Z");
-    expect(parseDateLike("2026-06-15T08:30:00+09:00")?.toISOString()).toBe("2026-06-14T23:30:00.000Z");
+    expect(parseDateLike("2026-06-15T08:30:00+09:00")?.toISOString()).toBe(
+      "2026-06-14T23:30:00.000Z",
+    );
   });
 
   it("rejects locale-dependent and partial date strings", () => {
@@ -40,5 +42,46 @@ describe("normalizeDateValue", () => {
 
   it("preserves a valid date-only string verbatim", () => {
     expect(normalizeDateValue("2026-06-15")).toBe("2026-06-15");
+  });
+});
+
+describe("isValidDateLike", () => {
+  it("accepts a valid Date instance", () => {
+    expect(isValidDateLike(new Date("2026-06-15T00:00:00.000Z"))).toBe(true);
+  });
+
+  it("rejects an invalid Date instance", () => {
+    expect(isValidDateLike(new Date("not a date"))).toBe(false);
+  });
+
+  it("rejects non-string, non-Date values without attempting to parse them", () => {
+    expect(isValidDateLike(12345)).toBe(false);
+    expect(isValidDateLike(null)).toBe(false);
+    expect(isValidDateLike(undefined)).toBe(false);
+    expect(isValidDateLike({})).toBe(false);
+  });
+
+  it("accepts a valid date string", () => {
+    expect(isValidDateLike("2026-06-15")).toBe(true);
+  });
+});
+
+describe("isOlderThan", () => {
+  const now = new Date("2026-06-06T00:00:00.000Z");
+
+  it("returns false when dateValue is undefined", () => {
+    expect(isOlderThan(undefined, 90, now)).toBe(false);
+  });
+
+  it("returns false when dateValue cannot be parsed", () => {
+    expect(isOlderThan("not a date", 90, now)).toBe(false);
+  });
+
+  it("returns true once the age exceeds the threshold in days", () => {
+    expect(isOlderThan("2026-01-01", 90, now)).toBe(true);
+  });
+
+  it("returns false when the age is within the threshold", () => {
+    expect(isOlderThan("2026-06-01", 90, now)).toBe(false);
   });
 });

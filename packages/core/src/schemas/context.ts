@@ -9,7 +9,7 @@ export const ExtractedItemKindSchema = z.enum([
   "risk",
   "assumption",
   "question",
-  "insight"
+  "insight",
 ]);
 
 export type ExtractedItemKind = z.infer<typeof ExtractedItemKindSchema>;
@@ -31,7 +31,7 @@ export const SourceProvenanceSchema = z.object({
   level: SourceProvenanceLevelSchema,
   calibration: z.string().optional(),
   signals: z.array(z.string()),
-  warnings: z.array(z.string())
+  warnings: z.array(z.string()),
 });
 
 export type SourceProvenance = z.infer<typeof SourceProvenanceSchema>;
@@ -44,12 +44,16 @@ export const ConfidenceMetadataSchema = z.object({
   score: z.number().int().min(0).max(100),
   level: ConfidenceLevelSchema,
   signals: z.array(z.string()),
-  warnings: z.array(z.string())
+  warnings: z.array(z.string()),
 });
 
 export type ConfidenceMetadata = z.infer<typeof ConfidenceMetadataSchema>;
 
-export const ContradictionSignalSchema = z.enum(["explicit_marker", "section_heading", "keyword_cue"]);
+export const ContradictionSignalSchema = z.enum([
+  "explicit_marker",
+  "section_heading",
+  "keyword_cue",
+]);
 
 export type ContradictionSignal = z.infer<typeof ContradictionSignalSchema>;
 
@@ -65,7 +69,7 @@ export const ContradictionCandidateSchema = z.object({
   severity: ContradictionSeveritySchema,
   text: z.string().min(1),
   evidence: z.array(z.string()),
-  tags: z.array(z.string())
+  tags: z.array(z.string()),
 });
 
 export type ContradictionCandidate = z.infer<typeof ContradictionCandidateSchema>;
@@ -82,7 +86,7 @@ export const ExtractedItemSchema = z.object({
   updated: z.string().optional(),
   provenance: SourceProvenanceSchema.optional(),
   confidence: ConfidenceMetadataSchema.optional(),
-  tags: z.array(z.string())
+  tags: z.array(z.string()),
 });
 
 export type ExtractedItem = z.infer<typeof ExtractedItemSchema>;
@@ -94,8 +98,8 @@ export const CompileReportSchema = z.object({
   parseErrors: z.array(
     z.object({
       path: z.string(),
-      message: z.string()
-    })
+      message: z.string(),
+    }),
   ),
   warnings: z.array(z.string()),
   extractionStats: z
@@ -104,14 +108,14 @@ export const CompileReportSchema = z.object({
       byKind: z.record(z.number().int().nonnegative()),
       byStatus: z.record(z.number().int().nonnegative()),
       notesWithItems: z.number().int().nonnegative(),
-      notesWithoutItems: z.number().int().nonnegative()
+      notesWithoutItems: z.number().int().nonnegative(),
     })
     .optional(),
   sourceCoverage: z
     .object({
       noteTypes: z.record(z.number().int().nonnegative()),
       notesWithUpdated: z.number().int().nonnegative(),
-      notesMissingUpdated: z.number().int().nonnegative()
+      notesMissingUpdated: z.number().int().nonnegative(),
     })
     .optional(),
   warningTriage: z
@@ -123,9 +127,9 @@ export const CompileReportSchema = z.object({
           label: z.string(),
           count: z.number().int().nonnegative(),
           severity: z.enum(["info", "warning", "error"]),
-          examples: z.array(z.string())
-        })
-      )
+          examples: z.array(z.string()),
+        }),
+      ),
     })
     .optional(),
   provenanceStats: z
@@ -134,7 +138,7 @@ export const CompileReportSchema = z.object({
       byLevel: z.record(z.number().int().nonnegative()),
       weakItems: z.number().int().nonnegative(),
       moderateItems: z.number().int().nonnegative(),
-      strongItems: z.number().int().nonnegative()
+      strongItems: z.number().int().nonnegative(),
     })
     .optional(),
   confidenceStats: z
@@ -142,7 +146,7 @@ export const CompileReportSchema = z.object({
       averageScore: z.number().min(0).max(100),
       byLevel: z.record(z.number().int().nonnegative()),
       lowItems: z.number().int().nonnegative(),
-      highItems: z.number().int().nonnegative()
+      highItems: z.number().int().nonnegative(),
     })
     .optional(),
   contradictionStats: z
@@ -150,16 +154,16 @@ export const CompileReportSchema = z.object({
       totalCandidates: z.number().int().nonnegative(),
       bySignal: z.record(z.number().int().nonnegative()),
       reviewItems: z.number().int().nonnegative(),
-      watchItems: z.number().int().nonnegative()
+      watchItems: z.number().int().nonnegative(),
     })
     .optional(),
-  generatedFiles: z.array(z.string())
+  generatedFiles: z.array(z.string()),
 });
 
 export type CompileReport = z.infer<typeof CompileReportSchema>;
 
 export const ContextManifestItemSchema = ExtractedItemSchema.extend({
-  stale: z.boolean()
+  stale: z.boolean(),
 });
 
 export type ContextManifestItem = z.infer<typeof ContextManifestItemSchema>;
@@ -169,7 +173,7 @@ export const ContextManifestSchema = z.object({
   generatedAt: z.string().min(1),
   sourceRoot: z.string().min(1),
   itemCount: z.number().int().nonnegative(),
-  items: z.array(ContextManifestItemSchema)
+  items: z.array(ContextManifestItemSchema),
 });
 
 export type ContextManifest = z.infer<typeof ContextManifestSchema>;
@@ -177,7 +181,7 @@ export type ContextManifest = z.infer<typeof ContextManifestSchema>;
 export const MemoryDiffChangedFieldSchema = z.object({
   field: z.string().min(1),
   previous: z.string(),
-  current: z.string()
+  current: z.string(),
 });
 
 export type MemoryDiffChangedField = z.infer<typeof MemoryDiffChangedFieldSchema>;
@@ -185,14 +189,14 @@ export type MemoryDiffChangedField = z.infer<typeof MemoryDiffChangedFieldSchema
 export const MemoryDiffChangedItemSchema = z.object({
   previous: ContextManifestItemSchema,
   current: ContextManifestItemSchema,
-  changes: z.array(MemoryDiffChangedFieldSchema)
+  changes: z.array(MemoryDiffChangedFieldSchema),
 });
 
 export type MemoryDiffChangedItem = z.infer<typeof MemoryDiffChangedItemSchema>;
 
 export const MemoryDiffResolvedItemSchema = z.object({
   item: ContextManifestItemSchema,
-  reason: z.enum(["now_done", "removed_or_rewritten", "no_longer_stale"])
+  reason: z.enum(["now_done", "removed_or_rewritten", "no_longer_stale"]),
 });
 
 export type MemoryDiffResolvedItem = z.infer<typeof MemoryDiffResolvedItemSchema>;
@@ -207,12 +211,12 @@ export const MemoryDiffSchema = z.object({
     newlyAdded: z.number().int().nonnegative(),
     changed: z.number().int().nonnegative(),
     newlyStale: z.number().int().nonnegative(),
-    resolved: z.number().int().nonnegative()
+    resolved: z.number().int().nonnegative(),
   }),
   newlyAdded: z.array(ContextManifestItemSchema),
   changed: z.array(MemoryDiffChangedItemSchema),
   newlyStale: z.array(ContextManifestItemSchema),
-  resolved: z.array(MemoryDiffResolvedItemSchema)
+  resolved: z.array(MemoryDiffResolvedItemSchema),
 });
 
 export type MemoryDiff = z.infer<typeof MemoryDiffSchema>;
@@ -231,7 +235,7 @@ export const ContextPackSchema = z.object({
   insights: z.array(ExtractedItemSchema),
   contradictions: z.array(ContradictionCandidateSchema),
   staleItems: z.array(ExtractedItemSchema),
-  report: CompileReportSchema
+  report: CompileReportSchema,
 });
 
 export type ContextPack = z.infer<typeof ContextPackSchema>;

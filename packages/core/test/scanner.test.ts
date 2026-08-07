@@ -14,8 +14,16 @@ describe("scanner", () => {
     await fs.mkdir(path.join(vaultDir, "notes"), { recursive: true });
 
     await fs.writeFile(path.join(vaultDir, "notes/project.md"), "# Project", "utf8");
-    await fs.writeFile(path.join(vaultDir, ".obsidian/plugins/gotsaeng-os/README.md"), "# Plugin", "utf8");
-    await fs.writeFile(path.join(vaultDir, ".gotsaeng/context-pack/PROJECT_CONTEXT.md"), "# Context", "utf8");
+    await fs.writeFile(
+      path.join(vaultDir, ".obsidian/plugins/gotsaeng-os/README.md"),
+      "# Plugin",
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(vaultDir, ".gotsaeng/context-pack/PROJECT_CONTEXT.md"),
+      "# Context",
+      "utf8",
+    );
 
     const files = await scanMarkdownFiles(vaultDir);
 
@@ -33,7 +41,7 @@ describe("scanner", () => {
     const all = await scanSourceFiles(vaultDir);
     expect(all.map((file) => path.relative(vaultDir, file)).sort()).toEqual([
       "Out/PROJECT_CONTEXT.md",
-      "notes/project.md"
+      "notes/project.md",
     ]);
 
     const filtered = await scanSourceFiles(vaultDir, { ignoreGlobs: ["Out/**"] });
@@ -53,7 +61,7 @@ describe("scanner", () => {
     const naive = await scanSourceFiles(vaultDir, { ignoreGlobs: ["Out{a,b}/**"] });
     expect(naive.map((file) => path.relative(vaultDir, file)).sort()).toEqual([
       "Out{a,b}/PROJECT_CONTEXT.md",
-      "notes/project.md"
+      "notes/project.md",
     ]);
 
     // Escaped pattern (what buildOutputIgnoreGlobs produces) matches it literally.

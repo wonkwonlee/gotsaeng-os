@@ -14,8 +14,8 @@ export default tseslint.config(
       ".omx/**",
       ".omc/**",
       ".vault-copy/**",
-      "prettier.config.cjs"
-    ]
+      "prettier.config.cjs",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -23,7 +23,7 @@ export default tseslint.config(
     files: ["**/*.ts"],
     rules: {
       "@typescript-eslint/consistent-type-imports": "error",
-      "@typescript-eslint/no-explicit-any": "error"
-    }
-  }
+      "@typescript-eslint/no-explicit-any": "error",
+    },
+  },
 );

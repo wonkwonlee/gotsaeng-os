@@ -42,7 +42,7 @@ export function parseMarkdown(raw: string, filePath: string, rootPath: string): 
     tags: normalizeTags(frontmatter["tags"]),
     created: normalizeDateValue(frontmatter["created"]),
     updated: normalizeDateValue(frontmatter["updated"]),
-    raw
+    raw,
   };
 
   return NoteDocumentSchema.parse(note);
@@ -51,7 +51,7 @@ export function parseMarkdown(raw: string, filePath: string, rootPath: string): 
 export function inferTitle(
   frontmatter: Record<string, unknown>,
   body: string,
-  filePath: string
+  filePath: string,
 ): string {
   const frontmatterTitle = frontmatter["title"];
   if (typeof frontmatterTitle === "string" && frontmatterTitle.trim().length > 0) {
@@ -89,16 +89,16 @@ export function normalizeTags(value: unknown): string[] {
 
 export function validateNoteMetadata(
   note: NoteDocument,
-  options: ValidationOptions = {}
+  options: ValidationOptions = {},
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  const strict = options.strict ?? false;
+  const strict = options.strict ?? true;
 
   if (!hasExplicitTitle(note)) {
     issues.push({
       path: note.path,
       severity: "warning",
-      message: "Missing explicit title; inferred from filename."
+      message: "Missing explicit title; inferred from filename.",
     });
   }
 
@@ -112,19 +112,22 @@ export function validateNoteMetadata(
         ? `Invalid note type: ${String(rawType)}.`
         : mappedType
           ? `Custom note type: ${String(rawType)}; mapped to ${mappedType}.`
-          : `Unsupported note type: ${String(rawType)}; inferred ${note.noteType}.`
+          : `Unsupported note type: ${String(rawType)}; inferred ${note.noteType}.`,
     });
   }
 
   const rawTags = note.frontmatter["tags"];
   if (
     rawTags !== undefined &&
-    !(typeof rawTags === "string" || (Array.isArray(rawTags) && rawTags.every((tag) => typeof tag === "string")))
+    !(
+      typeof rawTags === "string" ||
+      (Array.isArray(rawTags) && rawTags.every((tag) => typeof tag === "string"))
+    )
   ) {
     issues.push({
       path: note.path,
       severity: "error",
-      message: "Invalid tags; expected a string or an array of strings."
+      message: "Invalid tags; expected a string or an array of strings.",
     });
   }
 
@@ -136,7 +139,7 @@ export function validateNoteMetadata(
         severity: strict ? "error" : "warning",
         message: strict
           ? `Invalid ${field} date: ${String(value)}.`
-          : `Unvalidated ${field} date: ${String(value)}.`
+          : `Unvalidated ${field} date: ${String(value)}.`,
       });
     }
   }
@@ -145,7 +148,7 @@ export function validateNoteMetadata(
     issues.push({
       path: note.path,
       severity: "warning",
-      message: "Missing updated field."
+      message: "Missing updated field.",
     });
   }
 
@@ -154,7 +157,7 @@ export function validateNoteMetadata(
 
 function normalizeFrontmatter(data: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(data).map(([key, value]) => [key, normalizeFrontmatterValue(value)])
+    Object.entries(data).map(([key, value]) => [key, normalizeFrontmatterValue(value)]),
   );
 }
 
@@ -171,8 +174,8 @@ function normalizeFrontmatterValue(value: unknown): unknown {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>).map(([key, nestedValue]) => [
         key,
-        normalizeFrontmatterValue(nestedValue)
-      ])
+        normalizeFrontmatterValue(nestedValue),
+      ]),
     );
   }
 

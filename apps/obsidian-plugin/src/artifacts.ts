@@ -19,13 +19,15 @@ export const OUTPUT_ARTIFACTS: OutputArtifact[] = [
   { label: "Source Provenance", fileName: "SOURCE_PROVENANCE.md", format: "markdown" },
   { label: "Confidence", fileName: "CONFIDENCE.md", format: "markdown" },
   { label: "Contradictions", fileName: "CONTRADICTIONS.md", format: "markdown" },
+  { label: "Engineering Ops", fileName: "ENGINEERING_OPS.md", format: "markdown" },
+  { label: "Team Memory", fileName: "TEAM_MEMORY.md", format: "markdown" },
   { label: "Validation Report", fileName: "VALIDATION_REPORT.md", format: "markdown" },
   { label: "Context Manifest JSON", fileName: "CONTEXT_MANIFEST.json", format: "json" },
-  { label: "Compile Report JSON", fileName: "COMPILE_REPORT.json", format: "json" }
+  { label: "Compile Report JSON", fileName: "COMPILE_REPORT.json", format: "json" },
 ];
 
 export const DEFAULT_OUTPUT_ARTIFACT: OutputArtifact = {
   label: "Report Hub",
   fileName: "REPORT_HUB.md",
-  format: "markdown"
+  format: "markdown",
 };

@@ -38,18 +38,18 @@ output.
 
 ## What GotSaeng OS Does
 
-| Capability | What it does |
-| --- | --- |
-| **Vault scanning** | Recursively scans a local Markdown vault |
-| **Note classification** | Classifies notes into project, decision, research, weekly review, chat export, and template types |
-| **Extraction** | Extracts facts, decisions, actions, risks, assumptions, questions, insights, and stale context |
-| **Context pack output** | Writes auditable Markdown + JSON artifacts with source coverage stats |
-| **Memory diff** | Deterministic local diff comparing previous and current compile manifests |
-| **Provenance scoring** | Scores extracted items from local metadata — a heuristic for triage, not semantic verification |
-| **Confidence scoring** | Scores extraction reliability from deterministic local signals only |
-| **Contradiction candidates** | Surfaces candidate cues for human review — a review queue, not a semantic engine |
-| **Obsidian adapter** | Desktop-only plugin with Report Hub view, hidden output folder, and vault commands |
-| **CLI** | Published as `@gotsaeng/cli` — no global install required via npx |
+| Capability                   | What it does                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Vault scanning**           | Recursively scans a local Markdown vault                                                          |
+| **Note classification**      | Classifies notes into project, decision, research, weekly review, chat export, and template types |
+| **Extraction**               | Extracts facts, decisions, actions, risks, assumptions, questions, insights, and stale context    |
+| **Context pack output**      | Writes auditable Markdown + JSON artifacts with source coverage stats                             |
+| **Memory diff**              | Deterministic local diff comparing previous and current compile manifests                         |
+| **Provenance scoring**       | Scores extracted items from local metadata — a heuristic for triage, not semantic verification    |
+| **Confidence scoring**       | Scores extraction reliability from deterministic local signals only                               |
+| **Contradiction candidates** | Surfaces candidate cues for human review — a review queue, not a semantic engine                  |
+| **Obsidian adapter**         | Desktop-only plugin with Report Hub view, hidden output folder, and vault commands                |
+| **CLI**                      | Published as `@gotsaeng/cli` — no global install required via npx                                 |
 
 <details>
 <summary>Full v0.10 feature list</summary>
@@ -83,6 +83,10 @@ output.
 - Writes `CONTRADICTIONS.md` with deterministic contradiction, conflict, and uncertainty
   candidates for human review.
 - Records aggregate `contradictionStats` in `COMPILE_REPORT.json`.
+- Writes `ENGINEERING_OPS.md`, a release-gate snapshot that collects quality, warning, provenance,
+  confidence, and contradiction summaries in one place.
+- Writes `TEAM_MEMORY.md`, a team-facing handoff with the current objective, active work,
+  decisions, risks, open questions, and review queues.
 - Groups memory-diff details by source note so changed context is easier to review.
 - Calibrates source provenance scoring into strong, moderate, and weak buckets with a visible
   calibration version.

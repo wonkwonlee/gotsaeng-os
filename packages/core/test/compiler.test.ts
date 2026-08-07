@@ -11,7 +11,7 @@ import {
   MEMORY_DIFF_FILE,
   renderCompileReport,
   renderMarkdownFiles,
-  writeContextPack
+  writeContextPack,
 } from "../src/index";
 
 describe("compiler", () => {
@@ -23,7 +23,7 @@ describe("compiler", () => {
       sourceRoot: sampleVault,
       projectName: "GotSaeng OS",
       generatedAt: "2026-06-06T00:00:00.000Z",
-      dateProvider: clock
+      dateProvider: clock,
     });
 
     expect(pack.projectName).toBe("GotSaeng OS");
@@ -40,16 +40,16 @@ describe("compiler", () => {
     expect(pack.staleItems.length).toBeGreaterThan(0);
     expect(pack.report.extractionStats).toMatchObject({
       notesWithItems: 5,
-      notesWithoutItems: 3
+      notesWithoutItems: 3,
     });
     expect(pack.report.sourceCoverage).toMatchObject({
       notesWithUpdated: 5,
-      notesMissingUpdated: 3
+      notesMissingUpdated: 3,
     });
     expect(pack.report.warnings).toEqual([
       "Missing updated field: templates/decision.md",
       "Missing updated field: templates/project.md",
-      "Missing updated field: templates/weekly-review.md"
+      "Missing updated field: templates/weekly-review.md",
     ]);
     expect(pack.report.warningTriage).toMatchObject({
       totalWarnings: 3,
@@ -58,32 +58,32 @@ describe("compiler", () => {
         {
           label: "Notes missing updated dates",
           count: 3,
-          severity: "warning"
-        }
-      ]
+          severity: "warning",
+        },
+      ],
     });
     expect(pack.report.provenanceStats).toMatchObject({
       averageScore: expect.any(Number),
       strongItems: expect.any(Number),
-      weakItems: expect.any(Number)
+      weakItems: expect.any(Number),
     });
     expect(pack.report.confidenceStats).toMatchObject({
       averageScore: expect.any(Number),
       highItems: expect.any(Number),
-      lowItems: expect.any(Number)
+      lowItems: expect.any(Number),
     });
     expect(pack.report.contradictionStats).toMatchObject({
       totalCandidates: expect.any(Number),
       reviewItems: expect.any(Number),
-      watchItems: expect.any(Number)
+      watchItems: expect.any(Number),
     });
     expect(pack.actions[0]?.provenance).toMatchObject({
       score: expect.any(Number),
-      level: expect.stringMatching(/strong|moderate|weak/)
+      level: expect.stringMatching(/strong|moderate|weak/),
     });
     expect(pack.actions[0]?.confidence).toMatchObject({
       score: expect.any(Number),
-      level: expect.stringMatching(/high|medium|low/)
+      level: expect.stringMatching(/high|medium|low/),
     });
   });
 
@@ -92,7 +92,7 @@ describe("compiler", () => {
       sourceRoot: sampleVault,
       projectName: "GotSaeng OS",
       generatedAt: "2026-06-06T00:00:00.000Z",
-      dateProvider: clock
+      dateProvider: clock,
     });
     const files = renderMarkdownFiles(pack);
 
@@ -107,6 +107,8 @@ describe("compiler", () => {
     expect(files["SOURCE_PROVENANCE.md"]).toContain("# Source Provenance: GotSaeng OS");
     expect(files["CONFIDENCE.md"]).toContain("# Confidence Metadata: GotSaeng OS");
     expect(files["CONTRADICTIONS.md"]).toContain("# Contradiction Candidates: GotSaeng OS");
+    expect(files["ENGINEERING_OPS.md"]).toContain("# Engineering Ops: GotSaeng OS");
+    expect(files["TEAM_MEMORY.md"]).toContain("# Team Memory: GotSaeng OS");
   });
 
   it("writes Markdown files and JSON report", async () => {
@@ -114,12 +116,17 @@ describe("compiler", () => {
       sourceRoot: sampleVault,
       projectName: "GotSaeng OS",
       generatedAt: "2026-06-06T00:00:00.000Z",
-      dateProvider: clock
+      dateProvider: clock,
     });
     const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), "gotsaeng-core-"));
     const report = await writeContextPack(pack, outputDir);
 
-    for (const fileName of [...GENERATED_MARKDOWN_FILES, MEMORY_DIFF_FILE, CONTEXT_MANIFEST_FILE, "COMPILE_REPORT.json"]) {
+    for (const fileName of [
+      ...GENERATED_MARKDOWN_FILES,
+      MEMORY_DIFF_FILE,
+      CONTEXT_MANIFEST_FILE,
+      "COMPILE_REPORT.json",
+    ]) {
       await expect(fs.stat(path.join(outputDir, fileName))).resolves.toBeDefined();
     }
 
@@ -127,16 +134,22 @@ describe("compiler", () => {
       ...GENERATED_MARKDOWN_FILES,
       MEMORY_DIFF_FILE,
       CONTEXT_MANIFEST_FILE,
-      "COMPILE_REPORT.json"
+      "COMPILE_REPORT.json",
     ]);
-    const parsedReport = JSON.parse(await fs.readFile(path.join(outputDir, "COMPILE_REPORT.json"), "utf8")) as {
+    const parsedReport = JSON.parse(
+      await fs.readFile(path.join(outputDir, "COMPILE_REPORT.json"), "utf8"),
+    ) as {
       generatedFiles: string[];
     };
     expect(parsedReport.generatedFiles).toContain("COMPILE_REPORT.json");
-    expect(await fs.readFile(path.join(outputDir, MEMORY_DIFF_FILE), "utf8")).toContain("establishes the local memory diff baseline");
-    expect(JSON.parse(await fs.readFile(path.join(outputDir, CONTEXT_MANIFEST_FILE), "utf8"))).toMatchObject({
+    expect(await fs.readFile(path.join(outputDir, MEMORY_DIFF_FILE), "utf8")).toContain(
+      "establishes the local memory diff baseline",
+    );
+    expect(
+      JSON.parse(await fs.readFile(path.join(outputDir, CONTEXT_MANIFEST_FILE), "utf8")),
+    ).toMatchObject({
       projectName: "GotSaeng OS",
-      itemCount: pack.report.extractionStats?.totalItems
+      itemCount: pack.report.extractionStats?.totalItems,
     });
   });
 
@@ -157,16 +170,16 @@ describe("compiler", () => {
         "- fact: The compiler runs locally.",
         "- decision: Ship the v0.1 local-first compiler.",
         "- todo: Write the scanner ignore test. status: active priority: high",
-        "- question: Which folders should be excluded from scans?"
+        "- question: Which folders should be excluded from scans?",
       ].join("\n"),
-      "utf8"
+      "utf8",
     );
 
     const firstPack = await compileContextPack({
       sourceRoot: vaultDir,
       projectName: "GotSaeng OS",
       generatedAt: "2026-06-06T00:00:00.000Z",
-      dateProvider: clock
+      dateProvider: clock,
     });
 
     // A clean compile of a vault with a properly dated note produces no warnings.
@@ -185,9 +198,11 @@ describe("compiler", () => {
       sourceRoot: vaultDir,
       projectName: "GotSaeng OS",
       generatedAt: "2026-06-06T00:00:00.000Z",
-      dateProvider: clock
+      dateProvider: clock,
     });
-    expect(pollutedPack.report.warnings.some((warning) => warning.includes(outputFolder))).toBe(true);
+    expect(pollutedPack.report.warnings.some((warning) => warning.includes(outputFolder))).toBe(
+      true,
+    );
 
     // With ignoreGlobs the generated output folder is excluded entirely.
     const ignoredPack = await compileContextPack({
@@ -195,14 +210,18 @@ describe("compiler", () => {
       projectName: "GotSaeng OS",
       generatedAt: "2026-06-06T00:00:00.000Z",
       dateProvider: clock,
-      ignoreGlobs: [`${outputFolder}/**`]
+      ignoreGlobs: [`${outputFolder}/**`],
     });
 
-    expect(ignoredPack.report.warnings.filter((warning) => warning.includes(outputFolder))).toEqual([]);
+    expect(ignoredPack.report.warnings.filter((warning) => warning.includes(outputFolder))).toEqual(
+      [],
+    );
     expect(ignoredPack.report.warnings).toEqual(firstPack.report.warnings);
     expect(ignoredPack.report.filesScanned).toBe(firstPack.report.filesScanned);
     expect(ignoredPack.report.markdownFilesParsed).toBe(firstPack.report.markdownFilesParsed);
-    expect(ignoredPack.report.extractionStats?.totalItems).toBe(firstPack.report.extractionStats?.totalItems);
+    expect(ignoredPack.report.extractionStats?.totalItems).toBe(
+      firstPack.report.extractionStats?.totalItems,
+    );
     expect(ignoredPack.facts.length).toBe(firstPack.facts.length);
     expect(ignoredPack.decisions.length).toBe(firstPack.decisions.length);
     expect(ignoredPack.actions.length).toBe(firstPack.actions.length);
@@ -221,16 +240,16 @@ describe("compiler", () => {
         byKind: {},
         byStatus: {},
         notesWithItems: 0,
-        notesWithoutItems: 1
+        notesWithoutItems: 1,
       },
       sourceCoverage: {
         noteTypes: {
-          unknown: 1
+          unknown: 1,
         },
         notesWithUpdated: 0,
-        notesMissingUpdated: 1
+        notesMissingUpdated: 1,
       },
-      generatedFiles: ["PROJECT_CONTEXT.md", "COMPILE_REPORT.json"]
+      generatedFiles: ["PROJECT_CONTEXT.md", "COMPILE_REPORT.json"],
     });
 
     expect(JSON.parse(json)).toEqual({
@@ -244,16 +263,16 @@ describe("compiler", () => {
         byKind: {},
         byStatus: {},
         notesWithItems: 0,
-        notesWithoutItems: 1
+        notesWithoutItems: 1,
       },
       sourceCoverage: {
         noteTypes: {
-          unknown: 1
+          unknown: 1,
         },
         notesWithUpdated: 0,
-        notesMissingUpdated: 1
+        notesMissingUpdated: 1,
       },
-      generatedFiles: ["PROJECT_CONTEXT.md", "COMPILE_REPORT.json"]
+      generatedFiles: ["PROJECT_CONTEXT.md", "COMPILE_REPORT.json"],
     });
   });
 });

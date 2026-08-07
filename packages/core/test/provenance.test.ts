@@ -5,7 +5,7 @@ import {
   createProvenanceStats,
   scoreSourceProvenance,
   type ExtractedItem,
-  type NoteDocument
+  type NoteDocument,
 } from "../src/index";
 
 describe("source provenance", () => {
@@ -17,10 +17,13 @@ describe("source provenance", () => {
       tags: ["context"],
       frontmatter: {
         title: "Project",
-        status: "active"
-      }
+        status: "active",
+      },
     });
-    const provenance = scoreSourceProvenance(note, createItem({ status: "open", priority: "high" }));
+    const provenance = scoreSourceProvenance(
+      note,
+      createItem({ status: "open", priority: "high" }),
+    );
 
     expect(provenance.score).toBe(98);
     expect(provenance.level).toBe("strong");
@@ -32,7 +35,7 @@ describe("source provenance", () => {
   it("scores missing metadata and unknown status as weak provenance", () => {
     const note = createNote({
       noteType: "unknown",
-      tags: []
+      tags: [],
     });
     const provenance = scoreSourceProvenance(note, createItem({ status: "unknown" }));
 
@@ -41,7 +44,7 @@ describe("source provenance", () => {
     expect(provenance.warnings).toEqual([
       "Extracted item status is unknown.",
       "Source note has no updated date.",
-      "Source note type is unknown."
+      "Source note type is unknown.",
     ]);
   });
 
@@ -51,16 +54,16 @@ describe("source provenance", () => {
         path: "project.md",
         noteType: "project",
         updated: "2026-06-06",
-        frontmatter: { title: "Project" }
+        frontmatter: { title: "Project" },
       }),
       createNote({
         path: "unknown.md",
-        noteType: "unknown"
-      })
+        noteType: "unknown",
+      }),
     ];
     const items = [
       createItem({ sourcePath: "project.md", status: "open" }),
-      createItem({ sourcePath: "unknown.md", status: "unknown" })
+      createItem({ sourcePath: "unknown.md", status: "unknown" }),
     ];
 
     const annotated = applySourceProvenance(notes, items);
@@ -72,11 +75,11 @@ describe("source provenance", () => {
       averageScore: 42.5,
       byLevel: {
         strong: 1,
-        weak: 1
+        weak: 1,
       },
       weakItems: 1,
       moderateItems: 0,
-      strongItems: 1
+      strongItems: 1,
     });
   });
 });
@@ -91,7 +94,7 @@ function createNote(overrides: Partial<NoteDocument> = {}): NoteDocument {
     noteType: "project",
     tags: [],
     raw: "",
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -104,6 +107,6 @@ function createItem(overrides: Partial<ExtractedItem> = {}): ExtractedItem {
     text: "Do the work.",
     status: "open",
     tags: [],
-    ...overrides
+    ...overrides,
   };
 }

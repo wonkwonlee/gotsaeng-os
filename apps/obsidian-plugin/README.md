@@ -38,6 +38,10 @@ The compiler also writes `CONFIDENCE.md`, a deterministic extraction-confidence 
 Hub previews confidence output and shows confidence stats from the latest compile.
 The compiler also writes `CONTRADICTIONS.md`, a deterministic candidate report for contradiction,
 conflict, and uncertainty cues. It does not prove semantic inconsistency.
+The compiler also writes `ENGINEERING_OPS.md`, a release-gate snapshot combining the quality,
+warning, provenance, confidence, and contradiction summaries in one place, and `TEAM_MEMORY.md`, a
+team-facing handoff with the current objective, active work, decisions, risks, open questions, and
+review queues. Both are generated from the same local compiler signals as the other reports.
 v0.10 also groups memory-diff sections by source note and shows calibrated provenance summaries
 with strong, moderate, and weak buckets.
 

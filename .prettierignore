@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+
+# Generated lockfile.
+pnpm-lock.yaml
+
+# Golden compiler output: snapshot.test.ts byte-compares these files against
+# freshly rendered output, so reformatting them would break the snapshot tests.
+examples/sample-output
+
+# Input fixtures for the snapshot tests. Their exact Markdown determines what the
+# extractor produces, so formatting them would silently change expected output.
+examples/sample-vault

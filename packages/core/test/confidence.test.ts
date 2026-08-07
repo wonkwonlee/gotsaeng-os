@@ -2,20 +2,25 @@ import { describe, expect, it } from "vitest";
 
 import {
   createConfidenceStats,
+  EXPLICIT_MARKER_SIGNAL_LABEL,
   extractItems,
   parseMarkdown,
   scoreExtractionConfidence,
   type ExtractedItem,
-  type NoteDocument
+  type NoteDocument,
 } from "../src/index";
 
 describe("confidence metadata", () => {
   it("scores explicit marker extraction as high confidence", () => {
     const note = createNote({
       noteType: "project",
-      updated: "2026-06-06"
+      updated: "2026-06-06",
     });
-    const confidence = scoreExtractionConfidence(note, createItem({ status: "open", priority: "high" }), "explicit_marker");
+    const confidence = scoreExtractionConfidence(
+      note,
+      createItem({ status: "open", priority: "high" }),
+      "explicit_marker",
+    );
 
     expect(confidence.score).toBe(98);
     expect(confidence.level).toBe("high");
@@ -23,18 +28,38 @@ describe("confidence metadata", () => {
     expect(confidence.signals).toContain("+35: explicit extraction marker");
   });
 
+  it("keeps the explicit-marker label intact inside the formatted signal", () => {
+    // The register cap keeps explicit-marker items by substring-matching this
+    // label inside the formatted signal string. Signal formatting must not
+    // reword or truncate the label, or capped registers start dropping them.
+    const note = createNote({ noteType: "project", updated: "2026-06-06" });
+    const confidence = scoreExtractionConfidence(
+      note,
+      createItem({ status: "open" }),
+      "explicit_marker",
+    );
+
+    expect(confidence.signals.some((signal) => signal.includes(EXPLICIT_MARKER_SIGNAL_LABEL))).toBe(
+      true,
+    );
+  });
+
   it("scores weak inferred extraction with metadata gaps as low confidence", () => {
     const note = createNote({
-      noteType: "unknown"
+      noteType: "unknown",
     });
-    const confidence = scoreExtractionConfidence(note, createItem({ status: "unknown" }), "heading_inference");
+    const confidence = scoreExtractionConfidence(
+      note,
+      createItem({ status: "unknown" }),
+      "heading_inference",
+    );
 
     expect(confidence.score).toBe(20);
     expect(confidence.level).toBe("low");
     expect(confidence.warnings).toEqual([
       "Extracted item status is unknown.",
       "Source note has no updated date.",
-      "Source note type is unknown."
+      "Source note type is unknown.",
     ]);
   });
 
@@ -51,10 +76,10 @@ describe("confidence metadata", () => {
         "",
         "## Summary",
         "",
-        "The compiler should keep extraction confidence auditable."
+        "The compiler should keep extraction confidence auditable.",
       ].join("\n"),
       "/vault/project.md",
-      "/vault"
+      "/vault",
     );
 
     const items = extractItems(note);
@@ -64,7 +89,7 @@ describe("confidence metadata", () => {
     expect(stats).toMatchObject({
       averageScore: expect.any(Number),
       highItems: expect.any(Number),
-      lowItems: 0
+      lowItems: 0,
     });
   });
 });
@@ -79,7 +104,7 @@ function createNote(overrides: Partial<NoteDocument> = {}): NoteDocument {
     noteType: "project",
     tags: [],
     raw: "",
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -92,6 +117,6 @@ function createItem(overrides: Partial<ExtractedItem> = {}): ExtractedItem {
     text: "Do the work.",
     status: "open",
     tags: [],
-    ...overrides
+    ...overrides,
   };
 }

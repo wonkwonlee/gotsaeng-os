@@ -13,10 +13,10 @@ describe("stale detector", () => {
         "---",
         "",
         "- [ ] action: Revisit old weekly-review actions.",
-        "- fact: Old fact."
+        "- fact: Old fact.",
       ].join("\n"),
       "/vault/logs/weekly.md",
-      "/vault"
+      "/vault",
     );
     const items = extractItems(note);
 
@@ -24,7 +24,7 @@ describe("stale detector", () => {
       notes: [note],
       items,
       staleDays: 90,
-      dateProvider: () => new Date("2026-06-06T00:00:00.000Z")
+      dateProvider: () => new Date("2026-06-06T00:00:00.000Z"),
     });
 
     expect(stale).toHaveLength(2);
@@ -37,7 +37,7 @@ describe("stale detector", () => {
       notes: [note],
       items: extractItems(note),
       staleDays: 90,
-      dateProvider: () => new Date("2026-06-06T00:00:00.000Z")
+      dateProvider: () => new Date("2026-06-06T00:00:00.000Z"),
     });
 
     expect(stale).toEqual([]);

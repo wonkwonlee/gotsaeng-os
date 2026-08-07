@@ -9,5 +9,9 @@ export function renderCompileReport(report: CompileReport): string {
 
 export async function writeCompileReport(report: CompileReport, outputDir: string): Promise<void> {
   await fs.mkdir(outputDir, { recursive: true });
-  await fs.writeFile(path.join(outputDir, "COMPILE_REPORT.json"), renderCompileReport(report), "utf8");
+  await fs.writeFile(
+    path.join(outputDir, "COMPILE_REPORT.json"),
+    renderCompileReport(report),
+    "utf8",
+  );
 }

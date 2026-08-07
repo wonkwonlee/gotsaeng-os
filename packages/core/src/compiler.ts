@@ -11,7 +11,7 @@ import {
   createContradictionStats,
   createExtractionStats,
   createProvenanceStats,
-  createSourceCoverage
+  createSourceCoverage,
 } from "./report";
 import { CompileOptionsSchema, type CompileOptions, type DateProvider } from "./schemas/config";
 import { ContextPackSchema, type ContextPack } from "./schemas/context";
@@ -22,7 +22,7 @@ import {
   diffContextManifests,
   readPreviousContextManifest,
   writeContextManifest,
-  writeMemoryDiff
+  writeMemoryDiff,
 } from "./memory-diff";
 import { detectStaleItems } from "./stale";
 import { scanMarkdownFiles, scanSourceFiles } from "./scanner";
@@ -36,7 +36,9 @@ export async function compileContextPack(options: CompileOptions): Promise<Conte
   const dateProvider: DateProvider = options.dateProvider ?? (() => new Date());
   const sourceRoot = path.resolve(parsedOptions.sourceRoot);
   const allFiles = await scanSourceFiles(sourceRoot, { ignoreGlobs: parsedOptions.ignoreGlobs });
-  const markdownFiles = await scanMarkdownFiles(sourceRoot, { ignoreGlobs: parsedOptions.ignoreGlobs });
+  const markdownFiles = await scanMarkdownFiles(sourceRoot, {
+    ignoreGlobs: parsedOptions.ignoreGlobs,
+  });
   const notes = [];
   const parseErrors = [];
 
@@ -46,20 +48,25 @@ export async function compileContextPack(options: CompileOptions): Promise<Conte
     } catch (error) {
       parseErrors.push({
         path: path.relative(sourceRoot, filePath),
-        message: error instanceof Error ? error.message : String(error)
+        message: error instanceof Error ? error.message : String(error),
       });
     }
   }
 
   notes.sort((a, b) => compareStrings(a.path, b.path));
 
-  const extractedItems = sortExtractedItems(applySourceProvenance(notes, notes.flatMap((note) => extractItems(note))));
+  const extractedItems = sortExtractedItems(
+    applySourceProvenance(
+      notes,
+      notes.flatMap((note) => extractItems(note)),
+    ),
+  );
   const contradictions = detectContradictionCandidates(notes);
   const staleItems = detectStaleItems({
     notes,
     items: extractedItems,
     staleDays: parsedOptions.staleDays,
-    dateProvider
+    dateProvider,
   });
   const warnings = notes
     .filter((note) => !note.updated)
@@ -83,8 +90,8 @@ export async function compileContextPack(options: CompileOptions): Promise<Conte
       filesSkipped: allFiles.length - markdownFiles.length + parseErrors.length,
       parseErrors,
       warnings,
-      generatedFiles: []
-    })
+      generatedFiles: [],
+    }),
   });
 
   const pack = {
@@ -101,13 +108,16 @@ export async function compileContextPack(options: CompileOptions): Promise<Conte
     insights: extractedItems.filter((item) => item.kind === "insight"),
     contradictions,
     staleItems,
-    report
+    report,
   };
 
   return ContextPackSchema.parse(pack);
 }
 
-export async function writeContextPack(pack: ContextPack, outputDir: string): Promise<ContextPack["report"]> {
+export async function writeContextPack(
+  pack: ContextPack,
+  outputDir: string,
+): Promise<ContextPack["report"]> {
   const previousManifest = await readPreviousContextManifest(outputDir);
   const manifest = createContextManifest(pack);
   const memoryDiff = diffContextManifests(previousManifest.manifest, manifest, pack.generatedAt);
@@ -118,16 +128,21 @@ export async function writeContextPack(pack: ContextPack, outputDir: string): Pr
   const warnings = previousManifest.warning
     ? [...pack.report.warnings, previousManifest.warning].sort()
     : pack.report.warnings;
-  const generatedFiles = [...markdownFiles, MEMORY_DIFF_FILE, CONTEXT_MANIFEST_FILE, "COMPILE_REPORT.json"];
+  const generatedFiles = [
+    ...markdownFiles,
+    MEMORY_DIFF_FILE,
+    CONTEXT_MANIFEST_FILE,
+    "COMPILE_REPORT.json",
+  ];
   const report = {
     ...pack.report,
     warnings,
     warningTriage: createWarningTriage({
       ...pack.report,
       warnings,
-      generatedFiles
+      generatedFiles,
     }),
-    generatedFiles
+    generatedFiles,
   };
   pack.report = report;
   await writeCompileReport(report, outputDir);

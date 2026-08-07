@@ -6,7 +6,7 @@ export function isNoteType(value: unknown): value is NoteType {
 
 export function classifyNoteType(
   sourcePath: string,
-  frontmatter: Record<string, unknown> = {}
+  frontmatter: Record<string, unknown> = {},
 ): NoteType {
   const frontmatterType = frontmatter["type"];
   if (isNoteType(frontmatterType)) {
@@ -72,7 +72,7 @@ export function mapCompatibleNoteType(value: string): NoteType | undefined {
     source: "research",
     system: "unknown",
     weekly: "weekly-review",
-    wiki: "research"
+    wiki: "research",
   };
 
   return aliases[normalized];

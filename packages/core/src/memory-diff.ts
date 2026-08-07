@@ -10,7 +10,7 @@ import {
   type ExtractedItem,
   type MemoryDiff,
   type MemoryDiffChangedField,
-  type MemoryDiffResolvedItem
+  type MemoryDiffResolvedItem,
 } from "./schemas/context";
 import { compareStrings } from "./utils/path";
 
@@ -25,10 +25,12 @@ export type PreviousManifestReadResult = {
 export function createContextManifest(pack: ContextPack): ContextManifest {
   const staleIds = new Set(pack.staleItems.map((item) => item.id));
   const items = getAllItems(pack)
-    .map((item): ContextManifestItem => ({
-      ...item,
-      stale: staleIds.has(item.id) || item.status === "stale"
-    }))
+    .map(
+      (item): ContextManifestItem => ({
+        ...item,
+        stale: staleIds.has(item.id) || item.status === "stale",
+      }),
+    )
     .sort(compareManifestItems);
 
   return ContextManifestSchema.parse({
@@ -36,14 +38,14 @@ export function createContextManifest(pack: ContextPack): ContextManifest {
     generatedAt: pack.generatedAt,
     sourceRoot: pack.sourceRoot,
     itemCount: items.length,
-    items
+    items,
   });
 }
 
 export function diffContextManifests(
   previousManifest: ContextManifest | null,
   currentManifest: ContextManifest,
-  generatedAt = currentManifest.generatedAt
+  generatedAt = currentManifest.generatedAt,
 ): MemoryDiff {
   if (!previousManifest) {
     return MemoryDiffSchema.parse({
@@ -55,18 +57,20 @@ export function diffContextManifests(
         newlyAdded: 0,
         changed: 0,
         newlyStale: 0,
-        resolved: 0
+        resolved: 0,
       },
       newlyAdded: [],
       changed: [],
       newlyStale: [],
-      resolved: []
+      resolved: [],
     });
   }
 
   const previousById = new Map(previousManifest.items.map((item) => [item.id, item]));
   const currentById = new Map(currentManifest.items.map((item) => [item.id, item]));
-  const newlyAdded = currentManifest.items.filter((item) => !previousById.has(item.id)).sort(compareManifestItems);
+  const newlyAdded = currentManifest.items
+    .filter((item) => !previousById.has(item.id))
+    .sort(compareManifestItems);
   const changed = currentManifest.items
     .flatMap((current) => {
       const previous = previousById.get(current.id);
@@ -106,12 +110,12 @@ export function diffContextManifests(
       newlyAdded: newlyAdded.length,
       changed: changed.length,
       newlyStale: newlyStale.length,
-      resolved: resolved.length
+      resolved: resolved.length,
     },
     newlyAdded,
     changed,
     newlyStale,
-    resolved
+    resolved,
   });
 }
 
@@ -134,13 +138,13 @@ export function renderMemoryDiff(diff: MemoryDiff): string {
     `- Changed: ${diff.summary.changed}`,
     `- Newly stale: ${diff.summary.newlyStale}`,
     `- Resolved: ${diff.summary.resolved}`,
-    ""
+    "",
   ];
 
   if (!diff.previousManifestFound) {
     lines.push(
       "No previous `CONTEXT_MANIFEST.json` was found. This compile establishes the local memory diff baseline.",
-      ""
+      "",
     );
   }
 
@@ -149,19 +153,25 @@ export function renderMemoryDiff(diff: MemoryDiff): string {
   lines.push("## Newly Stale", "", renderManifestItemGroups(diff.newlyStale), "");
   lines.push("## Resolved", "", renderResolvedItemGroups(diff.resolved), "");
   lines.push("## Notes", "");
-  lines.push("- Text edits change deterministic item IDs, so rewritten items may appear as newly added plus resolved.");
-  lines.push("- Diffing is local-only and compares the previous output manifest against the current compile.");
+  lines.push(
+    "- Text edits change deterministic item IDs, so rewritten items may appear as newly added plus resolved.",
+  );
+  lines.push(
+    "- Diffing is local-only and compares the previous output manifest against the current compile.",
+  );
   lines.push("");
 
   return lines.join("\n");
 }
 
-export async function readPreviousContextManifest(outputDir: string): Promise<PreviousManifestReadResult> {
+export async function readPreviousContextManifest(
+  outputDir: string,
+): Promise<PreviousManifestReadResult> {
   const filePath = path.join(outputDir, CONTEXT_MANIFEST_FILE);
   try {
     const raw = await fs.readFile(filePath, "utf8");
     return {
-      manifest: ContextManifestSchema.parse(JSON.parse(raw))
+      manifest: ContextManifestSchema.parse(JSON.parse(raw)),
     };
   } catch (error) {
     if (error instanceof Error && "code" in error && error.code === "ENOENT") {
@@ -170,14 +180,21 @@ export async function readPreviousContextManifest(outputDir: string): Promise<Pr
 
     return {
       manifest: null,
-      warning: `Previous context manifest could not be read: ${error instanceof Error ? error.message : String(error)}`
+      warning: `Previous context manifest could not be read: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
 
-export async function writeContextManifest(manifest: ContextManifest, outputDir: string): Promise<void> {
+export async function writeContextManifest(
+  manifest: ContextManifest,
+  outputDir: string,
+): Promise<void> {
   await fs.mkdir(outputDir, { recursive: true });
-  await fs.writeFile(path.join(outputDir, CONTEXT_MANIFEST_FILE), renderContextManifest(manifest), "utf8");
+  await fs.writeFile(
+    path.join(outputDir, CONTEXT_MANIFEST_FILE),
+    renderContextManifest(manifest),
+    "utf8",
+  );
 }
 
 export async function writeMemoryDiff(diff: MemoryDiff, outputDir: string): Promise<void> {
@@ -193,11 +210,14 @@ function getAllItems(pack: ContextPack): ExtractedItem[] {
     ...pack.risks,
     ...pack.assumptions,
     ...pack.questions,
-    ...pack.insights
+    ...pack.insights,
   ];
 }
 
-function getChangedFields(previous: ContextManifestItem, current: ContextManifestItem): MemoryDiffChangedField[] {
+function getChangedFields(
+  previous: ContextManifestItem,
+  current: ContextManifestItem,
+): MemoryDiffChangedField[] {
   const changes: MemoryDiffChangedField[] = [];
   addFieldChange(changes, "sourceTitle", previous.sourceTitle, current.sourceTitle);
   addFieldChange(changes, "status", previous.status ?? "", current.status ?? "");
@@ -206,10 +226,30 @@ function getChangedFields(previous: ContextManifestItem, current: ContextManifes
   addFieldChange(changes, "updated", previous.updated ?? "", current.updated ?? "");
   addFieldChange(changes, "tags", previous.tags.join(","), current.tags.join(","));
   addFieldChange(changes, "stale", String(previous.stale), String(current.stale));
-  addFieldChange(changes, "provenanceScore", String(previous.provenance?.score ?? ""), String(current.provenance?.score ?? ""));
-  addFieldChange(changes, "provenanceLevel", previous.provenance?.level ?? "", current.provenance?.level ?? "");
-  addFieldChange(changes, "confidenceScore", String(previous.confidence?.score ?? ""), String(current.confidence?.score ?? ""));
-  addFieldChange(changes, "confidenceLevel", previous.confidence?.level ?? "", current.confidence?.level ?? "");
+  addFieldChange(
+    changes,
+    "provenanceScore",
+    String(previous.provenance?.score ?? ""),
+    String(current.provenance?.score ?? ""),
+  );
+  addFieldChange(
+    changes,
+    "provenanceLevel",
+    previous.provenance?.level ?? "",
+    current.provenance?.level ?? "",
+  );
+  addFieldChange(
+    changes,
+    "confidenceScore",
+    String(previous.confidence?.score ?? ""),
+    String(current.confidence?.score ?? ""),
+  );
+  addFieldChange(
+    changes,
+    "confidenceLevel",
+    previous.confidence?.level ?? "",
+    current.confidence?.level ?? "",
+  );
   return changes;
 }
 
@@ -217,7 +257,7 @@ function addFieldChange(
   changes: MemoryDiffChangedField[],
   field: string,
   previous: string,
-  current: string
+  current: string,
 ): void {
   if (previous !== current) {
     changes.push({ field, previous, current });
@@ -269,7 +309,10 @@ function renderChangedItems(items: MemoryDiff["changed"]): string {
   }
 
   return items
-    .map(({ current, changes }) => `- ${renderManifestItem(current)}; changes: ${renderChanges(changes)}`)
+    .map(
+      ({ current, changes }) =>
+        `- ${renderManifestItem(current)}; changes: ${renderChanges(changes)}`,
+    )
     .join("\n");
 }
 
@@ -288,7 +331,12 @@ function renderResolvedItems(items: MemoryDiff["resolved"]): string {
     return "- None.";
   }
 
-  return items.map(({ item, reason }) => `- ${renderManifestItem(item)}; reason: ${renderResolutionReason(reason)}`).join("\n");
+  return items
+    .map(
+      ({ item, reason }) =>
+        `- ${renderManifestItem(item)}; reason: ${renderResolutionReason(reason)}`,
+    )
+    .join("\n");
 }
 
 function renderResolvedItemGroups(items: MemoryDiff["resolved"]): string {
@@ -310,14 +358,19 @@ function renderManifestItem(item: ContextManifestItem): string {
     item.updated ? `updated: ${item.updated}` : undefined,
     item.stale ? "stale: yes" : undefined,
     item.provenance ? `provenance: ${item.provenance.level} ${item.provenance.score}` : undefined,
-    item.confidence ? `confidence: ${item.confidence.level} ${item.confidence.score}` : undefined
+    item.confidence ? `confidence: ${item.confidence.level} ${item.confidence.score}` : undefined,
   ].filter((value): value is string => Boolean(value));
 
   return `${item.text} (${details.join("; ")})`;
 }
 
 function renderChanges(changes: MemoryDiffChangedField[]): string {
-  return changes.map((change) => `${change.field} ${renderValue(change.previous)} -> ${renderValue(change.current)}`).join(", ");
+  return changes
+    .map(
+      (change) =>
+        `${change.field} ${renderValue(change.previous)} -> ${renderValue(change.current)}`,
+    )
+    .join(", ");
 }
 
 function renderValue(value: string): string {
@@ -336,7 +389,7 @@ function renderResolutionReason(reason: MemoryDiffResolvedItem["reason"]): strin
 
 function groupBySource<T>(
   items: T[],
-  getItem: (item: T) => ContextManifestItem = (item) => item as ContextManifestItem
+  getItem: (item: T) => ContextManifestItem = (item) => item as ContextManifestItem,
 ): Array<{ sourcePath: string; items: T[] }> {
   const groups = new Map<string, T[]>();
 
@@ -347,5 +400,8 @@ function groupBySource<T>(
 
   return [...groups.entries()]
     .map(([sourcePath, groupedItems]) => ({ sourcePath, items: groupedItems }))
-    .sort((left, right) => right.items.length - left.items.length || compareStrings(left.sourcePath, right.sourcePath));
+    .sort(
+      (left, right) =>
+        right.items.length - left.items.length || compareStrings(left.sourcePath, right.sourcePath),
+    );
 }

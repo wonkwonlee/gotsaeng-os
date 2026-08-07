@@ -8,7 +8,7 @@ export const NoteTypeSchema = z.enum([
   "research",
   "chat-export",
   "template",
-  "unknown"
+  "unknown",
 ]);
 
 export type NoteType = z.infer<typeof NoteTypeSchema>;
@@ -23,7 +23,7 @@ export const NoteDocumentSchema = z.object({
   tags: z.array(z.string()),
   created: z.string().optional(),
   updated: z.string().optional(),
-  raw: z.string()
+  raw: z.string(),
 });
 
 export type NoteDocument = z.infer<typeof NoteDocumentSchema>;

@@ -2,11 +2,12 @@ import type {
   ExtractedItem,
   ExtractedItemKind,
   ExtractedItemPriority,
-  ExtractedItemStatus
+  ExtractedItemStatus,
 } from "./schemas/context";
 import { scoreExtractionConfidence, type ExtractionConfidenceSource } from "./confidence";
 import type { NoteDocument } from "./schemas/note";
 import { createDeterministicId, normalizeTextForId } from "./utils/hash";
+import { stripLinkSyntax } from "./utils/markdown-text";
 import { compareStrings } from "./utils/path";
 
 const MARKER_TO_KIND: Record<string, ExtractedItemKind> = {
@@ -26,24 +27,35 @@ const MARKER_TO_KIND: Record<string, ExtractedItemKind> = {
   question: "question",
   질문: "question",
   insight: "insight",
-  통찰: "insight"
+  통찰: "insight",
 };
 
-const MARKER_NAMES = Object.keys(MARKER_TO_KIND).join("|");
+/**
+ * Builds the marker alternation that gets interpolated into the extraction
+ * patterns. Marker names are author-facing data, so they are escaped rather than
+ * trusted as regex source, and sorted longest-first so a marker that is another
+ * marker's prefix (`할일` / `할 일`) cannot shadow the longer one.
+ */
+export function buildMarkerAlternation(markerNames: string[]): string {
+  return [...markerNames]
+    .sort((a, b) => b.length - a.length || compareStrings(a, b))
+    .map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|");
+}
+
+const MARKER_NAMES = buildMarkerAlternation(Object.keys(MARKER_TO_KIND));
 
 const LIST_ITEM_PREFIX_PATTERN = String.raw`(?:[-*]|\d+\.)`;
 
-const BULLET_MARKER_PATTERN =
-  new RegExp(
-    `^\\s*${LIST_ITEM_PREFIX_PATTERN}\\s+(?:\\[(?<checked>[ xX])\\]\\s+)?(?<marker>${MARKER_NAMES}):\\s*(?<text>.+)$`,
-    "i"
-  );
+const BULLET_MARKER_PATTERN = new RegExp(
+  `^\\s*${LIST_ITEM_PREFIX_PATTERN}\\s+(?:\\[(?<checked>[ xX])\\]\\s+)?(?<marker>${MARKER_NAMES}):\\s*(?<text>.+)$`,
+  "i",
+);
 
-const HEADING_MARKER_PATTERN =
-  new RegExp(`^\\s*(?<marker>${MARKER_NAMES}):\\s*(?<text>.+)$`, "i");
+const HEADING_MARKER_PATTERN = new RegExp(`^\\s*(?<marker>${MARKER_NAMES}):\\s*(?<text>.+)$`, "i");
 
 const TASK_PATTERN = new RegExp(
-  `^\\s*${LIST_ITEM_PREFIX_PATTERN}\\s+\\[(?<checked>[ xX])\\]\\s+(?<text>.+)$`
+  `^\\s*${LIST_ITEM_PREFIX_PATTERN}\\s+\\[(?<checked>[ xX])\\]\\s+(?<text>.+)$`,
 );
 const BULLET_PATTERN = /^\s*[-*]\s+(?<text>.+)$/;
 const HEADING_PATTERN = /^(?<level>#{1,6})\s+(?<text>.+)$/;
@@ -67,7 +79,7 @@ export function extractItems(note: NoteDocument): ExtractedItem[] {
         title: heading.text,
         kind: classifySectionHeading(heading.text),
         level: heading.level,
-        emittedCount: 0
+        emittedCount: 0,
       };
 
       const headingItem = extractHeadingItem(heading.text, note, currentSection);
@@ -141,14 +153,14 @@ function extractExplicitLine(line: string, note: NoteDocument): ExtractedItem | 
     kind,
     text: rawText,
     line,
-    confidenceSource: "explicit_marker"
+    confidenceSource: "explicit_marker",
   });
 }
 
 function extractTaskLine(
   line: string,
   note: NoteDocument,
-  section: SectionContext | undefined
+  section: SectionContext | undefined,
 ): ExtractedItem | undefined {
   if (!shouldUseInferredExtraction(note)) {
     return undefined;
@@ -166,9 +178,7 @@ function extractTaskLine(
   }
 
   const text =
-    taskSection && !isGenericTaskSection(taskSection)
-      ? `${taskSection}: ${rawText}`
-      : rawText;
+    taskSection && !isGenericTaskSection(taskSection) ? `${taskSection}: ${rawText}` : rawText;
 
   const kind = section?.kind === "question" ? "question" : "action";
   return createItem({
@@ -176,14 +186,14 @@ function extractTaskLine(
     kind,
     text,
     line,
-    confidenceSource: "task_list"
+    confidenceSource: "task_list",
   });
 }
 
 function extractSectionLine(
   line: string,
   note: NoteDocument,
-  section: SectionContext | undefined
+  section: SectionContext | undefined,
 ): ExtractedItem | undefined {
   if (!section?.kind || !shouldUseInferredExtraction(note)) {
     return undefined;
@@ -209,7 +219,7 @@ function extractSectionLine(
       kind: section.kind,
       text: bullet.groups["text"],
       line,
-      confidenceSource: "section_line"
+      confidenceSource: "section_line",
     });
   }
 
@@ -219,7 +229,7 @@ function extractSectionLine(
       kind: section.kind,
       text: trimmed,
       line,
-      confidenceSource: "section_line"
+      confidenceSource: "section_line",
     });
   }
 
@@ -229,7 +239,7 @@ function extractSectionLine(
 function extractHeadingItem(
   headingText: string,
   note: NoteDocument,
-  section: SectionContext
+  section: SectionContext,
 ): ExtractedItem | undefined {
   if (!shouldUseInferredExtraction(note) || section.level < 3) {
     return undefined;
@@ -245,7 +255,7 @@ function extractHeadingItem(
     kind: parentKind,
     text: headingText,
     line: headingText,
-    confidenceSource: "heading_inference"
+    confidenceSource: "heading_inference",
   });
 }
 
@@ -271,7 +281,7 @@ function createItem(input: {
     priority: inferPriority(input.line),
     created: input.note.created,
     updated: input.note.updated,
-    tags: [...input.note.tags]
+    tags: [...input.note.tags],
   };
 
   const confidence = scoreExtractionConfidence(
@@ -280,7 +290,7 @@ function createItem(input: {
     input.confidenceSource,
     truncatedFrom !== undefined
       ? { truncation: { originalLength: truncatedFrom, maxLength: MAX_ITEM_TEXT_LENGTH } }
-      : {}
+      : {},
   );
 
   return { ...item, confidence };
@@ -289,17 +299,14 @@ function createItem(input: {
 type CleanedText = { text: string; truncatedFrom?: number };
 
 function cleanExtractedText(text: string): CleanedText {
-  const cleaned = text
-    // Anchor on start-or-whitespace so metadata at the very beginning of the text
-    // (with no preceding space) is stripped too, matching inferStatus/inferPriority.
-    .replace(/(?:^|\s+)\bstatus:\s*(open|active|done|stale|unknown)\b/gi, "")
-    .replace(/(?:^|\s+)\bpriority:\s*(low|medium|high)\b/gi, "")
-    .replace(/(?:^|\s+)!(low|medium|high)\b/gi, "")
-    .replace(/\[\[[^\]|]+\|([^\]]+)\]\]/g, "$1")
-    .replace(/\[\[([^\]]+)\]\]/g, "$1")
-    // Tolerate one level of literal/nested parens in the URL (e.g. Wikipedia
-    // links like .../Foo_(bar)) so the trailing ")" does not leak into the text.
-    .replace(/\[([^\]]+)\]\((?:[^()]|\([^()]*\))*\)/g, "$1")
+  const cleaned = stripLinkSyntax(
+    text
+      // Anchor on start-or-whitespace so metadata at the very beginning of the text
+      // (with no preceding space) is stripped too, matching inferStatus/inferPriority.
+      .replace(/(?:^|\s+)\bstatus:\s*(open|active|done|stale|unknown)\b/gi, "")
+      .replace(/(?:^|\s+)\bpriority:\s*(low|medium|high)\b/gi, "")
+      .replace(/(?:^|\s+)!(low|medium|high)\b/gi, ""),
+  )
     .replace(/\[|\]/g, "")
     .replace(/[*`~]/g, "")
     .replace(/[⏫🔼🔽]/gu, "")
@@ -321,7 +328,7 @@ function cleanExtractedText(text: string): CleanedText {
     // Reserve room for the 3-char ellipsis so the result never exceeds the cap.
     return {
       text: `${cleaned.slice(0, MAX_ITEM_TEXT_LENGTH - 3).trimEnd()}...`,
-      truncatedFrom: cleaned.length
+      truncatedFrom: cleaned.length,
     };
   }
 
@@ -384,14 +391,16 @@ function parseHeading(line: string): { level: number; text: string } | undefined
 
   return {
     level: marker.length,
-    text: text.trim()
+    text: text.trim(),
   };
 }
 
 function classifySectionHeading(heading: string): ExtractedItemKind | undefined {
   const normalized = heading.toLowerCase();
 
-  if (/(open questions?|questions?|todo|tasks?|next actions?|backlog|할 ?일|질문)/i.test(normalized)) {
+  if (
+    /(open questions?|questions?|todo|tasks?|next actions?|backlog|할 ?일|질문)/i.test(normalized)
+  ) {
     return "question";
   }
   if (/(decisions?|verdict|decision log|결정|판단)/i.test(normalized)) {
@@ -408,7 +417,7 @@ function classifySectionHeading(heading: string): ExtractedItemKind | undefined 
   }
   if (
     /(summary|key points?|tl;dr|core thesis|core insight|insights?|why this matters|context|signals?|how to use|raw thought|요약|핵심|통찰)/i.test(
-      normalized
+      normalized,
     )
   ) {
     return "insight";

@@ -94,6 +94,8 @@
     "SOURCE_PROVENANCE.md",
     "CONFIDENCE.md",
     "CONTRADICTIONS.md",
+    "ENGINEERING_OPS.md",
+    "TEAM_MEMORY.md",
     "MEMORY_DIFF.md",
     "CONTEXT_MANIFEST.json",
     "COMPILE_REPORT.json"

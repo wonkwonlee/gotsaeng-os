@@ -17,7 +17,7 @@ Before the first tag, configure **npm Trusted Publisher (OIDC)** for **both** pa
    - **Owner:** `wonkwonlee`
    - **Repository:** `gotsaeng-os`
    - **Workflow file:** `release.yml`
-   - **Environment:** *(leave blank)*
+   - **Environment:** _(leave blank)_
 3. Repeat step 2 for `@gotsaeng/cli`.
 
 > **Why both packages?** The workflow publishes core _and_ cli in the same job using OIDC.
@@ -27,17 +27,19 @@ Before the first tag, configure **npm Trusted Publisher (OIDC)** for **both** pa
 
 ## Version-Agreement Invariant
 
-All four of the following must agree before cutting a tag:
+All of the following must agree before cutting a tag:
 
-| Source | Where |
-|---|---|
-| Root `package.json` → `version` | `package.json` |
-| `packages/core/package.json` → `version` | `packages/core/package.json` |
-| `packages/cli/package.json` → `version` | `packages/cli/package.json` |
+| Source                                           | Where                                |
+| ------------------------------------------------ | ------------------------------------ |
+| Root `package.json` → `version`                  | `package.json`                       |
+| `packages/core/package.json` → `version`         | `packages/core/package.json`         |
+| `packages/cli/package.json` → `version`          | `packages/cli/package.json`          |
+| `apps/obsidian-plugin/package.json` → `version`  | `apps/obsidian-plugin/package.json`  |
 | `apps/obsidian-plugin/manifest.json` → `version` | `apps/obsidian-plugin/manifest.json` |
-| Key in `apps/obsidian-plugin/versions.json` | `apps/obsidian-plugin/versions.json` |
-| Root `manifest.json` / `versions.json` (copies) | `manifest.json`, `versions.json` |
-| Git tag name | `git tag -l <version>` |
+| Key in `apps/obsidian-plugin/versions.json`      | `apps/obsidian-plugin/versions.json` |
+| Root `manifest.json` / `versions.json` (copies)  | `manifest.json`, `versions.json`     |
+| `npx` pins in the README                         | `README.md`                          |
+| Git tag name                                     | `git tag -l <version>`               |
 
 > **Why root copies?** The Obsidian community directory portal reads `manifest.json` from the
 > HEAD of the repository's **root**. The root `manifest.json` and `versions.json` must be exact
@@ -51,14 +53,18 @@ All four of the following must agree before cutting a tag:
 Verify before tagging:
 
 ```bash
-node -p "require('./package.json').version"
-node -p "require('./packages/core/package.json').version"
-node -p "require('./packages/cli/package.json').version"
-node -p "require('./apps/obsidian-plugin/manifest.json').version"
-node -p "Object.keys(require('./apps/obsidian-plugin/versions.json'))"
+pnpm check:versions
 ```
 
-All five must print the same version string (e.g. `0.10.2`).
+`scripts/check-versions.mjs` checks every row of the table above except the git tag: it
+discovers workspace packages rather than listing them (so adding or removing a package cannot
+drop it from the check), confirms the root `manifest.json`/`versions.json` are **byte-identical**
+to the plugin originals, confirms `versions.json` maps the release version to the manifest's
+`minAppVersion`, and confirms the README `npx` pins match. It exits non-zero and names every
+mismatched file.
+
+This check also runs in CI and in `pnpm smoke:clean-clone`, so a partially-applied version bump
+now fails before the tag is cut rather than at Obsidian directory submission.
 
 ---
 
@@ -160,8 +166,10 @@ GotSaeng OS v0.10 is structured for package publishing:
 
 - `@gotsaeng/core` — framework compiler API (public).
 - `@gotsaeng/cli` — `gotsaeng` command (public).
-- `@gotsaeng/shared` — shared constants (`"private": true`, not published).
 - `apps/obsidian-plugin` — private desktop-only Obsidian adapter.
+
+`@gotsaeng/shared` was removed after 0.10.8. It held two branding constants that nothing
+imported, while costing a version bump and a tsconfig path alias every release.
 
 The root package is intentionally private (monorepo container).
 
@@ -201,4 +209,4 @@ pnpm --filter @gotsaeng/core publish --access public --provenance
 pnpm --filter @gotsaeng/cli publish --access public --provenance
 ```
 
-`@gotsaeng/shared` has `"private": true` and must never be published.
+`apps/obsidian-plugin` has `"private": true` and must never be published.

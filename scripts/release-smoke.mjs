@@ -22,6 +22,8 @@ const requiredContextArtifacts = [
   "SOURCE_PROVENANCE.md",
   "CONFIDENCE.md",
   "CONTRADICTIONS.md",
+  "ENGINEERING_OPS.md",
+  "TEAM_MEMORY.md",
   "MEMORY_DIFF.md",
   "CONTEXT_MANIFEST.json",
   "COMPILE_REPORT.json",
@@ -70,6 +72,10 @@ function cleanCloneSmoke() {
   run("pnpm", ["test"], { cwd: cloneDir });
   run("pnpm", ["build"], { cwd: cloneDir });
   run("pnpm", ["lint"], { cwd: cloneDir });
+  run("pnpm", ["format:check"], { cwd: cloneDir });
+  // Catches a partially-applied version bump before the tag is cut, when the
+  // multi-file agreement in docs/release.md is easiest to get wrong.
+  run("pnpm", ["check:versions"], { cwd: cloneDir });
 
   console.log("Clean clone smoke passed.");
 }

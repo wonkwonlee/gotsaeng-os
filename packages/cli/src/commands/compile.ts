@@ -16,13 +16,18 @@ export function createCompileCommand(): Command {
     .argument("<vaultPath>", "Path to the Markdown vault.")
     .requiredOption("--output <outputDir>", "Directory for generated context-pack files.")
     .requiredOption("--project <projectName>", "Project name for generated context files.")
-    .option("--stale-days <number>", "Number of days before updated context is considered stale.", parsePositiveInteger, 90)
+    .option(
+      "--stale-days <number>",
+      "Number of days before updated context is considered stale.",
+      parsePositiveInteger,
+      90,
+    )
     .action(async (vaultPath: string, options: CompileCommandOptions) => {
       try {
         const pack = await compileContextPack({
           sourceRoot: vaultPath,
           projectName: options.project,
-          staleDays: options.staleDays
+          staleDays: options.staleDays,
         });
         const report = await writeContextPack(pack, options.output);
 
@@ -32,8 +37,8 @@ export function createCompileCommand(): Command {
             source: vaultPath,
             output: options.output,
             report,
-            itemCounts: getItemCounts(pack)
-          })
+            itemCounts: getItemCounts(pack),
+          }),
         );
       } catch (error) {
         process.stderr.write(
@@ -44,9 +49,9 @@ export function createCompileCommand(): Command {
               "The source vault path exists and is a directory.",
               "The output directory path is writable.",
               "The command includes both --output and --project.",
-              "Markdown files use valid YAML frontmatter when frontmatter is present."
-            ]
-          })
+              "Markdown files use valid YAML frontmatter when frontmatter is present.",
+            ],
+          }),
         );
         process.exitCode = 1;
       }

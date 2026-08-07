@@ -29,21 +29,21 @@ This produces the same 13 files as `sample-output/`.
 
 ## Output file map
 
-| File | Purpose |
-|---|---|
-| `PROJECT_CONTEXT.md` | Distilled project state — active facts, key decisions, open actions |
-| `MEMORY_SNAPSHOT.md` | Full snapshot of every extracted context item |
-| `DECISION_LOG.md` | All decisions with rationale |
-| `ACTION_BACKLOG.md` | Open and in-progress actions |
-| `RISK_REGISTER.md` | Tracked risks and logged assumptions |
-| `OPEN_QUESTIONS.md` | Unresolved questions |
-| `STALE_CONTEXT.md` | Items flagged as potentially outdated |
-| `SOURCE_PROVENANCE.md` | Per-item provenance scores (how well-sourced each item is) |
-| `CONFIDENCE.md` | Per-item confidence scores |
-| `CONTRADICTIONS.md` | Potential contradictions detected between notes |
-| `MEMORY_DIFF.md` | Changes since last compile (empty on first run) |
-| `CONTEXT_MANIFEST.json` | Machine-readable index of all context items |
-| `COMPILE_REPORT.json` | Compile statistics and diagnostics |
+| File                    | Purpose                                                             |
+| ----------------------- | ------------------------------------------------------------------- |
+| `PROJECT_CONTEXT.md`    | Distilled project state — active facts, key decisions, open actions |
+| `MEMORY_SNAPSHOT.md`    | Full snapshot of every extracted context item                       |
+| `DECISION_LOG.md`       | All decisions with rationale                                        |
+| `ACTION_BACKLOG.md`     | Open and in-progress actions                                        |
+| `RISK_REGISTER.md`      | Tracked risks and logged assumptions                                |
+| `OPEN_QUESTIONS.md`     | Unresolved questions                                                |
+| `STALE_CONTEXT.md`      | Items flagged as potentially outdated                               |
+| `SOURCE_PROVENANCE.md`  | Per-item provenance scores (how well-sourced each item is)          |
+| `CONFIDENCE.md`         | Per-item confidence scores                                          |
+| `CONTRADICTIONS.md`     | Potential contradictions detected between notes                     |
+| `MEMORY_DIFF.md`        | Changes since last compile (empty on first run)                     |
+| `CONTEXT_MANIFEST.json` | Machine-readable index of all context items                         |
+| `COMPILE_REPORT.json`   | Compile statistics and diagnostics                                  |
 
 ## Annotation format
 

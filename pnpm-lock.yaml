@@ -70,8 +70,6 @@ importers:
         specifier: ^3.23.8
         version: 3.25.76
 
-  packages/shared: {}
-
 packages:
 
   /@ampproject/remapping@2.3.0:

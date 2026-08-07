@@ -16,14 +16,19 @@ const DEFAULT_LINK_LIMIT = 24;
 const SOURCE_PATTERNS = [
   /\[\[([^[\]|#]+?\.md)(?:#[^\]|]*)?(?:\|([^\]]+))?\]\]/giu,
   /\bsource:\s*([^;)\n]+?\.md)\b/giu,
-  /"sourcePath"\s*:\s*"([^"]+?\.md)"/giu
+  /"sourcePath"\s*:\s*"([^"]+?\.md)"/giu,
 ];
 
 const GENERATED_MARKDOWN_FILES = new Set(
-  OUTPUT_ARTIFACTS.filter((artifact) => artifact.format === "markdown").map((artifact) => artifact.fileName)
+  OUTPUT_ARTIFACTS.filter((artifact) => artifact.format === "markdown").map(
+    (artifact) => artifact.fileName,
+  ),
 );
 
-export function extractSourceLinks(content: string, options: ExtractSourceLinksOptions = {}): SourceLink[] {
+export function extractSourceLinks(
+  content: string,
+  options: ExtractSourceLinksOptions = {},
+): SourceLink[] {
   const linksByPath = new Map<string, SourceLink>();
   const limit = options.limit ?? DEFAULT_LINK_LIMIT;
 
@@ -46,7 +51,7 @@ export function extractSourceLinks(content: string, options: ExtractSourceLinksO
   }
 
   return [...linksByPath.values()]
-    .sort((left, right) => right.count - left.count || compareStrings(left.path, right.path))
+    .sort((left, right) => right.count - left.count || compareStringsLocale(left.path, right.path))
     .slice(0, limit);
 }
 
@@ -82,6 +87,9 @@ function isGeneratedOutputPath(sourcePath: string, outputFolder: string | undefi
   return GENERATED_MARKDOWN_FILES.has(sourcePath);
 }
 
-function compareStrings(left: string, right: string): number {
+// Deliberately NOT core's compareStrings, which orders by raw code point. Source
+// links are shown to the user, so they sort case- and accent-insensitively. The
+// name is distinct to keep the two orderings from being mistaken for each other.
+function compareStringsLocale(left: string, right: string): number {
   return left.localeCompare(right, "en", { sensitivity: "base" });
 }

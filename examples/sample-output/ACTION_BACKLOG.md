@@ -5,7 +5,6 @@ Generated: 2026-06-06T00:00:00.000Z
 ## Open
 
 - Add snapshot-quality exporter tests. (source: 01_projects/gotsaeng-os.md; status: open; priority: high; tags: context-engineering, llm, open-source)
-- Revisit old weekly-review actions before publishing v0.1. (source: 03_logs/weekly-review-2026-W23.md; status: open; tags: stale-demo, weekly-review)
 - Document future memory diff and source provenance scoring. (source: 04_research/llm-context-engineering.md; status: open; priority: low; tags: context-engineering, llm, research)
 
 ## Active
@@ -15,7 +14,7 @@ Generated: 2026-06-06T00:00:00.000Z
 
 ## Stale
 
-- None.
+- Revisit old weekly-review actions before publishing v0.1. (source: 03_logs/weekly-review-2026-W23.md; status: open; tags: stale-demo, weekly-review)
 
 ## Unknown
 

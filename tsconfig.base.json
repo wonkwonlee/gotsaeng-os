@@ -18,8 +18,7 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@gotsaeng/core": ["packages/core/src/index.ts"],
-      "@gotsaeng/shared": ["packages/shared/src/index.ts"]
+      "@gotsaeng/core": ["packages/core/src/index.ts"]
     },
     "types": ["node"]
   }

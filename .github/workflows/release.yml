@@ -1,3 +1,9 @@
+# DO NOT TAG THIS DEV REPO TO RELEASE.
+# Releases are cut on the PUBLIC deploy mirror (wonkwonlee/gotsaeng-os), not here.
+# The npm OIDC Trusted Publisher is bound to the public repo's release.yml, so tagging
+# this dev repo runs the workflow but the publish step fails (404 / no permission).
+# See CLAUDE.md § "Release Process".
+#
 # PRE-REQUISITE (manual, npm web UI — must be done before the first tag):
 # Configure npm Trusted Publisher (OIDC) for BOTH @gotsaeng/core AND @gotsaeng/cli,
 # bound to this repository's release.yml workflow.
@@ -45,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write  # Required for npm OIDC trusted publishing + provenance
+      id-token: write # Required for npm OIDC trusted publishing + provenance
 
     steps:
       - uses: actions/checkout@v6
@@ -85,10 +91,10 @@ jobs:
 
   github-release:
     name: GitHub Release
-    needs: publish  # only cut a GitHub release once npm publish succeeded
+    needs: publish # only cut a GitHub release once npm publish succeeded
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # create the GitHub Release and upload the Obsidian plugin assets
+      contents: write # create the GitHub Release and upload the Obsidian plugin assets
 
     steps:
       - uses: actions/checkout@v6

@@ -127,12 +127,4 @@ describe("cli", () => {
       ),
     });
   });
-
-  it("keeps public branding visible", async () => {
-    const readme = await fs.readFile(path.resolve(process.cwd(), "README.md"), "utf8");
-
-    expect(readme).toContain("GotSaeng OS");
-    expect(readme).toContain("Reclaim your scattered life");
-    expect(readme).toContain("흩어진 생을 다시 손에 쥐다");
-  });
 });

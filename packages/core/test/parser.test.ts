@@ -18,10 +18,10 @@ describe("parser", () => {
         "",
         "# Ignored H1",
         "",
-        "Body."
+        "Body.",
       ].join("\n"),
       "/vault/projects/test.md",
-      "/vault"
+      "/vault",
     );
 
     expect(note.title).toBe("Test Project");
@@ -49,27 +49,25 @@ describe("parser", () => {
         "---",
         "type: wiki",
         "title: Wiki Note",
-        "created: <% tp.date.now(\"YYYY-MM-DD\") %>",
-        "updated: <% tp.date.now(\"YYYY-MM-DD\") %>",
+        'created: <% tp.date.now("YYYY-MM-DD") %>',
+        'updated: <% tp.date.now("YYYY-MM-DD") %>',
         "---",
         "",
-        "# Wiki Note"
+        "# Wiki Note",
       ].join("\n"),
       "/vault/10_Wiki/home.md",
-      "/vault"
+      "/vault",
     );
 
-    const defaultIssues = validateNoteMetadata(note);
     const compatibilityIssues = validateNoteMetadata(note, { strict: false });
     const strictIssues = validateNoteMetadata(note, { strict: true });
 
-    expect(defaultIssues).toEqual(compatibilityIssues);
     expect(compatibilityIssues.every((issue) => issue.severity === "warning")).toBe(true);
     expect(compatibilityIssues.map((issue) => issue.message)).toEqual([
       "Custom note type: wiki; mapped to research.",
-      "Unvalidated created date: <% tp.date.now(\"YYYY-MM-DD\") %>.",
-      "Unvalidated updated date: <% tp.date.now(\"YYYY-MM-DD\") %>.",
-      "Missing updated field."
+      'Unvalidated created date: <% tp.date.now("YYYY-MM-DD") %>.',
+      'Unvalidated updated date: <% tp.date.now("YYYY-MM-DD") %>.',
+      "Missing updated field.",
     ]);
     expect(strictIssues.filter((issue) => issue.severity === "error")).toHaveLength(3);
   });

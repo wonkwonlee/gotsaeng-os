@@ -65,7 +65,6 @@ gotsaeng-os/
 │   ├── cli/                           # CLI command parsing, output, exit codes
 │   │   └── src/
 │   │       └── commands/compile.ts    # `compile` command (requires --output, --project)
-│   └── shared/                        # Private shared utilities (not published)
 ├── apps/
 │   └── obsidian-plugin/               # Obsidian adapter; delegates to packages/core
 └── examples/
@@ -74,6 +73,7 @@ gotsaeng-os/
 ```
 
 **Data flow:**
+
 ```
 vault/ (Markdown files)
   → scanner.ts       (glob → file paths)
@@ -117,8 +117,8 @@ because they affect the ContextPack schema and all downstream consumers.
 // packages/core/src/extractor.ts
 const MARKER_TO_KIND: Record<string, ExtractedItemKind> = {
   // ... existing entries ...
-  blocker: "risk",    // ← your new alias
-  블로커: "risk",     // ← Korean alias if applicable
+  blocker: "risk", // ← your new alias
+  블로커: "risk", // ← Korean alias if applicable
 };
 ```
 
@@ -129,11 +129,7 @@ The key must be lowercase. The regex that matches it is case-insensitive, so `Bl
 
 ```ts
 it("maps 'blocker' marker to risk kind", () => {
-  const note = parseMarkdown(
-    "- blocker: No deployment pipeline yet.",
-    "/vault/note.md",
-    "/vault"
-  );
+  const note = parseMarkdown("- blocker: No deployment pipeline yet.", "/vault/note.md", "/vault");
   expect(extractItems(note)).toMatchObject([{ kind: "risk", text: "No deployment pipeline yet." }]);
 });
 ```
@@ -165,8 +161,8 @@ export const NoteTypeSchema = z.enum([
   "research",
   "chat-export",
   "template",
-  "meeting",   // ← your new type
-  "unknown"
+  "meeting", // ← your new type
+  "unknown",
 ]);
 ```
 
@@ -201,7 +197,7 @@ new type should also be skipped (e.g., it is read-only metadata), add a conditio
 ```ts
 function shouldUseInferredExtraction(note: NoteDocument): boolean {
   if (note.noteType === "template" || note.noteType === "meeting") {
-    return false;   // ← opt out if inferred extraction doesn't apply
+    return false; // ← opt out if inferred extraction doesn't apply
   }
   // ... rest of function ...
 }
@@ -212,6 +208,7 @@ should receive a different impact value. Currently all non-template, non-unknown
 Add an explicit branch if the new type warrants a different treatment.
 
 **Step 5 — Add tests** in:
+
 - `packages/core/test/classifier.test.ts` — test both path-based and frontmatter-based detection
 - `packages/core/test/extractor.test.ts` — if inferred extraction behavior changes
 
@@ -238,9 +235,9 @@ Specific things to check before each PR:
 - [ ] `pnpm lint` exits 0 — no lint suppressions added without comment.
 - [ ] New behavior is covered by at least one unit test in the relevant `test/` file.
 - [ ] Public-API changes (schemas, exported functions) have updated `packages/core/src/index.ts`
-  exports if needed.
+      exports if needed.
 - [ ] No new runtime dependencies introduced. Dev-only dependencies require a brief justification
-  in the PR description.
+      in the PR description.
 - [ ] No telemetry, cloud calls, network calls, or LLM API calls added.
 - [ ] Docs updated if public CLI behavior changed (root `README.md` or `packages/cli/README.md`).
 

@@ -72,6 +72,15 @@
   checks, installability, contributor readiness, user trust/security audit, and local adapter
   distribution evidence.
 
+## Known Follow-ups
+
+- **Stale status is resolved at render time, not in the pack.** `ACTION_BACKLOG.md` derives the
+  Stale section from `pack.staleItems` because `markStale` returns a copy rather than mutating the
+  item. An action flagged by the stale detector therefore still reads `status: open` in
+  `CONTEXT_MANIFEST.json` while appearing under `## Stale` in the backlog. Making the compiler
+  apply staleness before the stats are computed would remove the inconsistency, but shifts the
+  confidence and provenance snapshots, so it is deliberately deferred.
+
 ## Current Non-Goals
 
 - SaaS, cloud sync, authentication, payments, vector databases, RAG, LLM API integrations,

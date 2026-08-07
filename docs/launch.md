@@ -1,9 +1,13 @@
-# Launch Draft — GotSaeng OS 0.10.4
+# Launch Draft — GotSaeng OS
 
-This is a working draft for launch copy. No posts have been submitted. All copy below is for
-internal review before publishing.
+This is a historical working draft from the 0.10.4 launch cycle. No current launch status should
+be inferred from it; all copy below requires review before publishing.
+
+The copy went stale at 0.10.4 because the release version kept moving. Update the release version,
+channel status, and links before using it for a future launch.
 
 **Honest framing requirements** (from ROADMAP and README):
+
 - Provenance scoring, confidence scoring, and contradiction detection are **deterministic
   heuristics** based on note metadata and keyword patterns — not semantic AI verification.
 - GotSaeng OS does not make LLM API calls. It is a local compiler, not an AI app.
@@ -98,7 +102,7 @@ files for LLMs
 
 **Body:**
 
-> GotSaeng OS 0.10.4 is out. If you've tried compiling your vault, I'd love to see:
+> A new GotSaeng OS release is out. If you've tried compiling your vault, I'd love to see:
 >
 > - What vault structure you're using
 > - Which output files you find most useful for your LLM workflows
@@ -113,10 +117,10 @@ files for LLMs
 
 ## Awesome-list targets
 
-| List | Entry format | Status |
-|---|---|---|
-| [awesome-obsidian](https://github.com/kmaasrud/awesome-obsidian) | `- [GotSaeng OS](https://github.com/wonkwonlee/gotsaeng-os) - Local-first context compiler for Obsidian vaults.` | Draft — not submitted |
-| [awesome-local-first](https://github.com/pubkey/awesome-local-first) | `- [GotSaeng OS](https://github.com/wonkwonlee/gotsaeng-os) - Compile Markdown vaults into structured LLM context packs, fully on-device.` | Draft — not submitted |
+| List                                                                 | Entry format                                                                                                                                                 | Status                |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
+| [awesome-obsidian](https://github.com/kmaasrud/awesome-obsidian)     | `- [GotSaeng OS](https://github.com/wonkwonlee/gotsaeng-os) - Local-first context compiler for Obsidian vaults.`                                             | Draft — not submitted |
+| [awesome-local-first](https://github.com/pubkey/awesome-local-first) | `- [GotSaeng OS](https://github.com/wonkwonlee/gotsaeng-os) - Compile Markdown vaults into structured LLM context packs, fully on-device.`                   | Draft — not submitted |
 | [awesome-markdown](https://github.com/BubuAnabelas/awesome-markdown) | `- [GotSaeng OS](https://github.com/wonkwonlee/gotsaeng-os) - Context compiler that extracts typed annotations from Markdown into structured context packs.` | Draft — not submitted |
 
 Submit each only after Phase 0 + Phase 1 quality gates are confirmed green and the README is
@@ -126,13 +130,13 @@ fully polished.
 
 ## Status tracking
 
-| Channel | Gate | Status |
-|---|---|---|
-| Obsidian community directory | Fast gate (0.1 + 0.2 + tag + release assets) | **Submitted 2026-06-11** via portal — <https://community.obsidian.md/plugins/gotsaeng-os> — awaiting review |
-| Show HN | Full gate (Phase 0 + 1 all green) | Draft |
-| r/ObsidianMD | Full gate | Draft |
-| r/PKM | Full gate | Draft |
-| GitHub Discussion | Full gate | Draft |
-| awesome-obsidian PR | Full gate | Draft |
-| awesome-local-first PR | Full gate | Draft |
-| awesome-markdown PR | Full gate | Draft |
+| Channel                      | Gate                                         | Status                                                                                |
+| ---------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Obsidian community directory | Fast gate (0.1 + 0.2 + tag + release assets) | Historical submission recorded 2026-06-11; current status requires owner verification |
+| Show HN                      | Full gate (Phase 0 + 1 all green)            | Draft                                                                                 |
+| r/ObsidianMD                 | Full gate                                    | Draft                                                                                 |
+| r/PKM                        | Full gate                                    | Draft                                                                                 |
+| GitHub Discussion            | Full gate                                    | Draft                                                                                 |
+| awesome-obsidian PR          | Full gate                                    | Draft                                                                                 |
+| awesome-local-first PR       | Full gate                                    | Draft                                                                                 |
+| awesome-markdown PR          | Full gate                                    | Draft                                                                                 |
