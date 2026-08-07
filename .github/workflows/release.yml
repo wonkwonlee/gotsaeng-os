@@ -73,10 +73,13 @@ jobs:
 
       # Upgrade npm before publishing. Node 20's bundled npm is 10.x; OIDC trusted
       # publishing (granular access tokens via GitHub Actions OIDC) requires npm >=9.5.
-      # While 10.x satisfies that floor, `npm@latest` ensures we get the most recent
-      # OIDC + provenance fixes without waiting for a Node LTS update.
+      # Pinned to the 10.x line (matching this job's Node 20) rather than `npm@latest`:
+      # npm's own latest tag moved to a major requiring Node >=22.22, which broke this
+      # step outright on 2026-08-07. `npm@10` still picks up the newest 10.x patch with
+      # the latest OIDC + provenance fixes, without silently depending on npm's floor
+      # engine requirement staying compatible with this job's pinned Node version.
       - name: Upgrade npm
-        run: npm install -g npm@latest
+        run: npm install -g npm@10
 
       # Publish @gotsaeng/core FIRST — @gotsaeng/cli depends on it.
       # Publishing cli before core would leave a window where cli resolves a stale core.
