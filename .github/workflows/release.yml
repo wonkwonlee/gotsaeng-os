@@ -71,15 +71,16 @@ jobs:
       - name: Build packages
         run: pnpm build
 
-      # Upgrade npm before publishing. Node 20's bundled npm is 10.x; OIDC trusted
-      # publishing (granular access tokens via GitHub Actions OIDC) requires npm >=9.5.
-      # Pinned to the 10.x line (matching this job's Node 20) rather than `npm@latest`:
-      # npm's own latest tag moved to a major requiring Node >=22.22, which broke this
-      # step outright on 2026-08-07. `npm@10` still picks up the newest 10.x patch with
-      # the latest OIDC + provenance fixes, without silently depending on npm's floor
-      # engine requirement staying compatible with this job's pinned Node version.
+      # Upgrade npm before publishing. Node 20's bundled npm is 10.x, which does NOT
+      # support OIDC trusted publishing at all (that shipped in npm 11.5.1) — pinning to
+      # npm@10 (tried on 2026-08-07) silently fell back to an unauthenticated publish
+      # and failed with a 404, since no NODE_AUTH_TOKEN is set. npm 11.x requires Node
+      # ^20.17.0 || >=22.9.0, which this job's Node 20 satisfies, and supports OIDC.
+      # `npm@latest` (currently 12.x) requires Node >=22.22/24.15/26 and broke this step
+      # outright before that. Pin to the 11.x line: new enough for OIDC trusted
+      # publishing, old enough to run on this job's Node 20.
       - name: Upgrade npm
-        run: npm install -g npm@10
+        run: npm install -g npm@11
 
       # Publish @gotsaeng/core FIRST — @gotsaeng/cli depends on it.
       # Publishing cli before core would leave a window where cli resolves a stale core.
