@@ -1,4 +1,4 @@
-# GotSaeng OS v0.10 Install Guide
+# GotSaeng OS Install Guide
 
 ## Requirements
 
@@ -22,7 +22,7 @@ Expected result:
 ```text
 GotSaeng OS Doctor
 
-CLI version: 0.10.0
+CLI version: <installed version>
 Write permission: ok
 Core scanner: ok
 ```
@@ -45,6 +45,8 @@ Generated output includes:
 - `SOURCE_PROVENANCE.md`
 - `CONFIDENCE.md`
 - `CONTRADICTIONS.md`
+- `ENGINEERING_OPS.md`
+- `TEAM_MEMORY.md`
 - `MEMORY_DIFF.md`
 - `CONTEXT_MANIFEST.json`
 - `COMPILE_REPORT.json`

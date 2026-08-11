@@ -1,7 +1,9 @@
 # This is the public release repository. Tags are cut here, after the full-history
 # development checkout has been synchronized; see docs/release.md.
-# npm Trusted Publisher OIDC is bound to this repository and this workflow for both
-# @gotsaeng/core and @gotsaeng/cli.
+# npm Trusted Publisher OIDC is bound to this repository and this workflow for
+# @gotsaeng/core, @gotsaeng/cli, and @gotsaeng/mcp.
+# @gotsaeng/mcp was bootstrap-published (0.0.1, manual auth) so its Trusted Publisher
+# could be configured — see the "bootstrap publish" section in docs/release.md.
 
 name: Release
 
@@ -75,16 +77,37 @@ jobs:
       - name: Upgrade npm
         run: npm install -g npm@11
 
+      # npm's default publish dist-tag is `latest`. Without this, a prerelease tag like
+      # 0.13.0-beta.1 would publish under `latest` and become what unpinned installs
+      # (npx @gotsaeng/mcp, npm install @gotsaeng/cli) resolve — silently replacing the
+      # last stable version. Mirrors the prerelease detection the github-release job below
+      # already uses for GITHUB_REF_NAME.
+      - name: Determine npm dist-tag
+        run: |
+          case "${GITHUB_REF_NAME}" in
+            *-*) echo "NPM_TAG=next" >> "$GITHUB_ENV" ;;
+            *) echo "NPM_TAG=latest" >> "$GITHUB_ENV" ;;
+          esac
+
       # Publish @gotsaeng/core FIRST — @gotsaeng/cli depends on it.
       # Publishing cli before core would leave a window where cli resolves a stale core.
       # No NODE_AUTH_TOKEN: npm obtains a short-lived token from the GitHub OIDC provider
       # automatically when id-token: write is set and a Trusted Publisher is configured.
       - name: Publish @gotsaeng/core
-        run: pnpm --filter @gotsaeng/core publish --access public --provenance --no-git-checks
+        run: pnpm --filter @gotsaeng/core publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
 
       # Publish @gotsaeng/cli SECOND — after core is live on the registry.
       - name: Publish @gotsaeng/cli
-        run: pnpm --filter @gotsaeng/cli publish --access public --provenance --no-git-checks
+        run: pnpm --filter @gotsaeng/cli publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
+
+      # Publish @gotsaeng/mcp THIRD — it also depends on @gotsaeng/core.
+      # @gotsaeng/mcp has never been published: an unpublished package has no npm Settings
+      # page, so its Trusted Publisher cannot be configured, and this OIDC-only step (no
+      # NODE_AUTH_TOKEN) cannot authenticate a first-ever publish. A maintainer must run a
+      # one-time manual `npm login` + `pnpm --filter @gotsaeng/mcp publish` bootstrap BEFORE
+      # this step is exercised by a tag — see "bootstrap publish" in docs/release.md.
+      - name: Publish @gotsaeng/mcp
+        run: pnpm --filter @gotsaeng/mcp publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
 
   github-release:
     name: GitHub Release

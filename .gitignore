@@ -8,19 +8,20 @@ coverage/
 .gotsaeng/
 packages/*/dist/
 apps/*/dist/
-# Local agent, assistant, and orchestration state. Public contributor guidance
-# lives in the root AGENTS.md and CLAUDE.md files instead.
-/.agents/
-/.claude/
-/.codex/
-/.impeccable/
-/.omc/
-/.omx/
-/.playwright-mcp/
-/.superpowers/
-/.worktrees/
-/.mcp.json
-/MEMORY.md
-
 .vault-copy/
 .vault-notes/
+
+# Local agent, assistant, and orchestration state — can appear nested inside
+# packages/* or apps/* too (tool state follows cwd), not just at the repo root.
+# Public contributor guidance lives in the root AGENTS.md and CLAUDE.md files instead.
+.agents/
+.claude/
+.codex/
+.impeccable/
+.omc/
+.omx/
+.playwright-mcp/
+.superpowers/
+.worktrees/
+/.mcp.json
+/MEMORY.md

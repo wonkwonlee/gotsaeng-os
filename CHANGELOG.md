@@ -1,6 +1,43 @@
 # Changelog
 
-## Unreleased
+## 0.12.0
+
+- MCP: added `@gotsaeng/mcp`, a stdio MCP server exposing `validate_vault`,
+  `compile_context_pack`, `list_context_artifacts`, `read_context_artifact`, and
+  `prepare_ai_handoff` as narrow, path-allowlisted tools over `packages/core`, for MCP clients like
+  Claude Code and Codex. Published to npm — install via `npx -y @gotsaeng/mcp`. See `docs/mcp.md`.
+- Core: LLM handoff rendering moved from the Obsidian adapter into `packages/core`
+  (`exporters/handoff-exporter.ts`), with a `sections` option for selecting which reports a
+  handoff bundles. The plugin now consumes this renderer instead of keeping its own copy.
+- Core: `writeContextPack` now writes `ARTIFACT_INDEX.json`, a name/byte-size/sha256/description
+  entry for every other generated file, for downstream tools that need to verify artifact
+  integrity without re-reading full contents.
+- CLI: `compile` and `validate` accept `--json` to print a schema-versioned JSON document on
+  stdout instead of the text summary, for scripting and machine consumption.
+- Obsidian adapter: every output-folder change now goes through one confirm-before-delete gate
+  (`applyOutputFolderChange`), showing the exact number of GotSaeng-generated files that will be
+  removed from the folder being vacated. This covers the two command-palette switch commands, all
+  three settings-tab visibility options including "Custom path", and the custom-path text field —
+  each of which previously had its own path to the same deletion, some with no warning at all.
+  No dialog appears when there is nothing to delete.
+- Obsidian adapter: leaving a _custom_ output folder now cleans up (and correctly counts) the
+  generated files left behind in it. Cleanup previously only ever looked at the two built-in
+  managed folders, so files in a vacated custom folder were both missing from the confirmation
+  count and orphaned permanently — no later cleanup pass ever revisited that path.
+- Obsidian adapter: the custom output-folder path now commits on blur rather than on every
+  keystroke, matching the stale-days field and avoiding a confirmation prompt per character typed.
+- Obsidian adapter: added CSS for the Backlinks section and the settings validation warning
+  banner, which previously rendered as unstyled default elements — no matching rule existed in
+  `styles.css` for either.
+- Obsidian adapter: the Report Hub's Context Pack Files grid is now grouped into "Core Reports,"
+  "Analysis," and "Raw Data" sections instead of one flat 19-button grid.
+- Obsidian adapter: command failures now persist as a dismissable-on-next-success error banner in
+  the Report Hub view (`GotSaengObsidianPlugin.lastError`), not just a transient Notice toast.
+- Obsidian adapter: action buttons (Compile, Weekly Review, LLM Handoff, Validate) disable
+  themselves while their command is in flight, preventing overlapping runs from repeated clicks.
+- Obsidian adapter: the stale-days settings field now validates on blur instead of re-rendering
+  the entire settings tab on every keystroke, matching the custom-output-folder field's existing
+  pattern.
 
 ## 0.11.0
 
@@ -41,8 +78,6 @@ Visible`, so the managed output folder can be moved without opening plugin setti
 - Marker names are escaped before being interpolated into the extraction regexes and sorted
   longest-first, so a marker containing a regex metacharacter can no longer corrupt the pattern and
   a marker cannot shadow another marker it is a prefix of.
-- The confidence signal label the exporter matches on to protect explicit-marker items from the
-  register cap is now a single shared constant instead of two independent string literals.
 - The Obsidian Report Hub now imports core's coverage/provenance/confidence/contradiction/
   warning-triage renderers instead of holding byte-identical copies. Generated output is unchanged.
 - Removed `@gotsaeng/shared`: two branding constants that nothing imported.

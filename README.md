@@ -17,13 +17,13 @@ Compile your scattered Markdown notes into model-ready context packs — local-f
 > Requires Node.js 20 or newer. No install needed.
 
 ```bash
-npx -y @gotsaeng/cli@0.11.0 compile <vault> --output <dir> --project "<name>"
+npx -y @gotsaeng/cli@0.12.0 compile <vault> --output <dir> --project "<name>"
 ```
 
 Both `--output` and `--project` are required flags. Copy-paste example using the included sample vault:
 
 ```bash
-npx -y @gotsaeng/cli@0.11.0 compile ./examples/sample-vault --output ./out --project "GotSaeng OS"
+npx -y @gotsaeng/cli@0.12.0 compile ./examples/sample-vault --output ./out --project "GotSaeng OS"
 ```
 
 This writes 15 artifacts to `./out/` including `PROJECT_CONTEXT.md`, `MEMORY_SNAPSHOT.md`,
@@ -50,9 +50,10 @@ output.
 | **Contradiction candidates** | Surfaces candidate cues for human review — a review queue, not a semantic engine                  |
 | **Obsidian adapter**         | Desktop-only plugin with Report Hub view, hidden output folder, and vault commands                |
 | **CLI**                      | Published as `@gotsaeng/cli` — no global install required via npx                                 |
+| **MCP server**               | `@gotsaeng/mcp` — stdio server exposing 5 tools to MCP clients (bootstrap-only on npm; see below) |
 
 <details>
-<summary>Full current feature list</summary>
+<summary>Full feature list</summary>
 
 - Scans a local Markdown vault.
 - Parses YAML frontmatter with `gray-matter`.
@@ -96,14 +97,26 @@ output.
 - Groups decisions, risks, and questions by source for faster review.
 - Adds warning triage to Markdown and JSON reports.
 - Produces a cleaner high-signal weekly review surface in the Obsidian adapter.
+- Adds a Backlinks section to the Obsidian Report Hub view: aggregates source-note references
+  across every generated Markdown report (not just the one being previewed; JSON artifacts like
+  `CONTEXT_MANIFEST.json` and `COMPILE_REPORT.json` are not scanned), grouped by note and ranked by
+  total reference count.
+- Adds `Switch Output Folder to Hidden` / `Switch Output Folder to Visible` commands so the managed
+  output folder can be moved without opening plugin settings.
+- Tags each extracted item with a typed `confidenceSource` field recording how it was extracted
+  (explicit marker, task list, section pattern, or heading inference), so the explicit-marker
+  register-cap exemption is a type-checked field instead of a string match.
+- Makes the extraction cap (`perHeading`) and, separately, the export-time register caps
+  (`register`, `insights`) configurable via `CompileOptions.caps` /
+  `writeContextPack(pack, outputDir, caps)`, defaulting to the same 12/200/120 bounds as before.
 
 </details>
 
 ## What GotSaeng OS Does Not Do
 
-The current release does not include SaaS, cloud sync, auth, payments, vector databases, RAG, LLM API calls,
-OpenAI/Anthropic/Gemini SDKs, autonomous research, a browser extension, a mobile app, or a rich
-Obsidian-native management UI.
+GotSaeng OS does not include SaaS, cloud sync, auth, payments, vector databases, RAG, LLM API
+calls, OpenAI/Anthropic/Gemini SDKs, autonomous research, a browser extension, a mobile app, or a
+rich Obsidian-native management UI.
 
 Autonomous research is a long-term research direction, not a current capability. Provenance,
 confidence, and contradiction candidate scoring are deterministic metadata heuristics, not semantic
@@ -144,9 +157,75 @@ Use `--strict` when you want canonical GotSaeng OS schema enforcement to fail on
 High-volume Markdown sections may be capped in rendered files with an omission notice. Full totals
 are still recorded in `COMPILE_REPORT.json`.
 
+### Machine-readable output
+
+Both `compile` and `validate` accept `--json` to print a schema-versioned JSON document on stdout
+instead of the text summary (errors go to stderr as JSON too):
+
+```bash
+gotsaeng compile <vaultPath> --output <outputDir> --project <projectName> --json
+gotsaeng validate <vaultPath> --json
+```
+
+```json
+{
+  "schemaVersion": 1,
+  "command": "compile",
+  "project": "GotSaeng OS",
+  "source": "<vaultPath>",
+  "output": "<outputDir>",
+  "itemCounts": { "facts": 4, "decisions": 2 },
+  "report": { "filesScanned": 12, "generatedFiles": ["PROJECT_CONTEXT.md", "..."] }
+}
+```
+
+Every `compile` also writes `ARTIFACT_INDEX.json` to the output directory alongside the other
+generated files: a name/byte-size/sha256/description entry for every other generated artifact, so
+downstream tools can verify file integrity without re-reading full contents.
+
+## MCP Server
+
+`@gotsaeng/mcp` exposes GotSaeng OS as a stdio [Model Context Protocol](https://modelcontextprotocol.io)
+server, so MCP clients (Claude Code, Codex, Cursor) can call `validate_vault`, `compile_context_pack`,
+`list_context_artifacts`, `read_context_artifact`, and `prepare_ai_handoff` as structured tools. The
+vault and output roots are fixed at launch via CLI flags — tools never accept arbitrary absolute paths.
+
+> **No real release yet — don't run `npx @gotsaeng/mcp` unpinned.** Only a one-time bootstrap
+> placeholder (`0.0.1`) has been published, to make the package exist for npm Trusted Publisher
+> setup; it happens to hold the `latest` tag too (see `docs/mcp.md`). The commands below will
+> resolve correctly once the real v0.13 release ships; until then, run from source with
+> `pnpm --filter @gotsaeng/mcp build` and `node packages/mcp/dist/index.js ...` as documented in
+> `docs/mcp.md`.
+
+```bash
+npx -y @gotsaeng/mcp@0.12.0 --vault <vaultPath> --output <outputDir> --project "<projectName>"
+```
+
+Add it to your client's MCP config, for example Claude Code (`.mcp.json`) or Codex/Cursor's equivalent:
+
+```json
+{
+  "mcpServers": {
+    "gotsaeng": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@gotsaeng/mcp@0.12.0",
+        "--vault",
+        "<vaultPath>",
+        "--output",
+        "<outputDir>",
+        "--project",
+        "<projectName>"
+      ]
+    }
+  }
+}
+```
+
 ## Obsidian Adapter
 
-The current release includes a desktop-only Obsidian adapter in `apps/obsidian-plugin`. It is a thin wrapper over
+GotSaeng OS includes a desktop-only Obsidian adapter in `apps/obsidian-plugin`. It is a thin wrapper over
 `packages/core`, not a separate compiler.
 
 Build it locally:
@@ -271,13 +350,8 @@ research. The sample includes every core extraction marker:
 
 ## Roadmap
 
-Near-term work should stay focused:
-
-- More exporter snapshot coverage.
-- Better validation messages.
-- Engineering ops and team memory workflows.
-
-See [ROADMAP.md](./ROADMAP.md) and [docs/plugin-roadmap.md](./docs/plugin-roadmap.md).
+See [ROADMAP.md](./ROADMAP.md) and [docs/plugin-roadmap.md](./docs/plugin-roadmap.md) for shipped
+milestones and what's under consideration next.
 
 ## Contributing
 

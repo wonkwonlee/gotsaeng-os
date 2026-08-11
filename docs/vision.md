@@ -6,7 +6,9 @@ questions, and research trails.
 
 GotSaeng OS compiles those scattered materials into structured context packs. The first product
 is not a chatbot, dashboard, or autonomous agent. The first product is a local-first,
-model-agnostic context compiler.
+model-agnostic context compiler. The MCP server (`@gotsaeng/mcp`) does not change this: it exposes
+the same compile/validate/read operations as structured tools for a client-side agent to call —
+GotSaeng OS itself still runs no model and makes no LLM API calls.
 
 The name GotSaeng OS has two meanings. It references **갓생**, the Korean internet phrase for
 an intentional and high-agency life. It also reinterprets the phrase as **Got 生**, meaning

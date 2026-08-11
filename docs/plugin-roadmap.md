@@ -1,6 +1,6 @@
 # Obsidian Plugin Roadmap
 
-The current release adds source-grouped memory diff output and calibrated provenance summaries on top of
+The adapter provides source-grouped memory diff output, calibrated provenance summaries, and
 contradiction-aware Obsidian navigation.
 
 The adapter remains framework-first: it calls `packages/core` for scanning, parsing, extraction,
@@ -29,6 +29,7 @@ the plugin.
 - Previews `SOURCE_PROVENANCE.md`.
 - Previews `CONFIDENCE.md`.
 - Previews `CONTRADICTIONS.md`.
+- Previews `ENGINEERING_OPS.md` and `TEAM_MEMORY.md`.
 - Extracts source-note links from generated Markdown and JSON previews and shows source-note
   buttons that open the original vault notes.
 - Shows a Backlinks section below the preview that aggregates source-note references across every
@@ -46,13 +47,9 @@ the plugin.
 - Does not call LLM APIs, upload notes, sync data, collect credentials, or add telemetry.
 - Ignores `.gotsaeng` and `.obsidian` folders during scanning.
 
-## v0.11 Candidates
-
-All three v0.11 candidates from the previous roadmap revision (settings validation and user-facing
-error states, source-note backlink sections grouped by note, and command palette affordances for
-project-specific output folders) are done — see Current Behavior and Current Commands above.
-
 ## Later Research
 
-- Engineering ops and team memory workflows.
+- Cross-vault or team-wide (multi-user) engineering ops and team memory aggregation. The
+  single-vault versions already ship as `ENGINEERING_OPS.md` / `TEAM_MEMORY.md` (see Current
+  Behavior above).
 - Optional model integrations only after explicit design and security review.

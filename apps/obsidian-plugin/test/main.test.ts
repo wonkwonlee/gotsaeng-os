@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 
 import type { App, PluginManifest } from "obsidian";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import GotSaengObsidianPlugin from "../src/main";
 import { GOTSAENG_REPORT_VIEW_TYPE } from "../src/view";
@@ -18,6 +18,7 @@ import { createFakeApp } from "./mocks/fake-app";
 import {
   PluginSettingTab,
   TFile,
+  createdModals,
   createdSettings,
   recordedNotices,
   resetObsidianMocks,
@@ -167,6 +168,26 @@ describe("GotSaengObsidianPlugin runSafely error funnelling", () => {
       "GotSaeng OS: Output folder cannot include '..' path segments.",
     ]);
   });
+
+  it("records a persistent lastError on failure, and clears it on the next successful run", async () => {
+    const failingPlugin = createPlugin(tempRoot, {
+      ...DEFAULT_SETTINGS,
+      outputFolder: "../outside",
+    }).plugin;
+
+    await failingPlugin.compileContextPackCommand();
+
+    expect(failingPlugin.lastError).toBe(
+      "Compile Context Pack failed: Output folder cannot include '..' path segments.",
+    );
+
+    const { plugin } = createPlugin(tempRoot, { ...DEFAULT_SETTINGS, openAfterCompile: false });
+    plugin.lastError = "stale error from a previous run";
+
+    await plugin.compileContextPackCommand();
+
+    expect(plugin.lastError).toBeNull();
+  });
 });
 
 describe("GotSaengObsidianPlugin file navigation", () => {
@@ -233,15 +254,36 @@ describe("GotSaengObsidianPlugin file navigation", () => {
   });
 });
 
+// Any output-folder change that would delete GotSaeng-managed files opens a
+// ConfirmModal and awaits a click before proceeding. Wait for the modal to
+// appear (real fs.stat calls happen first) rather than assuming a fixed number
+// of microtask ticks.
+async function waitForConfirmModal() {
+  await vi.waitFor(() => {
+    if (createdModals.length === 0) {
+      throw new Error("expected a confirmation modal to open");
+    }
+  });
+  return createdModals[0]!;
+}
+
+function clickModalButton(modal: (typeof createdModals)[number], text: string): void {
+  const button = modal.contentEl.findAllByTag("button").find((el) => el.text === text);
+  button?.dispatch("click");
+}
+
 describe("GotSaengObsidianPlugin output folder visibility command", () => {
-  it("switches from hidden to visible, persists settings, and cleans up the stale hidden folder", async () => {
+  it("asks for confirmation, then switches and cleans up the stale folder once confirmed", async () => {
     const staleDir = path.join(tempRoot, HIDDEN_OUTPUT_FOLDER);
     await fs.mkdir(staleDir, { recursive: true });
     await fs.writeFile(path.join(staleDir, "REPORT_HUB.md"), "stale", "utf8");
 
     const { plugin } = createPlugin(tempRoot, { ...DEFAULT_SETTINGS });
 
-    await plugin.switchOutputFolderVisibilityCommand("visible");
+    const switchPromise = plugin.switchOutputFolderVisibilityCommand("visible");
+    const modal = await waitForConfirmModal();
+    clickModalButton(modal, "Delete and switch");
+    await switchPromise;
 
     expect(plugin.settings.outputFolderVisibility).toBe("visible");
     expect(plugin.settings.outputFolder).toBe(VISIBLE_OUTPUT_FOLDER);
@@ -255,6 +297,35 @@ describe("GotSaengObsidianPlugin output folder visibility command", () => {
     ).toBe(true);
   });
 
+  it("cancels the switch and leaves the stale folder untouched when the user declines", async () => {
+    const staleDir = path.join(tempRoot, HIDDEN_OUTPUT_FOLDER);
+    await fs.mkdir(staleDir, { recursive: true });
+    await fs.writeFile(path.join(staleDir, "REPORT_HUB.md"), "stale", "utf8");
+
+    const { plugin } = createPlugin(tempRoot, { ...DEFAULT_SETTINGS });
+
+    const switchPromise = plugin.switchOutputFolderVisibilityCommand("visible");
+    const modal = await waitForConfirmModal();
+    clickModalButton(modal, "Cancel");
+    await switchPromise;
+
+    expect(plugin.settings.outputFolderVisibility).toBe("hidden");
+    const staleDirEntries = await fs.readdir(staleDir).catch(() => []);
+    expect(staleDirEntries).toContain("REPORT_HUB.md");
+    expect(recordedNotices.some((notice) => notice.message.includes("switch cancelled"))).toBe(
+      true,
+    );
+  });
+
+  it("switches immediately without a confirmation modal when there is nothing to delete", async () => {
+    const { plugin } = createPlugin(tempRoot, { ...DEFAULT_SETTINGS });
+
+    await plugin.switchOutputFolderVisibilityCommand("visible");
+
+    expect(createdModals).toHaveLength(0);
+    expect(plugin.settings.outputFolderVisibility).toBe("visible");
+  });
+
   it("notifies without changing settings when the requested visibility is already active", async () => {
     const { plugin } = createPlugin(tempRoot, {
       ...DEFAULT_SETTINGS,
@@ -266,6 +337,52 @@ describe("GotSaengObsidianPlugin output folder visibility command", () => {
 
     expect(plugin.settings.outputFolder).toBe(HIDDEN_OUTPUT_FOLDER);
     expect(recordedNotices.some((notice) => notice.message.includes("already hidden"))).toBe(true);
+  });
+
+  it("counts and cleans a vacated custom folder when switching back to a built-in one", async () => {
+    // The custom folder is not one of the two built-in managed folders, so it
+    // is only reachable by cleanup because the previous folder is passed
+    // explicitly. Without that, the modal would report 0 files and these
+    // generated files would be orphaned permanently.
+    const customDir = path.join(tempRoot, "Reports/GotSaeng");
+    await fs.mkdir(customDir, { recursive: true });
+    await fs.writeFile(path.join(customDir, "REPORT_HUB.md"), "stale", "utf8");
+    await fs.writeFile(path.join(customDir, "USER_NOTE.md"), "keep", "utf8");
+    // Ownership marker: a custom folder is only swept once it is proven to have
+    // been written by a real GotSaeng compile (see output-cleanup.ts), not just
+    // because it happens to contain a file with a managed artifact's name.
+    await fs.writeFile(
+      path.join(customDir, "COMPILE_REPORT.json"),
+      JSON.stringify({
+        filesScanned: 0,
+        markdownFilesParsed: 0,
+        filesSkipped: 0,
+        parseErrors: [],
+        warnings: [],
+        generatedFiles: [],
+      }),
+      "utf8",
+    );
+
+    const { plugin } = createPlugin(tempRoot, {
+      ...DEFAULT_SETTINGS,
+      outputFolderVisibility: "custom",
+      outputFolder: "Reports/GotSaeng",
+    });
+
+    const switchPromise = plugin.switchOutputFolderVisibilityCommand("hidden");
+    const modal = await waitForConfirmModal();
+    expect(modal.contentEl.findAllByTag("p").some((el) => el.text?.includes("2 GotSaeng"))).toBe(
+      true,
+    );
+    clickModalButton(modal, "Delete and switch");
+    await switchPromise;
+
+    expect(plugin.settings.outputFolder).toBe(HIDDEN_OUTPUT_FOLDER);
+    const customDirEntries = await fs.readdir(customDir).catch(() => []);
+    expect(customDirEntries).not.toContain("REPORT_HUB.md");
+    expect(customDirEntries).not.toContain("COMPILE_REPORT.json");
+    expect(customDirEntries).toContain("USER_NOTE.md");
   });
 });
 
@@ -338,6 +455,40 @@ describe("GotSaengObsidianPlugin settings tab", () => {
     expect(plugin.settings.outputFolder).toBe(VISIBLE_OUTPUT_FOLDER);
   });
 
+  it("asks for confirmation from the dropdown too when switching would delete stale files", async () => {
+    const staleDir = path.join(tempRoot, HIDDEN_OUTPUT_FOLDER);
+    await fs.mkdir(staleDir, { recursive: true });
+    await fs.writeFile(path.join(staleDir, "REPORT_HUB.md"), "stale", "utf8");
+
+    const { plugin } = await renderSettingsTab({
+      outputFolderVisibility: "hidden",
+      outputFolder: HIDDEN_OUTPUT_FOLDER,
+    });
+
+    const visibilitySetting = createdSettings.find(
+      (setting) => setting.name === "Output folder visibility",
+    );
+
+    // dropdownComponents[0].emitChange awaits the onChange handler directly,
+    // so it can't be used here — the handler is now blocked on a modal that
+    // nothing has clicked yet. Fire the change without awaiting, wait for
+    // the modal, click "Cancel", then let the change settle.
+    const changePromise = visibilitySetting?.dropdownComponents[0]?.emitChange("visible");
+    await vi.waitFor(() => {
+      if (createdModals.length === 0) {
+        throw new Error("expected a confirmation modal to open");
+      }
+    });
+    const modal = createdModals[0]!;
+    const cancelButton = modal.contentEl.findAllByTag("button").find((el) => el.text === "Cancel");
+    cancelButton?.dispatch("click");
+    await changePromise;
+
+    expect(plugin.settings.outputFolderVisibility).toBe("hidden");
+    const staleDirEntries = await fs.readdir(staleDir).catch(() => []);
+    expect(staleDirEntries).toContain("REPORT_HUB.md");
+  });
+
   it("rejects an invalid custom output folder on blur without mutating settings", async () => {
     const { plugin } = await renderSettingsTab({
       outputFolderVisibility: "custom",
@@ -366,15 +517,95 @@ describe("GotSaengObsidianPlugin settings tab", () => {
     ).toBe(true);
   });
 
-  it("flags an invalid stale-days input instead of updating settings", async () => {
+  it("asks for confirmation before committing a custom output folder that would delete files", async () => {
+    const staleDir = path.join(tempRoot, HIDDEN_OUTPUT_FOLDER);
+    await fs.mkdir(staleDir, { recursive: true });
+    await fs.writeFile(path.join(staleDir, "REPORT_HUB.md"), "stale", "utf8");
+
+    const { plugin } = await renderSettingsTab({
+      outputFolderVisibility: "hidden",
+      outputFolder: HIDDEN_OUTPUT_FOLDER,
+    });
+
+    const pathSetting = createdSettings.find((setting) => setting.name === "Output folder path");
+    const inputEl = pathSetting?.textComponents[0]?.inputEl;
+    if (inputEl) {
+      inputEl.value = "Reports/GotSaeng";
+    }
+    inputEl?.dispatch("blur");
+
+    const modal = await waitForConfirmModal();
+    clickModalButton(modal, "Delete and switch");
+    await vi.waitFor(() => {
+      if (plugin.settings.outputFolder !== "Reports/GotSaeng") {
+        throw new Error("expected the custom output folder to be committed");
+      }
+    });
+
+    const staleDirEntries = await fs.readdir(staleDir).catch(() => []);
+    expect(staleDirEntries).not.toContain("REPORT_HUB.md");
+  });
+
+  it("leaves the custom output folder unchanged when the confirmation is declined", async () => {
+    const staleDir = path.join(tempRoot, HIDDEN_OUTPUT_FOLDER);
+    await fs.mkdir(staleDir, { recursive: true });
+    await fs.writeFile(path.join(staleDir, "REPORT_HUB.md"), "stale", "utf8");
+
+    const { plugin } = await renderSettingsTab({
+      outputFolderVisibility: "hidden",
+      outputFolder: HIDDEN_OUTPUT_FOLDER,
+    });
+
+    const pathSetting = createdSettings.find((setting) => setting.name === "Output folder path");
+    const inputEl = pathSetting?.textComponents[0]?.inputEl;
+    if (inputEl) {
+      inputEl.value = "Reports/GotSaeng";
+    }
+    inputEl?.dispatch("blur");
+
+    const modal = await waitForConfirmModal();
+    clickModalButton(modal, "Cancel");
+    await vi.waitFor(() => {
+      if (inputEl?.value !== HIDDEN_OUTPUT_FOLDER) {
+        throw new Error("expected the input to revert to the persisted folder");
+      }
+    });
+
+    expect(plugin.settings.outputFolder).toBe(HIDDEN_OUTPUT_FOLDER);
+    const staleDirEntries = await fs.readdir(staleDir).catch(() => []);
+    expect(staleDirEntries).toContain("REPORT_HUB.md");
+  });
+
+  it("flags an invalid stale-days input on blur instead of re-rendering the whole tab per keystroke", async () => {
     const { plugin } = await renderSettingsTab();
 
     const staleDaysSetting = createdSettings.find((setting) => setting.name === "Stale days");
-    await staleDaysSetting?.textComponents[0]?.emitChange("not-a-number");
+    const inputEl = staleDaysSetting?.textComponents[0]?.inputEl;
+
+    // Simulate the user typing an invalid intermediate value directly into
+    // the input (like the custom-path field's equivalent test), then
+    // blurring away without it ever going through onChange/setValue.
+    if (inputEl) {
+      inputEl.value = "not-a-number";
+    }
+    inputEl?.dispatch("blur");
 
     expect(plugin.settings.staleDays).toBe(DEFAULT_SETTINGS.staleDays);
+    expect(inputEl?.value).toBe(String(DEFAULT_SETTINGS.staleDays));
     expect(recordedNotices.some((notice) => notice.message.includes("Stale days must be"))).toBe(
       true,
+    );
+  });
+
+  it("updates the stale-days setting live as the user types a valid value", async () => {
+    const { plugin } = await renderSettingsTab();
+
+    const staleDaysSetting = createdSettings.find((setting) => setting.name === "Stale days");
+    await staleDaysSetting?.textComponents[0]?.emitChange("30");
+
+    expect(plugin.settings.staleDays).toBe(30);
+    expect(recordedNotices.some((notice) => notice.message.includes("Stale days must be"))).toBe(
+      false,
     );
   });
 

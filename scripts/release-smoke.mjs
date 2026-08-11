@@ -92,14 +92,19 @@ function packageSmoke() {
   run("pnpm", ["pack", "--pack-destination", packDir], {
     cwd: path.join(repoRoot, "packages/cli"),
   });
+  run("pnpm", ["pack", "--pack-destination", packDir], {
+    cwd: path.join(repoRoot, "packages/mcp"),
+  });
 
   const coreTarball = path.join(packDir, `gotsaeng-core-${packageVersion}.tgz`);
   const cliTarball = path.join(packDir, `gotsaeng-cli-${packageVersion}.tgz`);
+  const mcpTarball = path.join(packDir, `gotsaeng-mcp-${packageVersion}.tgz`);
   assertFile(coreTarball, "packed @gotsaeng/core tarball");
   assertFile(cliTarball, "packed @gotsaeng/cli tarball");
+  assertFile(mcpTarball, "packed @gotsaeng/mcp tarball");
 
   run("npm", ["init", "-y"], { cwd: installDir });
-  run("npm", ["install", coreTarball, cliTarball], { cwd: installDir });
+  run("npm", ["install", coreTarball, cliTarball, mcpTarball], { cwd: installDir });
 
   const binPath = path.join(
     installDir,
@@ -125,6 +130,17 @@ function packageSmoke() {
   for (const artifact of requiredContextArtifacts) {
     assertFile(path.join(outputDir, artifact), `package smoke output ${artifact}`);
   }
+
+  const mcpBinPath = path.join(
+    installDir,
+    "node_modules",
+    ".bin",
+    process.platform === "win32" ? "gotsaeng-mcp.cmd" : "gotsaeng-mcp",
+  );
+  assertFile(mcpBinPath, "installed gotsaeng-mcp bin");
+  // The server blocks on stdio once started, so --help is the smoke check: it proves
+  // the packed binary loads and commander parses its options without crashing.
+  run(mcpBinPath, ["--help"], { cwd: installDir });
 
   console.log("Package smoke passed.");
 }
@@ -169,7 +185,7 @@ function obsidianSmoke() {
 
 function help() {
   console.log(
-    `Usage: node scripts/release-smoke.mjs <command>\n\nCommands:\n  clean-clone   Clone this repository to a temporary directory and run install + quality gates.\n  package       Pack core/cli tarballs, install them in a temporary npm project, and run gotsaeng.\n  obsidian      Build and stage the Obsidian plugin artifacts in a temporary vault plugin folder.\n  all           Run clean-clone, package, and obsidian smoke checks.\n`,
+    `Usage: node scripts/release-smoke.mjs <command>\n\nCommands:\n  clean-clone   Clone this repository to a temporary directory and run install + quality gates.\n  package       Pack core/cli/mcp tarballs, install them in a temporary npm project, and run gotsaeng.\n  obsidian      Build and stage the Obsidian plugin artifacts in a temporary vault plugin folder.\n  all           Run clean-clone, package, and obsidian smoke checks.\n`,
   );
 }
 

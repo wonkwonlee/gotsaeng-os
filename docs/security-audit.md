@@ -1,6 +1,6 @@
 # Security and Privacy Audit Notes
 
-Last reviewed: 2026-08-07.
+Last reviewed: 2026-08-08.
 
 ## Scope
 
@@ -18,21 +18,42 @@ or supply-chain audit before publishing.
 
 ## MCP and Authentication Boundary
 
-The repository contains no MCP server configuration, MCP client runtime, OAuth flow, bearer-token
-handling, or plugin authentication. The Obsidian adapter stores only local plugin settings through
-Obsidian's `loadData()`/`saveData()` APIs and does not authenticate to a service.
+The repository contains no OAuth flow, bearer-token handling, or plugin authentication. The
+Obsidian adapter stores only local plugin settings through Obsidian's `loadData()`/`saveData()`
+APIs and does not authenticate to a service.
+
+`packages/mcp` (`@gotsaeng/mcp`, bootstrap-published only as of this writing — `0.0.1` exists on
+npm solely to enable Trusted Publisher setup and should not be installed; see `docs/mcp.md`) is a
+stdio MCP server. It has no network listener: it speaks JSON-RPC over
+stdin/stdout to whatever local MCP client launched it (e.g. Claude Code, Codex), the same way the
+CLI is invoked as a subprocess. There is no HTTP/SSE transport, no OAuth, and no credential
+storage. Its vault and output roots are fixed at process launch via `--vault`/`--output` CLI
+arguments and cannot be changed by tool calls; every tool-supplied file name is resolved through a
+single allowlist chokepoint (`resolveArtifactPath` in `packages/mcp/src/config.ts`) that rejects
+paths outside the configured output root. The server only reads the vault and writes to the
+configured output directory — it never writes into the vault. Tool descriptions and read/handoff
+results state that vault content is untrusted data, not instructions, matching this project's
+`workflows.md` handoff-language guardrails.
 
 The only authentication-related release mechanism is npm Trusted Publisher OIDC in the public
 repository's tag-triggered workflow. It publishes `@gotsaeng/core` and `@gotsaeng/cli`; it is not
-part of the compiler or Obsidian plugin runtime. Development repositories must not be tagged for
-release. MCPs configured in a developer's global Codex or Claude environment are outside this
-repository's product and release boundary and must not be copied into project files.
+part of the compiler or Obsidian plugin runtime. `@gotsaeng/mcp`'s one-time manual bootstrap
+publish (`0.0.1`, npm Automation/Granular-Access-Token auth, no OIDC) is complete, but its Trusted
+Publisher is not yet registered, so it is not yet wired into this OIDC workflow — see the Phase C
+checklist in `docs/superpowers/plans/2026-08-11-mcp-roadmap.md` and the "bootstrap publish"
+section in `docs/release.md`. Development repositories must not be tagged for release. MCPs
+configured in a
+developer's global Codex or Claude environment are outside this repository's product and release
+boundary and must not be copied into project files.
 
 ## Runtime Behavior Findings
 
 - The compiler reads Markdown files from a user-selected local folder and writes generated context
   files to a local output folder.
 - The CLI exposes local `compile`, `validate`, and `doctor` commands.
+- The MCP server (`packages/mcp`) exposes `validate_vault`, `compile_context_pack`,
+  `list_context_artifacts`, `read_context_artifact`, and `prepare_ai_handoff` as MCP tools over
+  stdio; it delegates all compilation to `packages/core`, same as the CLI.
 - The Obsidian adapter is desktop-only and delegates compilation to `packages/core`.
 - The `Export LLM Handoff` Obsidian command writes a local handoff document; it does not call an LLM
   provider or upload content.
@@ -43,18 +64,28 @@ repository's product and release boundary and must not be copied into project fi
 
 ## Production Dependency Surface
 
-Current production dependencies are limited to local parsing, file scanning, validation, and CLI
-command handling:
+Production dependencies are limited to local parsing, file scanning, validation, CLI command
+handling, and the MCP stdio protocol implementation:
 
 - `fast-glob`
 - `gray-matter`
 - `zod`
 - `commander`
-- workspace package links between `@gotsaeng/core`, `@gotsaeng/cli`, and the private Obsidian
-  adapter
+- `@modelcontextprotocol/sdk` (`packages/mcp`, bootstrap-published only — see `docs/mcp.md`)
+- workspace package links between `@gotsaeng/core`, `@gotsaeng/cli`, `@gotsaeng/mcp`, and the
+  private Obsidian adapter
 
 No production dependency is an analytics SDK, telemetry SDK, cloud sync client, auth client, vector
 database, RAG framework, or LLM provider SDK.
+
+`@modelcontextprotocol/sdk` pulls in a larger transitive surface than the other dependencies —
+notably `express`, `express-rate-limit`, `cors`, `hono`, `ajv`, and `jose` — because the SDK
+package supports HTTP/SSE server transports in addition to stdio. `packages/mcp/src` imports only
+the SDK's stdio subpaths (`server/mcp.js`, `server/stdio.js`; `client/index.js` and `inMemory.js`
+in tests only), so none of that HTTP-transport code is reachable from this package's entry point —
+but `pnpm list --prod -r --depth 2` still reports the full graph, since it reflects what's
+installed, not what's imported. Re-verify this claim (no `express`/`cors`/`hono` import in
+`packages/mcp/src`) whenever the SDK is upgraded.
 
 ## Documentation Claim Boundaries
 

@@ -387,6 +387,36 @@ export class View extends Component {
 // class here — no method surface to fake.
 export class ItemView extends View {}
 
+export class Modal {
+  app: unknown;
+  readonly containerEl: FakeElement = new FakeElement("div");
+  readonly contentEl: FakeElement;
+
+  constructor(app: unknown) {
+    this.app = app;
+    this.contentEl = this.containerEl.createDiv();
+  }
+
+  onOpen(): void {}
+  onClose(): void {}
+
+  open(): void {
+    createdModals.push(this);
+    this.onOpen();
+  }
+
+  close(): void {
+    this.onClose();
+  }
+}
+
+/** Every `Modal` opened since the last `resetCreatedModals()`, in open order. */
+export const createdModals: Modal[] = [];
+
+export function resetCreatedModals(): void {
+  createdModals.length = 0;
+}
+
 export type RenderedMarkdown = {
   markdown: string;
   sourcePath: string;
@@ -421,4 +451,5 @@ export function resetObsidianMocks(): void {
   resetNotices();
   resetCreatedSettings();
   resetRenderedMarkdown();
+  resetCreatedModals();
 }

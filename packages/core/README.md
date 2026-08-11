@@ -58,6 +58,11 @@ Item text longer than 360 characters is truncated with a trailing `...`, and a w
 source path and the original length is added to that item's `confidence.warnings` (surfaced in
 `CONFIDENCE.md`).
 
+Each `ExtractedItem` also carries an optional `confidenceSource` field
+(`"explicit_marker" | "task_list" | "section_line" | "heading_inference"`) recording how the item
+was extracted. Exporters check this typed field — not a string match against a confidence label —
+to implement the explicit-marker exemption above.
+
 ### Configuring the caps
 
 Both bounds are overridable, independently, through `CompileOptions.caps`:

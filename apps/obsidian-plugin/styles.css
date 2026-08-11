@@ -13,6 +13,20 @@
   margin-top: 0;
 }
 
+.gotsaeng-os-error-banner,
+.gotsaeng-os-setting-warning {
+  background: var(--background-modifier-error);
+  border-radius: 6px;
+  color: var(--text-error);
+  margin: 12px 0;
+  padding: 8px 12px;
+}
+
+.gotsaeng-os-setting-warning ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
+}
+
 .gotsaeng-os-action-grid {
   display: grid;
   gap: 8px;
@@ -20,8 +34,7 @@
   margin: 12px 0 16px;
 }
 
-.gotsaeng-os-button,
-.gotsaeng-os-link-button {
+.gotsaeng-os-button {
   width: 100%;
 }
 
@@ -55,11 +68,15 @@
   word-break: break-word;
 }
 
+.gotsaeng-os-artifact-group-heading {
+  margin: 16px 0 8px;
+}
+
 .gotsaeng-os-artifact-grid {
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: 12px 0 16px;
+  margin: 0 0 8px;
 }
 
 .gotsaeng-os-artifact-button {
@@ -105,6 +122,38 @@
 .gotsaeng-os-artifact-preview pre {
   margin: 0;
   white-space: pre-wrap;
+}
+
+.gotsaeng-os-backlink-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.gotsaeng-os-backlink-entry {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+.gotsaeng-os-backlink-note-button {
+  overflow-wrap: anywhere;
+  text-align: left;
+  width: 100%;
+}
+
+.gotsaeng-os-backlink-reports {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  margin: 4px 0 0;
+}
+
+.gotsaeng-os-modal-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 
 @media (max-width: 760px) {

@@ -86,6 +86,26 @@ Priority can be inferred from `priority: high`, `priority: medium`, `priority: l
 - `CONTEXT_MANIFEST.json`
 - `COMPILE_REPORT.json`
 
+## Compile Options
+
+`compileContextPack(options)` accepts:
+
+- `sourceRoot`, `projectName`: required.
+- `staleDays`: optional, defaults to `90`.
+- `generatedAt`, `ignoreGlobs`: optional.
+- `caps`: optional, overrides the extraction- and render-time item caps described in the core
+  package README's "Output bounds" section:
+  - `perHeading`: inferred `section_line` items per heading (extraction-time, default `12`).
+  - `register`: shared cap for every dedicated register — Risk Register, Action Backlog per status
+    group, Open Questions, Memory Snapshot facts/assumptions, Stale Context (render-time, default
+    `200`).
+  - `insights`: Memory Snapshot Insights list cap (render-time, default `120`).
+
+  `perHeading` only affects `compileContextPack`. `register`/`insights` only take effect when
+  passed to `writeContextPack`/`writeMarkdownContextPack`/`renderMarkdownFiles`, since those caps
+  apply to already-extracted items at export time. All three fields are optional and independently
+  overridable.
+
 ## Deterministic IDs
 
 Extracted item IDs are deterministic hashes of:
@@ -115,7 +135,8 @@ item can include:
 - `warnings`: metadata gaps, such as missing updated dates, unknown source note types, or unknown
   item status
 - `calibration`: optional provenance calibration version, currently `v0.10-local-metadata` for
-  newly scored items
+  newly scored items (this string names a scoring-algorithm version, not the package release
+  version — it has not changed since v0.10 because the scoring heuristic itself hasn't changed)
 
 This is not semantic fact verification. It is a local quality-control heuristic for triage.
 
@@ -132,6 +153,13 @@ include:
   item status
 
 This is not semantic fact verification. It describes how reliable the local extraction path looks.
+
+Each item also carries a typed `confidenceSource` field (`explicit_marker`, `task_list`,
+`section_line`, or `heading_inference`) recording which extraction path produced it — a separate
+field from the `confidence` object above, sitting directly on `ExtractedItem`. Exporters check this
+typed field, not a string match against `confidence.signals`, to implement the explicit-marker
+register-cap exemption described under Generated Files' register bounds (see the core package
+README's "Output bounds" section for the caps themselves).
 
 ## Contradiction Candidates
 
@@ -166,7 +194,6 @@ to know where to start.
 Both reports are generated from the same local compiler signals as every other report in this
 document. Neither calls an external service or introduces new extraction logic — they only compose
 existing renderers.
-audit from source notes.
 
 ## Memory Diff
 

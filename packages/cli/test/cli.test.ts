@@ -21,6 +21,15 @@ describe("cli", () => {
     return manifest.version;
   }
 
+  async function expectCliFailure(args: string[]): Promise<{ stderr: string; code: number }> {
+    try {
+      await execFileAsync(process.execPath, [cliPath, ...args]);
+    } catch (error) {
+      return error as { stderr: string; code: number };
+    }
+    throw new Error(`expected CLI to fail for args: ${args.join(" ")}`);
+  }
+
   it("runs doctor", async () => {
     const { stdout } = await execFileAsync(process.execPath, [cliPath, "doctor"]);
 
@@ -125,6 +134,66 @@ describe("cli", () => {
       stderr: expect.stringMatching(
         /GotSaeng OS compile failed[\s\S]*The source vault path exists and is a directory\./,
       ),
+    });
+  });
+
+  // Regression coverage: Commander rejects an invalid invocation (missing
+  // required option/argument, a parseArg that throws) while parsing, before
+  // this command's action and its --json handling ever run. Without
+  // installJsonErrorHandling, these three cases would print Commander's
+  // default human-readable text to stderr even when --json was requested.
+  it("emits a JSON error for compile's pre-action failures when --json is set", async () => {
+    const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), "gotsaeng-cli-json-err-"));
+
+    const missingProject = await expectCliFailure([
+      "compile",
+      sampleVault,
+      "--output",
+      outputDir,
+      "--json",
+    ]);
+    expect(missingProject.code).toBe(1);
+    expect(JSON.parse(missingProject.stderr)).toMatchObject({
+      schemaVersion: 1,
+      error: { title: "GotSaeng OS compile failed" },
+    });
+
+    const invalidStaleDays = await expectCliFailure([
+      "compile",
+      sampleVault,
+      "--output",
+      outputDir,
+      "--project",
+      "GotSaeng OS",
+      "--stale-days",
+      "not-a-number",
+      "--json",
+    ]);
+    expect(invalidStaleDays.code).toBe(1);
+    expect(JSON.parse(invalidStaleDays.stderr)).toMatchObject({
+      schemaVersion: 1,
+      error: { title: "GotSaeng OS compile failed" },
+    });
+  });
+
+  it("emits a JSON error for validate's missing vault argument when --json is set", async () => {
+    const result = await expectCliFailure(["validate", "--json"]);
+
+    expect(result.code).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      schemaVersion: 1,
+      error: { title: "GotSaeng OS validate failed" },
+    });
+  });
+
+  it("keeps Commander's plain-text error output when --json is not set", async () => {
+    const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), "gotsaeng-cli-text-err-"));
+
+    await expect(
+      execFileAsync(process.execPath, [cliPath, "compile", sampleVault, "--output", outputDir]),
+    ).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining("required option '--project"),
     });
   });
 });
