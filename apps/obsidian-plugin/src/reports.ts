@@ -9,11 +9,14 @@ import {
   renderProvenanceSummary,
   renderWarningTriage,
   selectHighSignalItems,
+  titleFromGeneratedFileName,
   type CompileReport,
   type ContextPack,
   type ExtractedItem,
   type ValidationIssue,
 } from "@gotsaeng/core";
+
+export { renderLlmHandoff } from "@gotsaeng/core";
 
 export type ValidationResult = {
   filesChecked: number;
@@ -196,44 +199,6 @@ export function renderWeeklyReview(pack: ContextPack): string {
   ].join("\n");
 }
 
-export function renderLlmHandoff(
-  pack: ContextPack,
-  files: Partial<Record<string, string>>,
-): string {
-  return [
-    `# LLM Handoff: ${pack.projectName}`,
-    "",
-    `Generated: ${pack.generatedAt}`,
-    "",
-    "This handoff is local-only generated context. It does not include AI-generated analysis.",
-    "",
-    "## Project Context",
-    "",
-    stripTitle(files["PROJECT_CONTEXT.md"] ?? ""),
-    "",
-    "## Memory Snapshot",
-    "",
-    stripTitle(files["MEMORY_SNAPSHOT.md"] ?? ""),
-    "",
-    "## Decision Log",
-    "",
-    stripTitle(files["DECISION_LOG.md"] ?? ""),
-    "",
-    "## Action Backlog",
-    "",
-    stripTitle(files["ACTION_BACKLOG.md"] ?? ""),
-    "",
-    "## Risk Register",
-    "",
-    stripTitle(files["RISK_REGISTER.md"] ?? ""),
-    "",
-    "## Open Questions",
-    "",
-    stripTitle(files["OPEN_QUESTIONS.md"] ?? ""),
-    "",
-  ].join("\n");
-}
-
 export function formatValidationIssue(issue: ValidationIssue): string {
   return `${issue.path}: ${issue.message}`;
 }
@@ -288,7 +253,7 @@ function renderItemList(
 }
 
 function renderCoreReportLinks(outputFolder: string, generatedFiles: string[]): string {
-  const files = generatedFiles.filter((fileName) => fileName !== "COMPILE_REPORT.json");
+  const files = generatedFiles.filter((fileName) => !fileName.endsWith(".json"));
   if (files.length === 0) {
     return "- None.";
   }
@@ -296,7 +261,7 @@ function renderCoreReportLinks(outputFolder: string, generatedFiles: string[]): 
   return files
     .map(
       (fileName) =>
-        `- ${toVaultWikiLink(`${outputFolder}/${fileName}`, titleFromReportFile(fileName))}`,
+        `- ${toVaultWikiLink(`${outputFolder}/${fileName}`, titleFromGeneratedFileName(fileName))}`,
     )
     .join("\n");
 }
@@ -384,27 +349,10 @@ function countExtractedItems(pack: ContextPack): number {
   );
 }
 
-function titleFromReportFile(fileName: string): string {
-  return fileName
-    .replace(/\.md$/i, "")
-    .toLowerCase()
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
 export function toVaultWikiLink(pathOrLinkText: string, label: string): string {
   const safePath = pathOrLinkText.replace(/\|/g, " ");
   const safeLabel = label.replace(/\|/g, " ");
   return `[[${safePath}|${safeLabel}]]`;
-}
-
-function stripTitle(markdown: string): string {
-  return markdown
-    .split(/\r?\n/)
-    .filter((line, index) => !(index === 0 && /^#\s+/.test(line)))
-    .join("\n")
-    .trim();
 }
 
 export function makeReportPath(outputDir: string, fileName: string): string {

@@ -107,7 +107,7 @@ if (!Object.hasOwn(versions, expected)) {
 
 // 5. README install pins match the release version.
 const readmePath = path.join(repoRoot, "README.md");
-const pinPattern = /@gotsaeng\/(?:cli|core)@(\d+\.\d+\.\d+)/g;
+const pinPattern = /@gotsaeng\/(?:cli|core|mcp)@(\d+\.\d+\.\d+)/g;
 const readme = readText(readmePath);
 const stalePins = new Set(
   [...readme.matchAll(pinPattern)].map((match) => match[1]).filter((pin) => pin !== expected),

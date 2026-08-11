@@ -1,4 +1,9 @@
-# GotSaeng OS v0.10 Maintainer Release Record
+# Historical Maintainer Release Record — GotSaeng OS
+
+> **This records the `0.10.0` release.** This is an immutable historical record, not a current-state
+> document or a template to edit in place — the version numbers below are deliberately left as they
+> were. The project has since shipped through `0.11.0`. For a new release, copy this file's
+> structure into a fresh record rather than editing this one.
 
 Date: 2026-06-10
 

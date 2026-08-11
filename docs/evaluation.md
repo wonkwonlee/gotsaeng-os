@@ -1,6 +1,6 @@
 # Evaluation
 
-## Current Quality Criteria
+## Quality Criteria
 
 - The CLI compiles `examples/sample-vault`.
 - All generated files exist.
@@ -43,11 +43,19 @@
 - No LLM APIs are called.
 - `CONTEXT_MANIFEST.json` snapshot coverage protects deterministic item IDs and metadata after
   normalizing the local source root.
+- `ENGINEERING_OPS.md` is generated and collects quality counts, warning triage, and the
+  provenance/confidence/contradiction summaries plus the full generated-artifact list.
+- `TEAM_MEMORY.md` is generated and surfaces the current objective, active work grouped by source,
+  decisions, risks, open questions, stale follow-up, and review-queue counts.
+- The Obsidian Report Hub's Backlinks section aggregates source-note references across every
+  generated report, not just the one being previewed.
+- Extraction and render-time item caps (`perHeading`, `register`, `insights`) are overridable via
+  `CompileOptions.caps` and default to the same bounds as before when omitted.
 
 ## Production-readiness Evaluation Gate
 
-Before expanding the engineering-ops or team-memory workflows, the release candidate should
-pass the local production-readiness gate:
+Before shipping further quality-signal features, the release candidate should pass the local
+production-readiness gate:
 
 ```bash
 pnpm install --frozen-lockfile

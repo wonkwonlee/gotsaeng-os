@@ -1,4 +1,10 @@
-# GotSaeng OS v0.10 Public Release
+# Historical Public Release Announcement — GotSaeng OS
+
+> **This is the announcement draft used for the `0.10.0` release.** This is an immutable
+> historical record, not a template to edit in place or current copy — the version numbers below
+> are deliberately left as they were. The project has since shipped through `0.11.0`. The
+> scope/positioning language is still substantively accurate; for a new announcement, copy this
+> file's structure into a fresh draft with the current version and feature list.
 
 GotSaeng OS v0.10 is now available as an open-source local-first context compiler for Markdown-based knowledge workflows.
 

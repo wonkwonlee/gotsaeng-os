@@ -16,6 +16,7 @@ function createFakeController(overrides: Partial<ReportHubController> = {}): Rep
   return {
     settings: { ...DEFAULT_SETTINGS } as GotSaengPluginSettings,
     selectedOutputFileName: DEFAULT_OUTPUT_ARTIFACT.fileName,
+    lastError: null,
     compileContextPackCommand: vi.fn(async () => {}),
     generateWeeklyReviewCommand: vi.fn(async () => {}),
     exportLlmHandoffCommand: vi.fn(async () => {}),
@@ -182,6 +183,84 @@ describe("GotSaengReportHubView render", () => {
     await Promise.resolve();
 
     expect(controller.generateWeeklyReviewCommand).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables the clicked action button while its command is in flight, then re-enables via re-render", async () => {
+    let resolveCompile: () => void = () => {};
+    const pending = new Promise<void>((resolve) => {
+      resolveCompile = resolve;
+    });
+    const controller = createFakeController({
+      compileContextPackCommand: vi.fn(() => pending),
+    });
+    const view = createView(controller);
+
+    await view.render();
+
+    const actions = contentElOf(view).findByClass("gotsaeng-os-action-grid");
+    const compileButton = actions?.children.find((button) => button.text === "Compile");
+    compileButton?.dispatch("click");
+    await Promise.resolve();
+
+    expect(compileButton?.disabled).toBe(true);
+
+    // A second click while disabled must not fire the command again.
+    compileButton?.dispatch("click");
+    expect(controller.compileContextPackCommand).toHaveBeenCalledTimes(1);
+
+    resolveCompile();
+    await pending;
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const rebuiltActions = contentElOf(view).findByClass("gotsaeng-os-action-grid");
+    const rebuiltCompileButton = rebuiltActions?.children.find(
+      (button) => button.text === "Compile",
+    );
+    expect(rebuiltCompileButton?.disabled).toBe(false);
+  });
+
+  it("shows a persistent error banner when the controller reports a last error", async () => {
+    const controller = createFakeController({
+      lastError: "Compile Context Pack failed: disk full",
+    });
+    const view = createView(controller);
+
+    await view.render();
+
+    const banner = contentElOf(view).findByClass("gotsaeng-os-error-banner");
+    expect(banner?.text).toBe("Compile Context Pack failed: disk full");
+  });
+
+  it("shows no error banner when there is no last error", async () => {
+    const controller = createFakeController({ lastError: null });
+    const view = createView(controller);
+
+    await view.render();
+
+    expect(contentElOf(view).findByClass("gotsaeng-os-error-banner")).toBeUndefined();
+  });
+
+  it("groups artifact buttons under Core Reports / Analysis / Raw Data headings", async () => {
+    const controller = createFakeController();
+    const view = createView(controller);
+
+    await view.render();
+
+    const headings = contentElOf(view)
+      .findAllByClass("gotsaeng-os-artifact-group-heading")
+      .map((el) => el.text);
+    expect(headings).toEqual(["Core Reports", "Analysis", "Raw Data"]);
+
+    const grids = contentElOf(view).findAllByClass("gotsaeng-os-artifact-grid");
+    expect(grids).toHaveLength(3);
+
+    const rawGridButtons = grids[2]?.children.map((button) => button.text) ?? [];
+    expect(rawGridButtons).toEqual([
+      "Context Manifest JSON",
+      "Compile Report JSON",
+      "Artifact Index JSON",
+    ]);
   });
 
   it("reports its Obsidian view identity and re-renders when opened", async () => {

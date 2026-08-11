@@ -48,6 +48,61 @@ export function renderCliError(input: { title: string; reason: string; checks: s
   ].join("\n");
 }
 
+export const CLI_JSON_SCHEMA_VERSION = 1;
+
+export function renderCompileJson(input: CompileSummaryInput): string {
+  return `${JSON.stringify(
+    {
+      schemaVersion: CLI_JSON_SCHEMA_VERSION,
+      command: "compile",
+      project: input.projectName,
+      source: input.source,
+      output: input.output,
+      itemCounts: input.itemCounts,
+      report: input.report,
+    },
+    null,
+    2,
+  )}\n`;
+}
+
+export function renderCliErrorJson(input: { title: string; reason: string }): string {
+  return `${JSON.stringify(
+    { schemaVersion: CLI_JSON_SCHEMA_VERSION, error: { title: input.title, reason: input.reason } },
+    null,
+    2,
+  )}\n`;
+}
+
+export function renderValidationJson(input: {
+  source: string;
+  markdownFiles: number;
+  mode: "compatibility" | "strict";
+  warnings: string[];
+  errors: string[];
+}): string {
+  const status =
+    input.errors.length > 0
+      ? "invalid"
+      : input.warnings.length > 0
+        ? "valid with warnings"
+        : "valid";
+  return `${JSON.stringify(
+    {
+      schemaVersion: CLI_JSON_SCHEMA_VERSION,
+      command: "validate",
+      source: input.source,
+      markdownFiles: input.markdownFiles,
+      mode: input.mode,
+      status,
+      warnings: input.warnings,
+      errors: input.errors,
+    },
+    null,
+    2,
+  )}\n`;
+}
+
 export function renderValidationSummary(input: {
   source: string;
   markdownFiles: number;

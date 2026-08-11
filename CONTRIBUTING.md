@@ -64,7 +64,10 @@ gotsaeng-os/
 │   │   └── test/                      # Vitest unit tests (one file per src module)
 │   ├── cli/                           # CLI command parsing, output, exit codes
 │   │   └── src/
-│   │       └── commands/compile.ts    # `compile` command (requires --output, --project)
+│   │       └── commands/
+│   │           ├── compile.ts         # `compile` command (requires --output, --project)
+│   │           ├── validate.ts        # `validate` command
+│   │           └── doctor.ts          # `doctor` command
 ├── apps/
 │   └── obsidian-plugin/               # Obsidian adapter; delegates to packages/core
 └── examples/
@@ -218,13 +221,16 @@ Add an explicit branch if the new type warrants a different treatment.
 
 ## Quality-Gate Checklist
 
-Run all four commands before requesting review. All must pass:
+Run all six commands before requesting review. All must pass:
 
 ```bash
-pnpm typecheck   # strict TypeScript — zero errors required
-pnpm test        # Vitest unit tests
-pnpm build       # tsup build for all packages
-pnpm lint        # ESLint
+pnpm typecheck      # strict TypeScript — zero errors required
+pnpm test           # Vitest unit tests
+pnpm build          # tsup build for all packages
+pnpm lint           # ESLint
+pnpm format:check   # Prettier — CI gate
+pnpm check:versions # release version-agreement invariant — CI gate; only relevant if you touched
+                     # version-bump files (see docs/release.md)
 ```
 
 Specific things to check before each PR:
@@ -233,6 +239,8 @@ Specific things to check before each PR:
 - [ ] `pnpm test` exits 0 — no skipped tests introduced to make the suite pass.
 - [ ] `pnpm build` exits 0 — dist artifacts generated cleanly.
 - [ ] `pnpm lint` exits 0 — no lint suppressions added without comment.
+- [ ] `pnpm format:check` exits 0 — no formatting diffs.
+- [ ] `pnpm check:versions` exits 0 — only relevant if you touched version-bump files.
 - [ ] New behavior is covered by at least one unit test in the relevant `test/` file.
 - [ ] Public-API changes (schemas, exported functions) have updated `packages/core/src/index.ts`
       exports if needed.
@@ -249,4 +257,4 @@ Specific things to check before each PR:
 - Add or update tests for behavior changes.
 - Update docs when public behavior changes.
 - Explain security or privacy implications when relevant.
-- Run `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm lint` before requesting review.
+- Run the full Quality-Gate Checklist above before requesting review.

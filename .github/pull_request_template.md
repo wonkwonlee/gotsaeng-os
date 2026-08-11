@@ -13,6 +13,8 @@
 - [ ] pnpm test
 - [ ] pnpm build
 - [ ] pnpm lint
+- [ ] pnpm format:check
+- [ ] pnpm check:versions
 
 ## Architecture boundaries
 

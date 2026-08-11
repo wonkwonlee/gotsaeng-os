@@ -30,6 +30,11 @@ import { toIsoTimestamp } from "./utils/date";
 import { compareStrings } from "./utils/path";
 import { writeMarkdownContextPack, type RegisterCaps } from "./exporters/markdown-exporter";
 import { writeCompileReport } from "./exporters/json-exporter";
+import {
+  ARTIFACT_INDEX_FILE,
+  buildArtifactIndex,
+  writeArtifactIndex,
+} from "./exporters/artifact-index";
 
 export async function compileContextPack(options: CompileOptions): Promise<ContextPack> {
   const parsedOptions = CompileOptionsSchema.parse(options);
@@ -136,6 +141,7 @@ export async function writeContextPack(
     MEMORY_DIFF_FILE,
     CONTEXT_MANIFEST_FILE,
     "COMPILE_REPORT.json",
+    ARTIFACT_INDEX_FILE,
   ];
   const report = {
     ...pack.report,
@@ -149,5 +155,12 @@ export async function writeContextPack(
   };
   pack.report = report;
   await writeCompileReport(report, outputDir);
+
+  const artifactIndex = await buildArtifactIndex(
+    outputDir,
+    generatedFiles.filter((name) => name !== ARTIFACT_INDEX_FILE),
+    { projectName: pack.projectName, generatedAt: pack.generatedAt },
+  );
+  await writeArtifactIndex(artifactIndex, outputDir);
   return report;
 }

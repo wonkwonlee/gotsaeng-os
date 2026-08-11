@@ -12,10 +12,10 @@ import {
   type CompileReport,
   type ContextPack,
 } from "@gotsaeng/core";
-import { Notice, Plugin, PluginSettingTab, Setting, TFile, type App } from "obsidian";
+import { Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, type App } from "obsidian";
 
 import { OUTPUT_ARTIFACTS } from "./artifacts";
-import { cleanupStaleManagedOutputFolders } from "./output-cleanup";
+import { cleanupStaleManagedOutputFolders, countStaleManagedOutputFiles } from "./output-cleanup";
 import {
   REPORT_HUB_FILE,
   renderLlmHandoff,
@@ -54,6 +54,7 @@ const LLM_HANDOFF_FILE = "LLM_HANDOFF.md";
 export default class GotSaengObsidianPlugin extends Plugin {
   override settings: GotSaengPluginSettings = DEFAULT_SETTINGS;
   selectedOutputFileName: string | null = REPORT_HUB_FILE;
+  lastError: string | null = null;
 
   override async onload(): Promise<void> {
     await this.loadSettings();
@@ -185,20 +186,81 @@ export default class GotSaengObsidianPlugin extends Plugin {
   async switchOutputFolderVisibilityCommand(visibility: "hidden" | "visible"): Promise<void> {
     const label = visibility === "hidden" ? "Hidden" : "Visible";
     await this.runSafely(`Switch Output Folder to ${label}`, async () => {
-      if (this.settings.outputFolderVisibility === visibility) {
-        new Notice(`GotSaeng OS: output folder is already ${visibility}.`);
-        return;
-      }
-
-      this.settings = updateSettingsWithOutputFolderVisibility(this.settings, visibility);
-      await this.saveSettings();
-
-      const pathInfo = resolveOutputPath(this.app, this.settings.outputFolder);
-      await this.cleanupStaleOutputFolders(pathInfo);
-
-      new Notice(`GotSaeng OS: output folder switched to ${this.settings.outputFolder}.`);
-      await this.refreshReportHubViews();
+      await this.switchOutputFolderVisibility(visibility);
     });
+  }
+
+  // The single gated path for every output-folder change. The command-palette
+  // switch commands, all three settings-tab visibility options (including
+  // "Custom path"), and the custom-path text field all route through here, so
+  // no entry point can move the output folder without the same
+  // confirm-before-delete check. Returns whether the change was applied
+  // (false only if the user declined the confirmation).
+  async applyOutputFolderChange(nextSettings: GotSaengPluginSettings): Promise<boolean> {
+    const previousOutputFolder = this.settings.outputFolder;
+
+    // A visibility-only change (e.g. picking "Custom path" while keeping the
+    // same folder) moves no files, so it skips the prompt entirely.
+    if (nextSettings.outputFolder === previousOutputFolder) {
+      this.settings = nextSettings;
+      await this.saveSettings();
+      await this.refreshReportHubViews();
+      return true;
+    }
+
+    const pathInfo = resolveOutputPath(this.app, nextSettings.outputFolder);
+    // Pass the folder being vacated explicitly: it may be a custom path, which
+    // is not one of the two built-in managed folders and would otherwise be
+    // both uncounted here and never cleaned up later.
+    const staleFileCount = await countStaleManagedOutputFiles(
+      pathInfo.vaultRoot,
+      pathInfo.outputFolder,
+      previousOutputFolder,
+    );
+
+    if (staleFileCount > 0) {
+      const confirmed = await new ConfirmModal(
+        this.app,
+        `Move generated output to ${nextSettings.outputFolder}?`,
+        `This deletes ${staleFileCount} GotSaeng-generated file${staleFileCount === 1 ? "" : "s"} ` +
+          "from the output folder you are leaving. Files you created there are left untouched.",
+      ).confirm();
+
+      if (!confirmed) {
+        new Notice("GotSaeng OS: output folder switch cancelled.");
+        return false;
+      }
+    }
+
+    this.settings = nextSettings;
+    await this.saveSettings();
+    await this.cleanupStaleOutputFolders(pathInfo, previousOutputFolder);
+
+    new Notice(`GotSaeng OS: output folder switched to ${this.settings.outputFolder}.`);
+    await this.refreshReportHubViews();
+    return true;
+  }
+
+  async switchOutputFolderVisibility(visibility: "hidden" | "visible"): Promise<boolean> {
+    if (this.settings.outputFolderVisibility === visibility) {
+      new Notice(`GotSaeng OS: output folder is already ${visibility}.`);
+      return false;
+    }
+
+    return this.applyOutputFolderChange(
+      updateSettingsWithOutputFolderVisibility(this.settings, visibility),
+    );
+  }
+
+  // Commits a user-typed custom output folder. Returns false without touching
+  // settings when the path is invalid, so the caller can restore the field.
+  async applyCustomOutputFolder(value: string): Promise<boolean> {
+    const nextSettings = updateSettingsWithCustomOutputFolderInput(this.settings, value);
+    if (!nextSettings) {
+      return false;
+    }
+
+    return this.applyOutputFolderChange(nextSettings);
   }
 
   async openOutputFileByName(fileName: string): Promise<void> {
@@ -303,10 +365,14 @@ export default class GotSaengObsidianPlugin extends Plugin {
     return { pack, report, pathInfo };
   }
 
-  private async cleanupStaleOutputFolders(pathInfo: VaultPathInfo): Promise<void> {
+  private async cleanupStaleOutputFolders(
+    pathInfo: VaultPathInfo,
+    previousOutputFolder?: string,
+  ): Promise<void> {
     const cleanupResults = await cleanupStaleManagedOutputFolders(
       pathInfo.vaultRoot,
       pathInfo.outputFolder,
+      previousOutputFolder,
     );
 
     if (cleanupResults.length > 0) {
@@ -396,6 +462,13 @@ export default class GotSaengObsidianPlugin extends Plugin {
   }
 
   private async runSafely(action: string, task: () => Promise<void>): Promise<void> {
+    // Clear the previous run's error banner up front, before `task` runs. Every
+    // command already refreshes the Report Hub view somewhere in its own success
+    // path; clearing `lastError` only *after* `task()` resolves meant that
+    // in-task refresh re-rendered the stale banner moments before this line
+    // ever ran, so it never actually disappeared until some later, unrelated
+    // refresh happened to fire.
+    this.lastError = null;
     try {
       new Notice(`GotSaeng OS: ${action} started.`);
       await task();
@@ -403,7 +476,72 @@ export default class GotSaengObsidianPlugin extends Plugin {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`GotSaeng OS ${action} failed`, error);
       new Notice(`GotSaeng OS: ${message}`);
+      this.lastError = `${action} failed: ${message}`;
+    } finally {
+      // A refresh failure (e.g. a malformed COMPILE_REPORT.json making the view
+      // unrenderable) must not escape runSafely: it would turn a contained
+      // command failure into an unhandled rejection for callers that discard
+      // the command's promise, defeating the guarantee this method exists for.
+      try {
+        await this.refreshReportHubViews();
+      } catch (refreshError) {
+        console.error(`GotSaeng OS ${action}: failed to refresh Report Hub view`, refreshError);
+      }
     }
+  }
+}
+
+// Simple Yes/No confirmation dialog. `confirm()` opens the modal and resolves
+// once the user picks an option (or dismisses the modal, which counts as "No").
+class ConfirmModal extends Modal {
+  private resolveConfirm: ((confirmed: boolean) => void) | null = null;
+
+  constructor(
+    app: App,
+    private readonly heading: string,
+    private readonly detail: string,
+  ) {
+    super(app);
+  }
+
+  override onOpen(): void {
+    const { contentEl } = this;
+    contentEl.createEl("p", { text: this.heading });
+    contentEl.createEl("p", { text: this.detail, cls: "gotsaeng-os-view-note" });
+
+    const buttons = contentEl.createDiv({ cls: "gotsaeng-os-modal-buttons" });
+    const cancelButton = buttons.createEl("button", { text: "Cancel" });
+    cancelButton.addEventListener("click", () => {
+      this.finish(false);
+      this.close();
+    });
+
+    const confirmButton = buttons.createEl("button", {
+      text: "Delete and switch",
+      cls: "mod-warning",
+    });
+    confirmButton.addEventListener("click", () => {
+      this.finish(true);
+      this.close();
+    });
+  }
+
+  override onClose(): void {
+    this.contentEl.empty();
+    this.finish(false);
+  }
+
+  confirm(): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.resolveConfirm = resolve;
+      this.open();
+    });
+  }
+
+  private finish(confirmed: boolean): void {
+    const resolve = this.resolveConfirm;
+    this.resolveConfirm = null;
+    resolve?.(confirmed);
   }
 }
 
@@ -460,11 +598,18 @@ class GotSaengSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.outputFolderVisibility)
           .onChange(async (value) => {
             const visibility = value as OutputFolderVisibility;
-            this.plugin.settings =
-              visibility === "hidden" || visibility === "visible"
-                ? updateSettingsWithOutputFolderVisibility(this.plugin.settings, visibility)
-                : { ...this.plugin.settings, outputFolderVisibility: visibility };
-            await this.plugin.saveSettings();
+            // Every branch routes through applyOutputFolderChange, so all three
+            // options share the command-palette commands' confirm-before-delete
+            // gate. "Custom path" keeps the current folder and only unlocks the
+            // text field; committing an actual path happens on blur below.
+            if (visibility === "hidden" || visibility === "visible") {
+              await this.plugin.switchOutputFolderVisibility(visibility);
+            } else {
+              await this.plugin.applyOutputFolderChange({
+                ...this.plugin.settings,
+                outputFolderVisibility: visibility,
+              });
+            }
             this.display();
           });
       });
@@ -480,26 +625,25 @@ class GotSaengSettingTab extends PluginSettingTab {
       .addText((text) => {
         text
           .setPlaceholder(DEFAULT_SETTINGS.outputFolder)
-          .setValue(this.plugin.settings.outputFolder)
-          .onChange(async (value) => {
-            const updatedSettings = updateSettingsWithCustomOutputFolderInput(
-              this.plugin.settings,
-              value,
-            );
-            if (!updatedSettings) {
+          .setValue(this.plugin.settings.outputFolder);
+        text.inputEl.disabled = !isCustomVisibility;
+        // Commit on blur, not per keystroke: a half-typed path is not a folder
+        // the user meant to move output into, and committing each keystroke
+        // would fire applyOutputFolderChange's confirmation once per character.
+        text.inputEl.addEventListener("blur", () => {
+          void (async () => {
+            const validationMessages = validateCustomOutputFolderInput(text.inputEl.value);
+            if (validationMessages.length > 0) {
+              new Notice(`GotSaeng OS settings: ${validationMessages[0]}`);
+              text.setValue(this.plugin.settings.outputFolder);
               return;
             }
 
-            this.plugin.settings = updatedSettings;
-            await this.plugin.saveSettings();
-          });
-        text.inputEl.disabled = !isCustomVisibility;
-        text.inputEl.addEventListener("blur", () => {
-          const validationMessages = validateCustomOutputFolderInput(text.inputEl.value);
-          if (validationMessages.length > 0) {
-            new Notice(`GotSaeng OS settings: ${validationMessages[0]}`);
+            await this.plugin.applyCustomOutputFolder(text.inputEl.value);
+            // Re-sync the field with what actually persisted — unchanged when
+            // the user declined the confirmation.
             text.setValue(this.plugin.settings.outputFolder);
-          }
+          })();
         });
         if (isCustomVisibility) {
           text.inputEl.focus();
@@ -513,17 +657,20 @@ class GotSaengSettingTab extends PluginSettingTab {
         text.inputEl.type = "number";
         text.inputEl.min = "1";
         text.setValue(String(this.plugin.settings.staleDays)).onChange(async (value) => {
-          const validationMessages = validateStaleDaysInput(value);
           const updatedSettings = updateSettingsWithStaleDaysInput(this.plugin.settings, value);
           if (!updatedSettings) {
-            new Notice(`GotSaeng OS settings: ${validationMessages[0]}`);
-            this.display();
             return;
           }
 
           this.plugin.settings = updatedSettings;
           await this.plugin.saveSettings();
-          this.display();
+        });
+        text.inputEl.addEventListener("blur", () => {
+          const validationMessages = validateStaleDaysInput(text.inputEl.value);
+          if (validationMessages.length > 0) {
+            new Notice(`GotSaeng OS settings: ${validationMessages[0]}`);
+            text.setValue(String(this.plugin.settings.staleDays));
+          }
         });
       });
 

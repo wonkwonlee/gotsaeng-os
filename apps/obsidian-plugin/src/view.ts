@@ -1,7 +1,7 @@
 import type { CompileReport } from "@gotsaeng/core";
 import { ItemView, MarkdownRenderer, type WorkspaceLeaf } from "obsidian";
 
-import { DEFAULT_OUTPUT_ARTIFACT, OUTPUT_ARTIFACTS, type OutputArtifact } from "./artifacts";
+import { DEFAULT_OUTPUT_ARTIFACT, groupOutputArtifacts, type OutputArtifact } from "./artifacts";
 import type { GotSaengPluginSettings } from "./settings";
 import {
   buildBacklinkIndex,
@@ -14,10 +14,12 @@ export const GOTSAENG_REPORT_VIEW_TYPE = "gotsaeng-report-hub";
 
 const BACKLINK_NOTE_LIMIT = 20;
 const BACKLINK_REPORT_LIMIT = 6;
+const ARTIFACT_GROUPS = groupOutputArtifacts();
 
 export type ReportHubController = {
   settings: GotSaengPluginSettings;
   selectedOutputFileName: string | null;
+  lastError: string | null;
   compileContextPackCommand(): Promise<void>;
   generateWeeklyReviewCommand(): Promise<void>;
   exportLlmHandoffCommand(): Promise<void>;
@@ -64,6 +66,13 @@ export class GotSaengReportHubView extends ItemView {
       text: "Local context compiler for the current vault.",
       cls: "gotsaeng-os-view-note",
     });
+
+    if (this.controller.lastError) {
+      contentEl.createEl("p", {
+        text: this.controller.lastError,
+        cls: "gotsaeng-os-error-banner",
+      });
+    }
 
     const actions = contentEl.createDiv({ cls: "gotsaeng-os-action-grid" });
     this.addActionButton(actions, "Compile", () => this.controller.compileContextPackCommand());
@@ -115,9 +124,15 @@ export class GotSaengReportHubView extends ItemView {
     });
     const selectedFileName =
       this.controller.selectedOutputFileName ?? DEFAULT_OUTPUT_ARTIFACT.fileName;
-    const files = contentEl.createDiv({ cls: "gotsaeng-os-artifact-grid" });
-    for (const artifact of OUTPUT_ARTIFACTS) {
-      this.addArtifactButton(files, artifact, selectedFileName);
+    for (const section of ARTIFACT_GROUPS) {
+      contentEl.createEl("h4", {
+        text: section.label,
+        cls: "gotsaeng-os-artifact-group-heading",
+      });
+      const files = contentEl.createDiv({ cls: "gotsaeng-os-artifact-grid" });
+      for (const artifact of section.artifacts) {
+        this.addArtifactButton(files, artifact, selectedFileName);
+      }
     }
 
     await this.renderArtifactPreview(contentEl, selectedFileName);
@@ -127,7 +142,7 @@ export class GotSaengReportHubView extends ItemView {
   private addActionButton(parent: HTMLElement, label: string, action: () => Promise<void>): void {
     const button = parent.createEl("button", { text: label, cls: "gotsaeng-os-button" });
     button.addEventListener("click", () => {
-      void this.runAndRefresh(action);
+      void this.runAndRefresh(button, action);
     });
   }
 
@@ -155,14 +170,28 @@ export class GotSaengReportHubView extends ItemView {
     stat.createEl("strong", { text: value });
   }
 
-  private async runAndRefresh(action: () => Promise<void>): Promise<void> {
+  // Disables the clicked button for the duration of the async command so a
+  // user can't fire overlapping compiles by clicking repeatedly. render()
+  // rebuilds the action grid from scratch afterward, so the buttons come
+  // back enabled without any explicit re-enable step here.
+  private async runAndRefresh(
+    button: HTMLElement & { disabled: boolean },
+    action: () => Promise<void>,
+  ): Promise<void> {
+    if (button.disabled) {
+      return;
+    }
+
+    button.disabled = true;
     await action();
     await this.render();
   }
 
   private async renderArtifactPreview(parent: HTMLElement, fileName: string): Promise<void> {
     const artifact =
-      OUTPUT_ARTIFACTS.find((item) => item.fileName === fileName) ?? DEFAULT_OUTPUT_ARTIFACT;
+      ARTIFACT_GROUPS.flatMap((section) => section.artifacts).find(
+        (item) => item.fileName === fileName,
+      ) ?? DEFAULT_OUTPUT_ARTIFACT;
     const filePath = `${this.controller.settings.outputFolder}/${artifact.fileName}`;
 
     parent.createEl("h3", { text: artifact.label });

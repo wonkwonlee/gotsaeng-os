@@ -37,6 +37,8 @@ pnpm typecheck
 pnpm test
 pnpm build
 pnpm lint
+pnpm format:check
+pnpm check:versions
 ```
 
 ## Security and privacy relevance

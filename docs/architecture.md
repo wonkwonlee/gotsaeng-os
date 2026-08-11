@@ -1,7 +1,8 @@
 # Architecture
 
-GotSaeng OS is a CLI-first context compiler with a desktop-only Obsidian adapter and report
-hub.
+GotSaeng OS is a CLI-first context compiler with a desktop-only Obsidian adapter and report hub,
+plus an MCP stdio adapter (`packages/mcp`, `@gotsaeng/mcp`) for MCP clients such as Claude Code
+and Codex.
 
 ```text
 Markdown Vault
@@ -16,7 +17,7 @@ Markdown Vault
 -> Context Compiler
 -> Markdown/JSON Exporters
 -> Local Manifest + Memory Diff
--> CLI and Obsidian adapter
+-> CLI, Obsidian adapter, and MCP stdio adapter
 ```
 
 ## Module Boundaries
@@ -34,7 +35,17 @@ This extends to report rendering. The Report Hub's coverage, provenance, confide
 contradiction, and warning-triage summaries are `packages/core` functions imported directly, not
 adapter-local copies; where the in-app view differs it passes an option (`includeNoteTypes`,
 `maxExamples`) rather than forking the renderer. The one deliberate exception is the hub's own
-item list, which drops tags and uses a different omission footer.
+item list, which drops tags and uses a different omission footer. The LLM handoff document is
+rendered the same way: `packages/core/src/exporters/handoff-exporter.ts` owns `renderLlmHandoff`
+and the default section list. The plugin's `export-llm-handoff` command consumes it for the
+standard six sections; `packages/mcp`'s `prepare_ai_handoff` tool consumes the same function with
+an explicit, client-selected `sections` list — neither keeps its own copy.
+
+`packages/mcp` owns the MCP stdio adapter: a `validate_vault` / `compile_context_pack` /
+`list_context_artifacts` / `read_context_artifact` / `prepare_ai_handoff` tool surface over
+`packages/core`, with vault/output roots fixed at process launch (`--vault`/`--output`) rather than
+accepted per tool call. Like the CLI and the plugin, it delegates all compilation to
+`packages/core` instead of reimplementing it.
 
 ## Data Flow
 
@@ -51,6 +62,9 @@ item list, which drops tags and uses a different omission footer.
 9. The compiler assembles a typed `ContextPack`.
 10. Exporters write human-readable Markdown and structured JSON.
 11. The memory diff writer compares the previous local manifest against the current compile.
+    `writeContextPack` also writes `ARTIFACT_INDEX.json`, a name/byte-size/sha256/description
+    entry for every other generated file, so downstream tools can verify artifact integrity
+    without re-reading full contents.
 12. The CLI prints terminal summaries, while the Obsidian adapter writes local reports into the
     current vault.
 13. The Obsidian adapter writes `REPORT_HUB.md` and exposes a Report Hub view for source-aware
@@ -58,7 +72,7 @@ item list, which drops tags and uses a different omission footer.
 14. Quality helpers infer objectives, group extracted items by source, triage warnings, and select
     high-signal review items.
 
-## Current Constraints
+## Constraints
 
 The compiler does not call external AI services, upload data, collect credentials, sync files,
 or use hidden network calls. Provenance, confidence, and contradiction candidate scoring are

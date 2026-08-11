@@ -15,3 +15,5 @@ export * from "./contradictions";
 export * from "./memory-diff";
 export * from "./exporters/markdown-exporter";
 export * from "./exporters/json-exporter";
+export * from "./exporters/handoff-exporter";
+export * from "./exporters/artifact-index";

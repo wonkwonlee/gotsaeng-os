@@ -14,7 +14,7 @@ examples/
 │   ├── 03_logs/        ← weekly reviews and logs
 │   ├── 04_research/    ← research notes
 │   └── templates/      ← vault templates (not extracted)
-└── sample-output/      ← output: compiled context pack (13 files)
+└── sample-output/      ← output: compiled context pack (15 files)
 ```
 
 ## Run it yourself
@@ -25,25 +25,27 @@ From the repo root:
 npx -y @gotsaeng/cli compile examples/sample-vault --output ./out --project "My Project"
 ```
 
-This produces the same 13 files as `sample-output/`.
+This produces the same 15 files as `sample-output/`.
 
 ## Output file map
 
-| File                    | Purpose                                                             |
-| ----------------------- | ------------------------------------------------------------------- |
-| `PROJECT_CONTEXT.md`    | Distilled project state — active facts, key decisions, open actions |
-| `MEMORY_SNAPSHOT.md`    | Full snapshot of every extracted context item                       |
-| `DECISION_LOG.md`       | All decisions with rationale                                        |
-| `ACTION_BACKLOG.md`     | Open and in-progress actions                                        |
-| `RISK_REGISTER.md`      | Tracked risks and logged assumptions                                |
-| `OPEN_QUESTIONS.md`     | Unresolved questions                                                |
-| `STALE_CONTEXT.md`      | Items flagged as potentially outdated                               |
-| `SOURCE_PROVENANCE.md`  | Per-item provenance scores (how well-sourced each item is)          |
-| `CONFIDENCE.md`         | Per-item confidence scores                                          |
-| `CONTRADICTIONS.md`     | Potential contradictions detected between notes                     |
-| `MEMORY_DIFF.md`        | Changes since last compile (empty on first run)                     |
-| `CONTEXT_MANIFEST.json` | Machine-readable index of all context items                         |
-| `COMPILE_REPORT.json`   | Compile statistics and diagnostics                                  |
+| File                    | Purpose                                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------------------- |
+| `PROJECT_CONTEXT.md`    | Distilled project state — active facts, key decisions, open actions                          |
+| `MEMORY_SNAPSHOT.md`    | Full snapshot of every extracted context item                                                |
+| `DECISION_LOG.md`       | All decisions with rationale                                                                 |
+| `ACTION_BACKLOG.md`     | Open and in-progress actions                                                                 |
+| `RISK_REGISTER.md`      | Tracked risks and logged assumptions                                                         |
+| `OPEN_QUESTIONS.md`     | Unresolved questions                                                                         |
+| `STALE_CONTEXT.md`      | Items flagged as potentially outdated                                                        |
+| `SOURCE_PROVENANCE.md`  | Per-item provenance scores (how well-sourced each item is)                                   |
+| `CONFIDENCE.md`         | Per-item confidence scores                                                                   |
+| `CONTRADICTIONS.md`     | Potential contradictions detected between notes                                              |
+| `ENGINEERING_OPS.md`    | Release-gate snapshot: quality, warning, provenance, confidence, and contradiction summaries |
+| `TEAM_MEMORY.md`        | Team-facing handoff: objective, active work, decisions, risks, open questions                |
+| `MEMORY_DIFF.md`        | Changes since last compile (empty on first run)                                              |
+| `CONTEXT_MANIFEST.json` | Machine-readable index of all context items                                                  |
+| `COMPILE_REPORT.json`   | Compile statistics and diagnostics                                                           |
 
 ## Annotation format
 
@@ -60,6 +62,7 @@ Open `sample-vault/01_projects/gotsaeng-os.md` for a full worked example.
 - insight: The real product is portable context infrastructure, not a note app.
 ```
 
-Supported item types: `fact` · `decision` · `action` · `risk` · `assumption` · `question` · `insight`
+Supported item types: `fact` · `decision` · `action` · `todo` (alias for `action`) · `risk` ·
+`assumption` · `question` · `insight`
 
 Each item can carry optional metadata inline: `status:`, `priority:`, `updated:`.

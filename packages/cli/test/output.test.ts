@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { renderCliError, renderCompileSummary, renderValidationSummary } from "../src/output";
+import {
+  CLI_JSON_SCHEMA_VERSION,
+  renderCliError,
+  renderCliErrorJson,
+  renderCompileJson,
+  renderCompileSummary,
+  renderValidationJson,
+  renderValidationSummary,
+} from "../src/output";
 
 // cli.test.ts drives the built binary as a subprocess, which exercises these
 // renderers but cannot assert their edge cases (or register as coverage). These
@@ -111,5 +119,70 @@ describe("renderCliError", () => {
     expect(output).toContain("GotSaeng OS compile failed");
     expect(output).toContain("Reason: ENOENT: no such file or directory");
     expect(output).toContain("- The source vault path exists and is a directory.");
+  });
+});
+
+describe("renderCompileJson", () => {
+  it("emits a schema-versioned JSON document with report and counts", () => {
+    const out = renderCompileJson({
+      projectName: "Demo",
+      source: "/vault",
+      output: "/out",
+      itemCounts: { facts: 1 },
+      report: {
+        filesScanned: 2,
+        markdownFilesParsed: 2,
+        filesSkipped: 0,
+        parseErrors: [],
+        warnings: ["w1"],
+        generatedFiles: ["PROJECT_CONTEXT.md"],
+      },
+    });
+    const parsed = JSON.parse(out);
+    expect(parsed.schemaVersion).toBe(CLI_JSON_SCHEMA_VERSION);
+    expect(parsed.command).toBe("compile");
+    expect(parsed.project).toBe("Demo");
+    expect(parsed.report.warnings).toEqual(["w1"]);
+    expect(parsed.itemCounts.facts).toBe(1);
+    expect(out.endsWith("\n")).toBe(true);
+  });
+});
+
+describe("renderCliErrorJson", () => {
+  it("emits a JSON error object", () => {
+    const parsed = JSON.parse(renderCliErrorJson({ title: "t", reason: "r" }));
+    expect(parsed.error).toEqual({ title: "t", reason: "r" });
+    expect(parsed.schemaVersion).toBe(CLI_JSON_SCHEMA_VERSION);
+  });
+});
+
+describe("renderValidationJson", () => {
+  it("computes status and carries full issue lists", () => {
+    const parsed = JSON.parse(
+      renderValidationJson({
+        source: "/vault",
+        markdownFiles: 3,
+        mode: "strict",
+        warnings: ["a: w"],
+        errors: [],
+      }),
+    );
+    expect(parsed.command).toBe("validate");
+    expect(parsed.status).toBe("valid with warnings");
+    expect(parsed.mode).toBe("strict");
+    expect(parsed.warnings).toEqual(["a: w"]);
+  });
+
+  it("reports invalid when errors exist", () => {
+    const parsed = JSON.parse(
+      renderValidationJson({
+        source: "/vault",
+        markdownFiles: 1,
+        mode: "compatibility",
+        warnings: [],
+        errors: ["b: e"],
+      }),
+    );
+    expect(parsed.status).toBe("invalid");
   });
 });

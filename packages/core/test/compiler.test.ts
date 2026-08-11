@@ -13,6 +13,7 @@ import {
   renderMarkdownFiles,
   writeContextPack,
 } from "../src/index";
+import { ARTIFACT_INDEX_FILE, readArtifactIndex } from "../src/exporters/artifact-index";
 
 describe("compiler", () => {
   const sampleVault = path.resolve(process.cwd(), "examples/sample-vault");
@@ -126,6 +127,7 @@ describe("compiler", () => {
       MEMORY_DIFF_FILE,
       CONTEXT_MANIFEST_FILE,
       "COMPILE_REPORT.json",
+      ARTIFACT_INDEX_FILE,
     ]) {
       await expect(fs.stat(path.join(outputDir, fileName))).resolves.toBeDefined();
     }
@@ -135,6 +137,7 @@ describe("compiler", () => {
       MEMORY_DIFF_FILE,
       CONTEXT_MANIFEST_FILE,
       "COMPILE_REPORT.json",
+      ARTIFACT_INDEX_FILE,
     ]);
     const parsedReport = JSON.parse(
       await fs.readFile(path.join(outputDir, "COMPILE_REPORT.json"), "utf8"),
@@ -151,6 +154,17 @@ describe("compiler", () => {
       projectName: "GotSaeng OS",
       itemCount: pack.report.extractionStats?.totalItems,
     });
+
+    expect(report.generatedFiles).toContain(ARTIFACT_INDEX_FILE);
+    const index = await readArtifactIndex(outputDir);
+    expect(index).not.toBeNull();
+    expect(index?.artifacts.map((entry) => entry.name).sort()).toEqual(
+      report.generatedFiles.filter((name) => name !== ARTIFACT_INDEX_FILE).sort(),
+    );
+    for (const entry of index?.artifacts ?? []) {
+      expect(entry.sha256).toMatch(/^[0-9a-f]{64}$/);
+      expect(entry.bytes).toBeGreaterThan(0);
+    }
   });
 
   it("ignores the generated output folder on recompile via ignoreGlobs", async () => {
