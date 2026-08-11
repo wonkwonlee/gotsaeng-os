@@ -1,6 +1,6 @@
 # Obsidian Plugin Roadmap
 
-v0.10 adds source-grouped memory diff output and calibrated provenance summaries on top of
+The current release adds source-grouped memory diff output and calibrated provenance summaries on top of
 contradiction-aware Obsidian navigation.
 
 The adapter remains framework-first: it calls `packages/core` for scanning, parsing, extraction,

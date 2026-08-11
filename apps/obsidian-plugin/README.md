@@ -1,6 +1,6 @@
 # GotSaeng OS Obsidian Adapter
 
-This is the v0.10 desktop-only Obsidian adapter for GotSaeng OS.
+This is the current desktop-only Obsidian adapter for GotSaeng OS.
 
 It is a thin shell around `@gotsaeng/core`. The plugin registers Obsidian commands, resolves the
 current vault path, stores local settings, and writes generated reports into the vault. Compilation
@@ -47,7 +47,7 @@ The compiler also writes `ENGINEERING_OPS.md`, a release-gate snapshot combining
 warning, provenance, confidence, and contradiction summaries in one place, and `TEAM_MEMORY.md`, a
 team-facing handoff with the current objective, active work, decisions, risks, open questions, and
 review queues. Both are generated from the same local compiler signals as the other reports.
-v0.10 also groups memory-diff sections by source note and shows calibrated provenance summaries
+The current release also groups memory-diff sections by source note and shows calibrated provenance summaries
 with strong, moderate, and weak buckets.
 
 ## Build
@@ -90,5 +90,5 @@ Then restart Obsidian or disable/enable **GotSaeng OS** in Obsidian community pl
 
 ## Privacy
 
-v0.10 is local-only. It does not call external AI services, upload notes, collect credentials, add
+The adapter is local-only. It does not call external AI services, upload notes, collect credentials, add
 telemetry, or sync data.

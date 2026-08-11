@@ -52,7 +52,7 @@ output.
 | **CLI**                      | Published as `@gotsaeng/cli` — no global install required via npx                                 |
 
 <details>
-<summary>Full v0.10 feature list</summary>
+<summary>Full current feature list</summary>
 
 - Scans a local Markdown vault.
 - Parses YAML frontmatter with `gray-matter`.
@@ -99,13 +99,13 @@ output.
 
 </details>
 
-## What v0.10 Does Not Do
+## What GotSaeng OS Does Not Do
 
-v0.10 does not include SaaS, cloud sync, auth, payments, vector databases, RAG, LLM API calls,
+The current release does not include SaaS, cloud sync, auth, payments, vector databases, RAG, LLM API calls,
 OpenAI/Anthropic/Gemini SDKs, autonomous research, a browser extension, a mobile app, or a rich
 Obsidian-native management UI.
 
-Autonomous research is a long-term research direction, not a v0.10 capability. Provenance,
+Autonomous research is a long-term research direction, not a current capability. Provenance,
 confidence, and contradiction candidate scoring are deterministic metadata heuristics, not semantic
 fact verification.
 
@@ -146,7 +146,7 @@ are still recorded in `COMPILE_REPORT.json`.
 
 ## Obsidian Adapter
 
-v0.10 includes a desktop-only Obsidian adapter in `apps/obsidian-plugin`. It is a thin wrapper over
+The current release includes a desktop-only Obsidian adapter in `apps/obsidian-plugin`. It is a thin wrapper over
 `packages/core`, not a separate compiler.
 
 Build it locally:
@@ -271,7 +271,7 @@ research. The sample includes every core extraction marker:
 
 ## Roadmap
 
-Near-term work after v0.10 should stay focused:
+Near-term work should stay focused:
 
 - More exporter snapshot coverage.
 - Better validation messages.
@@ -294,7 +294,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Security and Privacy
 
-GotSaeng OS v0.10 is local-only. It does not include telemetry, hidden network calls, credential
+GotSaeng OS is local-only. It does not include telemetry, hidden network calls, credential
 collection, API key handling, cloud sync, remote execution, or LLM API calls. Generated output
 stays local in the output directory you choose.
 

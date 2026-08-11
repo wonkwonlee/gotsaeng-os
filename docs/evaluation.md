@@ -1,6 +1,6 @@
 # Evaluation
 
-## v0.10 Quality Criteria
+## Current Quality Criteria
 
 - The CLI compiles `examples/sample-vault`.
 - All generated files exist.
@@ -46,7 +46,7 @@
 
 ## Production-readiness Evaluation Gate
 
-Before expanding into v0.11 engineering ops or team memory workflows, the release candidate should
+Before expanding the engineering-ops or team-memory workflows, the release candidate should
 pass the local production-readiness gate:
 
 ```bash

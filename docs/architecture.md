@@ -1,6 +1,6 @@
 # Architecture
 
-GotSaeng OS v0.10 is a CLI-first context compiler with a desktop-only Obsidian adapter and report
+GotSaeng OS is a CLI-first context compiler with a desktop-only Obsidian adapter and report
 hub.
 
 ```text
@@ -58,7 +58,7 @@ item list, which drops tags and uses a different omission footer.
 14. Quality helpers infer objectives, group extracted items by source, triage warnings, and select
     high-signal review items.
 
-## v0.10 Constraints
+## Current Constraints
 
 The compiler does not call external AI services, upload data, collect credentials, sync files,
 or use hidden network calls. Provenance, confidence, and contradiction candidate scoring are

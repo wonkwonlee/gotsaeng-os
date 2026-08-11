@@ -4,7 +4,7 @@ Last reviewed: 2026-08-07.
 
 ## Scope
 
-This audit covers the v0.10 local release surface:
+This audit covers the current local release surface:
 
 - `packages/core`
 - `packages/cli`

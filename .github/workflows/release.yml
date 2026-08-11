@@ -1,14 +1,7 @@
-# DO NOT TAG THIS DEV REPO TO RELEASE.
-# Releases are cut on the PUBLIC deploy mirror (wonkwonlee/gotsaeng-os), not here.
-# The npm OIDC Trusted Publisher is bound to the public repo's release.yml, so tagging
-# this dev repo runs the workflow but the publish step fails (404 / no permission).
-# See CLAUDE.md § "Release Process".
-#
-# PRE-REQUISITE (manual, npm web UI — must be done before the first tag):
-# Configure npm Trusted Publisher (OIDC) for BOTH @gotsaeng/core AND @gotsaeng/cli,
-# bound to this repository's release.yml workflow.
-# Without it the first OIDC publish will silently fail.
-# See: https://docs.npmjs.com/generating-provenance-statements#publishing-packages-with-provenance-via-github-actions
+# This is the public release repository. Tags are cut here, after the full-history
+# development checkout has been synchronized; see docs/release.md.
+# npm Trusted Publisher OIDC is bound to this repository and this workflow for both
+# @gotsaeng/core and @gotsaeng/cli.
 
 name: Release
 

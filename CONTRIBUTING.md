@@ -16,7 +16,7 @@ pnpm lint
 
 ## Scope
 
-GotSaeng OS v0.10 is a local-first, compiler-first Markdown context compiler. Contributions should
+GotSaeng OS is a local-first, compiler-first Markdown context compiler. Contributions should
 preserve the current local-only release boundary: no cloud sync, telemetry, credential collection,
 hidden network calls, LLM API calls, or broad productivity-app features unless a future roadmap item
 explicitly opens that scope.
