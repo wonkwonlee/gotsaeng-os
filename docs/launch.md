@@ -1,151 +1,62 @@
-# Launch Draft — GotSaeng OS
+# GotSaeng OS 0.12.0 Launch Kit
 
-This is the working draft for outreach copy (Show HN, Reddit, GitHub Discussions, awesome-list
-submissions). It is deliberately channel-agnostic and version-agnostic — no current launch status
-should be inferred from it; all copy below requires review and version-checking before publishing.
+Use this copy only for the public `0.12.0` release. It does not submit, post, or publish anything.
 
-**This is not the ship-ready per-release checklist.** At each actual release, a concise
-`docs/launch.md` — tag, npm versions, release assets, and a launch checklist for that specific
-version — is written directly on the public repository (`wonkwonlee/gotsaeng-os`) as part of the
-release, since it needs release-specific facts (tag number, exact npm versions) that don't exist
-yet in this dev repo before the public sync happens. The most recent one shipped for `0.11.0`.
-This dev-side file stays as the reusable draft workspace for the next round of outreach copy; the
-project has shipped 0.10.5 through 0.11.0 since these drafts were last touched, and Phase A–C
-(core JSON/handoff export, `@gotsaeng/mcp`) are in flight toward the next release (target v0.13)
-— update the release version, artifact counts, and channel status before using any of it.
+## Release truth
 
-**Honest framing requirements** (from ROADMAP and README):
+- Tag: [`0.12.0`](https://github.com/wonkwonlee/gotsaeng-os/releases/tag/0.12.0)
+- npm: `@gotsaeng/cli@0.12.0`, `@gotsaeng/core@0.12.0`, and `@gotsaeng/mcp@0.12.0` (new this
+  release — a stdio [Model Context Protocol](https://modelcontextprotocol.io) server exposing 5
+  tools so MCP clients like Claude Code and Codex can call GotSaeng OS directly)
+- Obsidian release assets: `main.js`, `manifest.json`, and `styles.css`
+- Scope: local-first Markdown context compilation; no telemetry, cloud sync, or LLM API calls
 
-- Provenance scoring, confidence scoring, and contradiction detection are **deterministic
-  heuristics** based on note metadata and keyword patterns — not semantic AI verification.
-- GotSaeng OS does not make LLM API calls. It is a local compiler, not an AI app.
-- "Context pack" means structured Markdown + JSON files ready for a context window — not an
-  automatic AI memory system.
+Before posting, run `pnpm check:versions && pnpm typecheck && pnpm test && pnpm build && pnpm lint && pnpm format:check && pnpm smoke:release` from the public repository. Confirm the tag, npm versions, release assets, and linked destination are still current.
 
----
+## Canonical description
 
-## Show HN draft
+> GotSaeng OS compiles a local Markdown or Obsidian vault into structured context packs for human and LLM-assisted workflows. It runs locally: no telemetry, no cloud sync, and no LLM API calls. Provenance, confidence, and contradiction reports are deterministic review heuristics, not semantic AI verification. As of 0.12.0, it's also available as an MCP server so AI coding agents can call it as a structured tool.
 
-**Title:** Show HN: GotSaeng OS – local-first context compiler for Markdown vaults
+## Copyable commands
 
-**Body:**
+CLI:
 
-> GotSaeng OS compiles your Obsidian (or any Markdown) vault into a structured context pack: a
-> set of named Markdown and JSON files ready to drop into an LLM context window or agent memory
-> slot.
->
-> It runs entirely on your machine — no telemetry, no cloud sync, no LLM API calls. One command:
->
->     npx -y @gotsaeng/cli compile ./my-vault --output ./out --project "My Project"
->
-> It scans your notes for typed annotations (`fact:`, `decision:`, `action:`, `risk:`,
-> `assumption:`, `question:`, `insight:`), scores provenance and confidence using deterministic
-> heuristics (NOT semantic AI), flags potential contradictions by keyword patterns, and writes 15
-> structured files to the output directory.
->
-> The Obsidian plugin wraps the same CLI compiler and adds a Report Hub panel — no separate
-> runtime.
->
-> Repo: https://github.com/wonkwonlee/gotsaeng-os
-> npm: `@gotsaeng/cli` and `@gotsaeng/core`
->
-> Would love feedback on the annotation format, the output schema, and what would make a context
-> pack genuinely useful in your handoff / agent workflows.
+```bash
+npx -y @gotsaeng/cli@0.12.0 compile ./examples/sample-vault --output ./out --project "GotSaeng OS"
+```
 
----
+MCP (Claude Code):
 
-## r/ObsidianMD draft
+```bash
+claude mcp add gotsaeng -- npx -y @gotsaeng/mcp@0.12.0 \
+  --vault /absolute/path/to/vault --output /absolute/path/to/output --project "My Project"
+```
 
-**Title:** GotSaeng OS: compile your vault into a structured LLM context pack (local-first, no
-telemetry, no cloud)
+The CLI command creates 15 Markdown and JSON artifacts. See `examples/README.md` for the
+sample-vault walkthrough and expected output, and `docs/mcp.md` for the full MCP tool reference.
 
-**Body:**
+## Obsidian Community Plugin status
 
-> I built GotSaeng OS to solve a specific problem: I keep detailed notes in Obsidian but have no
-> structured way to hand them to an LLM for a project catchup or agent task.
->
-> The plugin (and matching CLI) compiles your vault into a context pack — `PROJECT_CONTEXT.md`,
-> `DECISION_LOG.md`, `ACTION_BACKLOG.md`, `RISK_REGISTER.md`, `SOURCE_PROVENANCE.md`, and more.
-> Everything runs locally; nothing leaves your machine.
->
-> **Honest caveats:** provenance and confidence scores are deterministic heuristics based on your
-> note metadata and annotation patterns — not AI analysis. Contradiction detection flags keyword
-> patterns, not semantic conflicts. The output is only as good as your annotation discipline.
->
-> Install via the Obsidian community plugin browser (submission status pending owner
-> verification — see the Status tracking table below) or:
->
->     npx -y @gotsaeng/cli compile ./vault --output ./out --project "Name"
->
-> Repo + examples: https://github.com/wonkwonlee/gotsaeng-os
+Already listed in the community directory (`community-plugins.json`, entry `gotsaeng-os`) but
+**not yet manually reviewed by Obsidian staff** — that disclaimer currently shows in the directory
+listing. No resubmission is needed for version updates: the directory reads `manifest.json` /
+`versions.json` from this repo's default-branch HEAD and the matching GitHub Release, both already
+correct for `0.12.0`. Do not claim "in review" or "approved" beyond what the directory portal
+itself shows.
 
----
+## Curated-list entries
 
-## r/PKM draft
+- **awesome-local-first:** `- [GotSaeng OS](https://github.com/wonkwonlee/gotsaeng-os) - Local-first Markdown context compiler for portable, auditable context packs. No cloud, telemetry, or LLM API calls.`
+- **awesome-obsidian:** `- [GotSaeng OS](https://github.com/wonkwonlee/gotsaeng-os) - Desktop-only Obsidian plugin and CLI that compile local Markdown vaults into structured context packs.`
 
-**Title:** I made a local compiler that turns annotated Markdown notes into structured context
-files for LLMs
+Check each list's contribution rules and current category before opening a pull request.
 
-**Body:**
+## Launch checklist
 
-> The problem: I have years of notes in Obsidian. When I want to use an LLM for planning or
-> handoff, I end up manually copy-pasting context, which is slow and lossy.
->
-> GotSaeng OS is a CLI + Obsidian plugin that compiles your vault into structured files designed
-> for LLM context windows. You annotate your notes with simple inline markers (`fact:`,
-> `decision:`, `action:`, etc.) and the compiler extracts, scores, and organizes them.
->
-> It's local-first: no API calls, no cloud, no subscriptions. The output is plain Markdown and
-> JSON you own and can inspect.
->
-> Caveats: scoring is heuristic (metadata + keywords), not AI. It works best with Obsidian-style
-> vaults but the CLI runs on any Markdown directory.
->
-> https://github.com/wonkwonlee/gotsaeng-os
-
----
-
-## GitHub Discussion: Show and tell
-
-**Title:** Show and tell — what are you compiling?
-
-**Body:**
-
-> A new GotSaeng OS release is out. If you've tried compiling your vault, I'd love to see:
->
-> - What vault structure you're using
-> - Which output files you find most useful for your LLM workflows
-> - Any annotation patterns that work well (or don't)
-> - Feature requests grounded in real use
->
-> The compiler is intentionally minimal — no AI, no cloud, just a local transform from your notes
-> to structured context. Would love to hear what "useful context pack" means for your actual
-> workflows.
-
----
-
-## Awesome-list targets
-
-| List                                                                 | Entry format                                                                                                                                                 | Status                |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
-| [awesome-obsidian](https://github.com/kmaasrud/awesome-obsidian)     | `- [GotSaeng OS](https://github.com/wonkwonlee/gotsaeng-os) - Local-first context compiler for Obsidian vaults.`                                             | Draft — not submitted |
-| [awesome-local-first](https://github.com/pubkey/awesome-local-first) | `- [GotSaeng OS](https://github.com/wonkwonlee/gotsaeng-os) - Compile Markdown vaults into structured LLM context packs, fully on-device.`                   | Draft — not submitted |
-| [awesome-markdown](https://github.com/BubuAnabelas/awesome-markdown) | `- [GotSaeng OS](https://github.com/wonkwonlee/gotsaeng-os) - Context compiler that extracts typed annotations from Markdown into structured context packs.` | Draft — not submitted |
-
-Submit each only after Phase 0 + Phase 1 quality gates are confirmed green and the README is
-fully polished.
-
----
-
-## Status tracking
-
-| Channel                      | Gate                                         | Status                                                                                |
-| ---------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Obsidian community directory | Fast gate (0.1 + 0.2 + tag + release assets) | Historical submission recorded 2026-06-11; current status requires owner verification |
-| Show HN                      | Full gate (Phase 0 + 1 all green)            | Draft                                                                                 |
-| r/ObsidianMD                 | Full gate                                    | Draft                                                                                 |
-| r/PKM                        | Full gate                                    | Draft                                                                                 |
-| GitHub Discussion            | Full gate                                    | Draft                                                                                 |
-| awesome-obsidian PR          | Full gate                                    | Draft                                                                                 |
-| awesome-local-first PR       | Full gate                                    | Draft                                                                                 |
-| awesome-markdown PR          | Full gate                                    | Draft                                                                                 |
+- [ ] Current quality and release checks pass.
+- [ ] README command and sample output work from a clean install.
+- [ ] GitHub Release and npm package versions (`@gotsaeng/core`, `@gotsaeng/cli`,
+      `@gotsaeng/mcp`) are all `0.12.0`.
+- [ ] Obsidian community directory listing still shows this repo; note the "not manually
+      reviewed" status accurately rather than implying full approval.
+- [ ] Announcement copy retains the local-only and heuristic limitations above.
