@@ -61,11 +61,10 @@ decision to publish.
       `npm login` and classic Automation tokens both hit `EOTP`/`E403`). `latest` dist-tag ended
       up pinned to the `0.0.1` placeholder (unavoidable — see "Status" note in `docs/release.md`'s
       bootstrap section) until the real release reclaims it.
-- [ ] npm web UI: register **Trusted Publisher (OIDC)** for `@gotsaeng/mcp`, bound to the
-      public repo's `release.yml` — BEFORE the first real tag, or publish silently fails
-      (`docs/release.md:11-24`). **Manual step — must be done by a human maintainer in the
-      npm web UI; not completable from this session.** Now unblocked since the bootstrap
-      publish above makes the package's Settings page exist.
+- [x] npm web UI: register **Trusted Publisher (OIDC)** for `@gotsaeng/mcp`, bound to the
+      public repo's `release.yml` — done; the Release 0.12.0 tag published `@gotsaeng/mcp@0.12.0`
+      through CI on 2026-08-11 and reclaimed the `latest` dist-tag from the `0.0.1` bootstrap
+      placeholder.
 - [x] Public mirror `.github/workflows/release.yml`: add a third publish step
       `pnpm --filter @gotsaeng/mcp publish --access public --provenance --no-git-checks`
       ordered AFTER `@gotsaeng/core` (dependency ordering rule in workflow comments).
@@ -88,9 +87,9 @@ Branch: `wonkwonlee/mcp-release-plumbing` (off dev `main` at `09caeba`, post-#27
 All quality gates pass: typecheck, test (279 passed), build, lint, format:check,
 check:versions. `pnpm smoke:package` also passes end-to-end with the new mcp tarball.
 
-**Still outstanding before the first `@gotsaeng/mcp` tag can succeed:** the npm Trusted
-Publisher registration above is a manual npm.com step that no agent session can perform —
-flag it to the maintainer before cutting the v0.13 release.
+`@gotsaeng/mcp@0.12.0` published successfully through the Release 0.12.0 tag on 2026-08-11 — this
+plan is complete. (The "target v0.13" framing above described the plan when it was written; the
+package shipped as part of the 0.12.0 release instead of waiting for a dedicated tag.)
 
 ## Out of scope (unchanged non-goals)
 

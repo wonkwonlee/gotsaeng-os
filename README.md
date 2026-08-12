@@ -50,7 +50,7 @@ output.
 | **Contradiction candidates** | Surfaces candidate cues for human review — a review queue, not a semantic engine                  |
 | **Obsidian adapter**         | Desktop-only plugin with Report Hub view, hidden output folder, and vault commands                |
 | **CLI**                      | Published as `@gotsaeng/cli` — no global install required via npx                                 |
-| **MCP server**               | `@gotsaeng/mcp` — stdio server exposing 5 tools to MCP clients (bootstrap-only on npm; see below) |
+| **MCP server**               | `@gotsaeng/mcp` — stdio server exposing 5 tools to MCP clients, published on npm                  |
 
 <details>
 <summary>Full feature list</summary>
@@ -190,12 +190,10 @@ server, so MCP clients (Claude Code, Codex, Cursor) can call `validate_vault`, `
 `list_context_artifacts`, `read_context_artifact`, and `prepare_ai_handoff` as structured tools. The
 vault and output roots are fixed at launch via CLI flags — tools never accept arbitrary absolute paths.
 
-> **No real release yet — don't run `npx @gotsaeng/mcp` unpinned.** Only a one-time bootstrap
-> placeholder (`0.0.1`) has been published, to make the package exist for npm Trusted Publisher
-> setup; it happens to hold the `latest` tag too (see `docs/mcp.md`). The commands below will
-> resolve correctly once the real v0.13 release ships; until then, run from source with
-> `pnpm --filter @gotsaeng/mcp build` and `node packages/mcp/dist/index.js ...` as documented in
-> `docs/mcp.md`.
+`@gotsaeng/mcp@0.12.0` is the real npm release and holds the `latest` dist-tag. A one-time
+bootstrap placeholder (`0.0.1`, tagged `bootstrap`) was published earlier only to set up npm
+Trusted Publisher; it is not `latest` and should not be used. See `docs/mcp.md` for details and
+for running from source.
 
 ```bash
 npx -y @gotsaeng/mcp@0.12.0 --vault <vaultPath> --output <outputDir> --project "<projectName>"

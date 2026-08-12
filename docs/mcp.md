@@ -6,17 +6,12 @@ agent tooling — instead of those clients shelling out to the `gotsaeng` CLI. I
 over `packages/core`, the same architectural role as `packages/cli` and `apps/obsidian-plugin`: it
 contains no compiler logic of its own.
 
-**Status:** bootstrap-published (target v0.13 for the first real release). `@gotsaeng/mcp@0.0.1`
-was published on 2026-08-11 as the one-time bootstrap publish documented in the "bootstrap
-publish" section of `docs/release.md` — its sole purpose is to make the package exist so its npm
-Trusted Publisher (OIDC) can be configured; it is not meant to be installed or used. Because it
-was the package's first-ever published version, npm assigned it the `latest` dist-tag too (in
-addition to `bootstrap`) and npm does not allow removing the only `latest` tag a package has, so
-**`npx @gotsaeng/mcp` currently resolves to the placeholder `0.0.1` bootstrap build** until the
-real v0.13 release publishes a higher version through CI and reclaims `latest`. Until then, run
-from source (see "Running it" below). See the Phase C checklist in
-`docs/superpowers/plans/2026-08-11-mcp-roadmap.md` for what remains (Trusted Publisher
-registration, then the real release).
+**Status:** published. `@gotsaeng/mcp@0.12.0` shipped as part of the Release 0.12.0 CI publish on
+2026-08-11 and holds the `latest` dist-tag — `npx @gotsaeng/mcp` resolves to the real server. A
+one-time bootstrap placeholder (`@gotsaeng/mcp@0.0.1`, documented in the "bootstrap publish"
+section of `docs/release.md`) was published earlier only to stand up the package's npm Settings
+page for Trusted Publisher (OIDC) configuration; it is tagged `bootstrap`, is not `latest`, and
+was never meant to be installed or used.
 
 ## Why a separate package, not an Obsidian plugin feature
 
@@ -34,7 +29,7 @@ Obsidian plugin                     -> (direct import)       -> @gotsaeng/core
 ## Running it
 
 ```bash
-node packages/mcp/dist/index.js \
+npx -y @gotsaeng/mcp@0.12.0 \
   --vault /path/to/vault \
   --output /path/to/output-dir \
   --project "My Project" \
@@ -42,14 +37,17 @@ node packages/mcp/dist/index.js \
 ```
 
 The vault and output roots are fixed at launch and cannot be changed by a tool call — see
-"Security model" below. Build first with `pnpm --filter @gotsaeng/mcp build`.
+"Security model" below.
+
+To run from a local checkout instead, build first with `pnpm --filter @gotsaeng/mcp build`, then
+run `node packages/mcp/dist/index.js` with the same flags.
 
 ### Client configuration
 
 Claude Code (`claude mcp add`):
 
 ```bash
-claude mcp add gotsaeng -- node /absolute/path/to/packages/mcp/dist/index.js \
+claude mcp add gotsaeng -- npx -y @gotsaeng/mcp@0.12.0 \
   --vault /absolute/path/to/vault --output /absolute/path/to/output --project "My Project"
 ```
 
@@ -59,9 +57,10 @@ Generic MCP client config (Claude Desktop, Codex, etc. — adjust to your client
 {
   "mcpServers": {
     "gotsaeng": {
-      "command": "node",
+      "command": "npx",
       "args": [
-        "/absolute/path/to/packages/mcp/dist/index.js",
+        "-y",
+        "@gotsaeng/mcp@0.12.0",
         "--vault",
         "/absolute/path/to/vault",
         "--output",

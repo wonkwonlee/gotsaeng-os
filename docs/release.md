@@ -74,14 +74,14 @@ enabled is required to publish packages`). The one path that actually works: kee
    `pnpm check:versions`. That version is higher than the `0.0.1` bootstrap publish, so the
    OIDC-authenticated `release.yml` step publishes it normally through CI, same as core and cli.
 
-> **Status:** steps 1–4 done. `@gotsaeng/mcp@0.0.1` was bootstrap-published on 2026-08-11 via a
+> **Status:** all steps done. `@gotsaeng/mcp@0.0.1` was bootstrap-published on 2026-08-11 via a
 > Granular Access Token with 2FA bypass. As expected, `--tag bootstrap` did **not** stop npm from
 > also assigning `latest` to it — npm always assigns `latest` to a package's first-ever published
 > version regardless of `--tag`, and (confirmed by trying) `npm dist-tag rm <pkg> latest` returns
 > `403`/`401` when it's the package's only version, since there's no other version to fall back
-> to. So `latest` stays pinned at the `0.0.1` placeholder — don't try to fix this further — until
-> the real v0.13 release publishes a higher version through CI and naturally reclaims `latest`.
-> Steps 5–6 (Trusted Publisher registration, then the real release) are still outstanding.
+> to. Trusted Publisher registration (step 5) was completed, and the real Release 0.12.0 CI
+> publish (step 6) published `@gotsaeng/mcp@0.12.0` on 2026-08-11, which naturally reclaimed
+> `latest` from the `0.0.1` placeholder. `npx @gotsaeng/mcp` now resolves to the real server.
 
 ---
 
