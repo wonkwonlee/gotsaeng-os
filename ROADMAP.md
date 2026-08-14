@@ -82,7 +82,7 @@
 
 ## v0.12
 
-- `@gotsaeng/mcp`: a stdio MCP server (workspace-only, not yet published) exposing `validate_vault`,
+- `@gotsaeng/mcp`: a stdio MCP server, published on npm (`@gotsaeng/mcp@0.12.0`), exposing `validate_vault`,
   `compile_context_pack`, `list_context_artifacts`, `read_context_artifact`, and
   `prepare_ai_handoff` as narrow, path-allowlisted tools over `packages/core`, so MCP clients
   (Claude Code, Codex, Cursor) can call GotSaeng OS as structured tools instead of shelling out to

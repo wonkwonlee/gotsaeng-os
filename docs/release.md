@@ -24,24 +24,29 @@ Before the first tag, configure **npm Trusted Publisher (OIDC)** for **all three
 > **Why all three packages?** The workflow publishes core, cli, _and_ mcp in the same job using
 > OIDC. If any package lacks a trusted publisher entry, its publish step will silently fail.
 
-### `@gotsaeng/mcp` bootstrap publish (one-time, before Trusted Publisher setup)
+### `@gotsaeng/mcp` bootstrap publish — completed, kept as a historical record
 
-`@gotsaeng/core` and `@gotsaeng/cli` already exist on npm, so their Trusted Publisher can be
-configured from each package's existing Settings page. `@gotsaeng/mcp` has **never been
-published** — an unpublished package name has no Settings page on npmjs.com, so its Trusted
-Publisher cannot be configured yet, and the tag-triggered `release.yml` publish step (OIDC-only,
-no `NODE_AUTH_TOKEN`) cannot authenticate a first-ever publish either. Without this step, the
-first v0.13 tag would publish core and cli, then fail on the mcp step, skip the GitHub Release
-job, and leave the tag half-published.
+**This procedure is done; see the Status note at the end of this section.** `@gotsaeng/mcp` is now
+published for real (`0.12.0`, `latest`), and its Trusted Publisher is registered. The steps below
+are preserved unmodified as a reference for bootstrapping any _future_ new publishable package —
+do not re-run them for `@gotsaeng/mcp`.
 
-npm versions are immutable, so the bootstrap publish must use a version **distinct from** (lower
-than) the first real `@gotsaeng/mcp` version the v0.13 tag will publish — otherwise the tag's
-CI publish step tries to republish that same version number, npm rejects it, and the mcp step
-fails after core and cli have already gone out. It must also skip `--provenance`: npm only
-generates provenance automatically on a supported CI/CD system (GitHub Actions, etc.) and throws
-`EUSAGE` for a plain local `npm publish`, since there's no CI identity to attest to yet.
+At the time this was written, `@gotsaeng/core` and `@gotsaeng/cli` already existed on npm, so their
+Trusted Publisher could be configured from each package's existing Settings page. `@gotsaeng/mcp`
+had **never been published** — an unpublished package name has no Settings page on npmjs.com, so
+its Trusted Publisher could not be configured yet, and the tag-triggered `release.yml` publish step
+(OIDC-only, no `NODE_AUTH_TOKEN`) could not authenticate a first-ever publish either. Without this
+step, the first tag would have published core and cli, then failed on the mcp step, skipped the
+GitHub Release job, and left the tag half-published.
 
-Before enabling the `@gotsaeng/mcp` publish step in CI:
+npm versions are immutable, so the bootstrap publish had to use a version **distinct from** (lower
+than) the first real `@gotsaeng/mcp` version the eventual release tag would publish — otherwise the
+tag's CI publish step would try to republish that same version number, npm would reject it, and the
+mcp step would fail after core and cli had already gone out. It also had to skip `--provenance`:
+npm only generates provenance automatically on a supported CI/CD system (GitHub Actions, etc.) and
+throws `EUSAGE` for a plain local `npm publish`, since there's no CI identity to attest to yet.
+
+The one-time bootstrap procedure (for reference — do not repeat for `@gotsaeng/mcp`):
 
 1. From a local, clean checkout, temporarily set `packages/mcp/package.json`'s `version` to a
    throwaway pre-release below any version this project will ever tag for real, e.g. `0.0.1`.
@@ -74,14 +79,14 @@ enabled is required to publish packages`). The one path that actually works: kee
    `pnpm check:versions`. That version is higher than the `0.0.1` bootstrap publish, so the
    OIDC-authenticated `release.yml` step publishes it normally through CI, same as core and cli.
 
-> **Status:** steps 1–4 done. `@gotsaeng/mcp@0.0.1` was bootstrap-published on 2026-08-11 via a
+> **Status:** all steps done. `@gotsaeng/mcp@0.0.1` was bootstrap-published on 2026-08-11 via a
 > Granular Access Token with 2FA bypass. As expected, `--tag bootstrap` did **not** stop npm from
 > also assigning `latest` to it — npm always assigns `latest` to a package's first-ever published
 > version regardless of `--tag`, and (confirmed by trying) `npm dist-tag rm <pkg> latest` returns
 > `403`/`401` when it's the package's only version, since there's no other version to fall back
-> to. So `latest` stays pinned at the `0.0.1` placeholder — don't try to fix this further — until
-> the real v0.13 release publishes a higher version through CI and naturally reclaims `latest`.
-> Steps 5–6 (Trusted Publisher registration, then the real release) are still outstanding.
+> to. Trusted Publisher registration (step 5) was completed, and the real Release 0.12.0 CI
+> publish (step 6) published `@gotsaeng/mcp@0.12.0` on 2026-08-11, which naturally reclaimed
+> `latest` from the `0.0.1` placeholder. `npx @gotsaeng/mcp` now resolves to the real server.
 
 ---
 

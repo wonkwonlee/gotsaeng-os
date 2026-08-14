@@ -1,9 +1,10 @@
 # This is the public release repository. Tags are cut here, after the full-history
 # development checkout has been synchronized; see docs/release.md.
 # npm Trusted Publisher OIDC is bound to this repository and this workflow for
-# @gotsaeng/core, @gotsaeng/cli, and @gotsaeng/mcp.
+# @gotsaeng/core, @gotsaeng/cli, and @gotsaeng/mcp — all three are registered and publish
+# through this workflow, confirmed by the Release 0.12.0 tag.
 # @gotsaeng/mcp was bootstrap-published (0.0.1, manual auth) so its Trusted Publisher
-# could be configured — see the "bootstrap publish" section in docs/release.md.
+# could be configured — see the historical "bootstrap publish" section in docs/release.md.
 
 name: Release
 
@@ -101,11 +102,10 @@ jobs:
         run: pnpm --filter @gotsaeng/cli publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
 
       # Publish @gotsaeng/mcp THIRD — it also depends on @gotsaeng/core.
-      # @gotsaeng/mcp has never been published: an unpublished package has no npm Settings
-      # page, so its Trusted Publisher cannot be configured, and this OIDC-only step (no
-      # NODE_AUTH_TOKEN) cannot authenticate a first-ever publish. A maintainer must run a
-      # one-time manual `npm login` + `pnpm --filter @gotsaeng/mcp publish` bootstrap BEFORE
-      # this step is exercised by a tag — see "bootstrap publish" in docs/release.md.
+      # @gotsaeng/mcp@0.12.0 published successfully through this OIDC step as part of
+      # Release 0.12.0. The one-time manual bootstrap publish and Trusted Publisher
+      # registration this step originally depended on are both complete — see the
+      # historical "bootstrap publish" section in docs/release.md.
       - name: Publish @gotsaeng/mcp
         run: pnpm --filter @gotsaeng/mcp publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
 

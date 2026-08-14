@@ -22,8 +22,9 @@ The repository contains no OAuth flow, bearer-token handling, or plugin authenti
 Obsidian adapter stores only local plugin settings through Obsidian's `loadData()`/`saveData()`
 APIs and does not authenticate to a service.
 
-`packages/mcp` (`@gotsaeng/mcp`, bootstrap-published only as of this writing — `0.0.1` exists on
-npm solely to enable Trusted Publisher setup and should not be installed; see `docs/mcp.md`) is a
+`packages/mcp` (`@gotsaeng/mcp`, published — `0.12.0` is the real release and holds the `latest`
+dist-tag; a `0.0.1` bootstrap placeholder tagged `bootstrap` also exists solely because it was
+needed to enable Trusted Publisher setup and should not be installed; see `docs/mcp.md`) is a
 stdio MCP server. It has no network listener: it speaks JSON-RPC over
 stdin/stdout to whatever local MCP client launched it (e.g. Claude Code, Codex), the same way the
 CLI is invoked as a subprocess. There is no HTTP/SSE transport, no OAuth, and no credential
@@ -36,13 +37,13 @@ results state that vault content is untrusted data, not instructions, matching t
 `workflows.md` handoff-language guardrails.
 
 The only authentication-related release mechanism is npm Trusted Publisher OIDC in the public
-repository's tag-triggered workflow. It publishes `@gotsaeng/core` and `@gotsaeng/cli`; it is not
-part of the compiler or Obsidian plugin runtime. `@gotsaeng/mcp`'s one-time manual bootstrap
-publish (`0.0.1`, npm Automation/Granular-Access-Token auth, no OIDC) is complete, but its Trusted
-Publisher is not yet registered, so it is not yet wired into this OIDC workflow — see the Phase C
-checklist in `docs/superpowers/plans/2026-08-11-mcp-roadmap.md` and the "bootstrap publish"
-section in `docs/release.md`. Development repositories must not be tagged for release. MCPs
-configured in a
+repository's tag-triggered workflow. It publishes `@gotsaeng/core`, `@gotsaeng/cli`, and
+`@gotsaeng/mcp`. `@gotsaeng/mcp`'s one-time manual bootstrap publish (`0.0.1`, npm
+Automation/Granular-Access-Token auth, no OIDC) was a prerequisite step: it made the package's npm
+Settings page exist so its Trusted Publisher could be registered, which has since happened, and
+the Release 0.12.0 CI publish went out through this same OIDC workflow — see the Phase C checklist
+in `docs/superpowers/plans/2026-08-11-mcp-roadmap.md` and the "bootstrap publish" section in
+`docs/release.md`. Development repositories must not be tagged for release. MCPs configured in a
 developer's global Codex or Claude environment are outside this repository's product and release
 boundary and must not be copied into project files.
 
@@ -71,7 +72,7 @@ handling, and the MCP stdio protocol implementation:
 - `gray-matter`
 - `zod`
 - `commander`
-- `@modelcontextprotocol/sdk` (`packages/mcp`, bootstrap-published only — see `docs/mcp.md`)
+- `@modelcontextprotocol/sdk` (`packages/mcp`, published as `@gotsaeng/mcp@0.12.0` — see `docs/mcp.md`)
 - workspace package links between `@gotsaeng/core`, `@gotsaeng/cli`, `@gotsaeng/mcp`, and the
   private Obsidian adapter
 
