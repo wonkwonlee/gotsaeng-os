@@ -1,6 +1,6 @@
-import fs from "node:fs/promises";
 import path from "node:path";
 
+import type { FileSystemAdapter } from "./adapters/file-system";
 import {
   ContextManifestSchema,
   MemoryDiffSchema,
@@ -165,19 +165,19 @@ export function renderMemoryDiff(diff: MemoryDiff): string {
 }
 
 export async function readPreviousContextManifest(
+  fsAdapter: FileSystemAdapter,
   outputDir: string,
 ): Promise<PreviousManifestReadResult> {
   const filePath = path.join(outputDir, CONTEXT_MANIFEST_FILE);
   try {
-    const raw = await fs.readFile(filePath, "utf8");
+    const raw = await fsAdapter.readText(filePath);
+    if (raw === null) {
+      return { manifest: null };
+    }
     return {
       manifest: ContextManifestSchema.parse(JSON.parse(raw)),
     };
   } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return { manifest: null };
-    }
-
     return {
       manifest: null,
       warning: `Previous context manifest could not be read: ${error instanceof Error ? error.message : String(error)}`,
@@ -186,20 +186,24 @@ export async function readPreviousContextManifest(
 }
 
 export async function writeContextManifest(
+  fsAdapter: FileSystemAdapter,
   manifest: ContextManifest,
   outputDir: string,
 ): Promise<void> {
-  await fs.mkdir(outputDir, { recursive: true });
-  await fs.writeFile(
+  await fsAdapter.mkdir(outputDir);
+  await fsAdapter.writeText(
     path.join(outputDir, CONTEXT_MANIFEST_FILE),
     renderContextManifest(manifest),
-    "utf8",
   );
 }
 
-export async function writeMemoryDiff(diff: MemoryDiff, outputDir: string): Promise<void> {
-  await fs.mkdir(outputDir, { recursive: true });
-  await fs.writeFile(path.join(outputDir, MEMORY_DIFF_FILE), renderMemoryDiff(diff), "utf8");
+export async function writeMemoryDiff(
+  fsAdapter: FileSystemAdapter,
+  diff: MemoryDiff,
+  outputDir: string,
+): Promise<void> {
+  await fsAdapter.mkdir(outputDir);
+  await fsAdapter.writeText(path.join(outputDir, MEMORY_DIFF_FILE), renderMemoryDiff(diff));
 }
 
 function getAllItems(pack: ContextPack): ExtractedItem[] {

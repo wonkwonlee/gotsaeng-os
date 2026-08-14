@@ -3,10 +3,11 @@ import type { WorkspaceLeaf } from "obsidian";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_OUTPUT_ARTIFACT } from "../src/artifacts";
-import { DEFAULT_SETTINGS, type GotSaengPluginSettings } from "../src/settings";
+import { DEFAULT_SETTINGS } from "../src/settings";
 import {
   GOTSAENG_REPORT_VIEW_TYPE,
   GotSaengReportHubView,
+  formatErrorTimestamp,
   type ReportHubController,
 } from "../src/view";
 import { createFakeApp } from "./mocks/fake-app";
@@ -14,7 +15,7 @@ import { type FakeElement, renderedMarkdown, resetObsidianMocks } from "./mocks/
 
 function createFakeController(overrides: Partial<ReportHubController> = {}): ReportHubController {
   return {
-    settings: { ...DEFAULT_SETTINGS } as GotSaengPluginSettings,
+    settings: { ...DEFAULT_SETTINGS },
     selectedOutputFileName: DEFAULT_OUTPUT_ARTIFACT.fileName,
     lastError: null,
     compileContextPackCommand: vi.fn(async () => {}),
@@ -27,6 +28,8 @@ function createFakeController(overrides: Partial<ReportHubController> = {}): Rep
     openOutputFileByName: vi.fn(async () => {}),
     openSourceFileByPath: vi.fn(async () => {}),
     readCurrentCompileReport: vi.fn(async () => null),
+    dismissLastError: vi.fn(),
+    refreshReportHubViews: vi.fn(async () => {}),
     ...overrides,
   };
 }
@@ -203,6 +206,9 @@ describe("GotSaengReportHubView render", () => {
     await Promise.resolve();
 
     expect(compileButton?.disabled).toBe(true);
+    expect(compileButton?.cls).toContain("is-running");
+    expect(compileButton?.getAttr("aria-busy")).toBe("true");
+    expect(compileButton?.text).toBe("Compile…");
 
     // A second click while disabled must not fire the command again.
     compileButton?.dispatch("click");
@@ -218,18 +224,77 @@ describe("GotSaengReportHubView render", () => {
       (button) => button.text === "Compile",
     );
     expect(rebuiltCompileButton?.disabled).toBe(false);
+    expect(rebuiltCompileButton?.cls).not.toContain("is-running");
+    expect(rebuiltCompileButton?.getAttr("aria-busy")).toBeNull();
   });
 
-  it("shows a persistent error banner when the controller reports a last error", async () => {
-    const controller = createFakeController({
-      lastError: "Compile Context Pack failed: disk full",
+  it("keeps the busy state on a rebuilt button when the command itself triggers a render before it resolves", async () => {
+    // main.ts's commands call the plugin's refreshReportHubViews() (i.e.
+    // leaf.view.render()) partway through their own work, before the outer
+    // promise runAndRefresh is awaiting resolves. That render() rebuilds the
+    // action grid — including the very button being awaited — so the running
+    // state must be re-applied to the new element, not just the original one.
+    let resolveCompile: () => void = () => {};
+    const pending = new Promise<void>((resolve) => {
+      resolveCompile = resolve;
     });
+    const viewRef: { current?: GotSaengReportHubView } = {};
+    let midRenderDone: Promise<void> | undefined;
+    const controller = createFakeController({
+      compileContextPackCommand: vi.fn(async () => {
+        midRenderDone = viewRef.current?.render();
+        await midRenderDone;
+        await pending;
+      }),
+    });
+    const view = createView(controller);
+    viewRef.current = view;
+
+    await view.render();
+
+    const actions = contentElOf(view).findByClass("gotsaeng-os-action-grid");
+    const compileButton = actions?.children.find((button) => button.text === "Compile");
+    compileButton?.dispatch("click");
+    await Promise.resolve();
+    expect(midRenderDone).toBeDefined();
+    await midRenderDone;
+
+    const midFlightActions = contentElOf(view).findByClass("gotsaeng-os-action-grid");
+    const midFlightCompileButton = midFlightActions?.children.find((button) =>
+      (button.text ?? "").startsWith("Compile"),
+    );
+    expect(midFlightCompileButton?.disabled).toBe(true);
+    expect(midFlightCompileButton?.cls).toContain("is-running");
+    expect(midFlightCompileButton?.getAttr("aria-busy")).toBe("true");
+    expect(midFlightCompileButton?.text).toBe("Compile…");
+
+    resolveCompile();
+    await pending;
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const finalActions = contentElOf(view).findByClass("gotsaeng-os-action-grid");
+    const finalCompileButton = finalActions?.children.find((button) => button.text === "Compile");
+    expect(finalCompileButton?.disabled).toBe(false);
+    expect(finalCompileButton?.cls).not.toContain("is-running");
+  });
+
+  it("shows a persistent error banner with the action, timestamp, and message when the controller reports a last error", async () => {
+    const lastError = {
+      action: "Compile Context Pack",
+      message: "disk full",
+      timestamp: 1_700_000_000_000,
+    };
+    const controller = createFakeController({ lastError });
     const view = createView(controller);
 
     await view.render();
 
     const banner = contentElOf(view).findByClass("gotsaeng-os-error-banner");
-    expect(banner?.text).toBe("Compile Context Pack failed: disk full");
+    const meta = banner?.findByClass("gotsaeng-os-error-banner-meta");
+    const message = banner?.findByClass("gotsaeng-os-error-banner-message");
+    expect(meta?.text).toBe(`Compile Context Pack · ${formatErrorTimestamp(lastError.timestamp)}`);
+    expect(message?.text).toBe("disk full");
   });
 
   it("shows no error banner when there is no last error", async () => {
@@ -241,7 +306,34 @@ describe("GotSaengReportHubView render", () => {
     expect(contentElOf(view).findByClass("gotsaeng-os-error-banner")).toBeUndefined();
   });
 
-  it("groups artifact buttons under Core Reports / Analysis / Raw Data headings", async () => {
+  it("dismisses the error banner independently of running another command, refreshing every mounted leaf", async () => {
+    const lastError = {
+      action: "Compile Context Pack",
+      message: "disk full",
+      timestamp: 1_700_000_000_000,
+    };
+    const controller = createFakeController({ lastError });
+    const view = createView(controller);
+
+    await view.render();
+
+    const banner = contentElOf(view).findByClass("gotsaeng-os-error-banner");
+    const dismissButton = banner?.findByClass("gotsaeng-os-error-banner-dismiss");
+    dismissButton?.dispatch("click");
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(controller.dismissLastError).toHaveBeenCalledTimes(1);
+    // `lastError` is shared plugin state, not per-leaf: a workspace with
+    // multiple Report Hub leaves open needs every leaf refreshed, or the
+    // other leaves keep showing a banner for an error that was already
+    // dismissed from this one. re-rendering only `this.render()` would not
+    // reach them, so the fix routes through the controller's all-leaves
+    // refresh instead.
+    expect(controller.refreshReportHubViews).toHaveBeenCalledTimes(1);
+  });
+
+  it("groups artifact buttons under Core Reports / Governance / Analysis / Raw Data headings", async () => {
     const controller = createFakeController();
     const view = createView(controller);
 
@@ -250,17 +342,69 @@ describe("GotSaengReportHubView render", () => {
     const headings = contentElOf(view)
       .findAllByClass("gotsaeng-os-artifact-group-heading")
       .map((el) => el.text);
-    expect(headings).toEqual(["Core Reports", "Analysis", "Raw Data"]);
+    expect(headings).toEqual(["Core Reports", "Governance", "Analysis", "Raw Data"]);
 
     const grids = contentElOf(view).findAllByClass("gotsaeng-os-artifact-grid");
-    expect(grids).toHaveLength(3);
+    expect(grids).toHaveLength(4);
 
-    const rawGridButtons = grids[2]?.children.map((button) => button.text) ?? [];
+    const rawGridButtons = grids[3]?.children.map((button) => button.text) ?? [];
     expect(rawGridButtons).toEqual([
       "Context Manifest JSON",
       "Compile Report JSON",
       "Artifact Index JSON",
     ]);
+  });
+
+  it("marks the selected artifact button's aria-pressed state and each grid group as an accessible group tied to its heading", async () => {
+    const controller = createFakeController({ selectedOutputFileName: "REPORT_HUB.md" });
+    const view = createView(controller);
+
+    await view.render();
+
+    const grids = contentElOf(view).findAllByClass("gotsaeng-os-artifact-grid");
+    const headings = contentElOf(view).findAllByClass("gotsaeng-os-artifact-group-heading");
+    const coreGrid = grids[0]!;
+    const coreHeading = headings[0]!;
+
+    expect(coreGrid.getAttr("role")).toBe("group");
+    expect(coreGrid.getAttr("aria-labelledby")).toBe(coreHeading.getAttr("id"));
+
+    const reportHubButton = coreGrid.children.find((button) => button.text === "Report Hub");
+    const weeklyReviewButton = coreGrid.children.find((button) => button.text === "Weekly Review");
+    expect(reportHubButton?.getAttr("aria-pressed")).toBe("true");
+    expect(weeklyReviewButton?.getAttr("aria-pressed")).toBe("false");
+  });
+
+  it("filters artifact buttons by label as the user types, hiding empty groups", async () => {
+    const controller = createFakeController();
+    const view = createView(controller);
+
+    await view.render();
+
+    const filterInput = contentElOf(view).findByClass("gotsaeng-os-artifact-filter");
+    expect(filterInput).toBeDefined();
+    filterInput!.value = "risk";
+    filterInput!.dispatch("input");
+
+    const headings = contentElOf(view).findAllByClass("gotsaeng-os-artifact-group-heading");
+    const grids = contentElOf(view).findAllByClass("gotsaeng-os-artifact-grid");
+
+    // "Risk Register" lives only in Governance — every other group's heading
+    // and grid should be hidden, and only the matching button stays visible.
+    const governanceIndex = 1;
+    for (const [index, heading] of headings.entries()) {
+      expect(heading.hidden).toBe(index !== governanceIndex);
+      expect(grids[index]!.hidden).toBe(index !== governanceIndex);
+    }
+
+    const governanceButtons = grids[governanceIndex]!.children;
+    const visible = governanceButtons.filter((button) => !button.hidden);
+    expect(visible.map((button) => button.text)).toEqual(["Risk Register"]);
+
+    // Clearing the filter brings every group back.
+    filterInput!.value = "";
+    filterInput!.dispatch("input");
+    expect(headings.every((heading) => !heading.hidden)).toBe(true);
   });
 
   it("reports its Obsidian view identity and re-renders when opened", async () => {

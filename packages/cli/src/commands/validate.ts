@@ -5,11 +5,13 @@ import { Command } from "commander";
 import { parseMarkdownFile, scanMarkdownFiles, validateNoteMetadata } from "@gotsaeng/core";
 
 import { installJsonErrorHandling } from "../json-error";
+import { createNodeFileSystemAdapter } from "../node-file-system";
 import {
   renderCliError,
   renderCliErrorJson,
   renderValidationJson,
   renderValidationSummary,
+  type ValidationInput,
 } from "../output";
 
 type ValidateCommandOptions = {
@@ -28,13 +30,14 @@ export function createValidateCommand(): Command {
       const errors: string[] = [];
       const warnings: string[] = [];
       const strict = options.strict ?? false;
+      const fsAdapter = createNodeFileSystemAdapter();
 
       try {
-        const files = await scanMarkdownFiles(rootPath);
+        const files = await scanMarkdownFiles(fsAdapter, rootPath);
 
         for (const filePath of files) {
           try {
-            const note = await parseMarkdownFile(filePath, rootPath);
+            const note = await parseMarkdownFile(fsAdapter, filePath, rootPath);
             for (const issue of validateNoteMetadata(note, { strict })) {
               if (issue.severity === "error") {
                 errors.push(`${issue.path}: ${issue.message}`);
@@ -49,10 +52,10 @@ export function createValidateCommand(): Command {
           }
         }
 
-        const summaryInput = {
+        const summaryInput: ValidationInput = {
           source: vaultPath,
           markdownFiles: files.length,
-          mode: (strict ? "strict" : "compatibility") as "compatibility" | "strict",
+          mode: strict ? "strict" : "compatibility",
           warnings,
           errors,
         };

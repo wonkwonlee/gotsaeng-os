@@ -17,13 +17,13 @@ Compile your scattered Markdown notes into model-ready context packs — local-f
 > Requires Node.js 20 or newer. No install needed.
 
 ```bash
-npx -y @gotsaeng/cli@0.12.0 compile <vault> --output <dir> --project "<name>"
+npx -y @gotsaeng/cli@0.12.1 compile <vault> --output <dir> --project "<name>"
 ```
 
 Both `--output` and `--project` are required flags. Copy-paste example using the included sample vault:
 
 ```bash
-npx -y @gotsaeng/cli@0.12.0 compile ./examples/sample-vault --output ./out --project "GotSaeng OS"
+npx -y @gotsaeng/cli@0.12.1 compile ./examples/sample-vault --output ./out --project "GotSaeng OS"
 ```
 
 This writes 15 artifacts to `./out/` including `PROJECT_CONTEXT.md`, `MEMORY_SNAPSHOT.md`,
@@ -108,7 +108,17 @@ output.
   register-cap exemption is a type-checked field instead of a string match.
 - Makes the extraction cap (`perHeading`) and, separately, the export-time register caps
   (`register`, `insights`) configurable via `CompileOptions.caps` /
-  `writeContextPack(pack, outputDir, caps)`, defaulting to the same 12/200/120 bounds as before.
+  `writeContextPack(fsAdapter, pack, outputDir, caps)`, defaulting to the same 12/200/120 bounds as
+  before.
+- Splits the Context Pack Files grid's Core Reports group into Core Reports and a Governance
+  subgroup so no group exceeds about 7 items, and adds a filter field above the grid to narrow
+  buttons by name.
+- Gives in-flight command buttons a relabeled, `aria-busy` state instead of only disabling them,
+  and lets the command-failure banner be dismissed on its own, with an action name and timestamp
+  shown alongside the error.
+- Adds `aria-pressed` to selected artifact buttons, an accessible title and initial focus to the
+  output-folder confirmation dialog, and `role="group"`/`aria-labelledby` on each artifact grid
+  section.
 
 </details>
 
@@ -190,13 +200,13 @@ server, so MCP clients (Claude Code, Codex, Cursor) can call `validate_vault`, `
 `list_context_artifacts`, `read_context_artifact`, and `prepare_ai_handoff` as structured tools. The
 vault and output roots are fixed at launch via CLI flags — tools never accept arbitrary absolute paths.
 
-`@gotsaeng/mcp@0.12.0` is the real npm release and holds the `latest` dist-tag. A one-time
+`@gotsaeng/mcp@0.12.1` is the real npm release and holds the `latest` dist-tag. A one-time
 bootstrap placeholder (`0.0.1`, tagged `bootstrap`) was published earlier only to set up npm
 Trusted Publisher; it is not `latest` and should not be used. See `docs/mcp.md` for details and
 for running from source.
 
 ```bash
-npx -y @gotsaeng/mcp@0.12.0 --vault <vaultPath> --output <outputDir> --project "<projectName>"
+npx -y @gotsaeng/mcp@0.12.1 --vault <vaultPath> --output <outputDir> --project "<projectName>"
 ```
 
 Add it to your client's MCP config, for example Claude Code (`.mcp.json`) or Codex/Cursor's equivalent:
@@ -208,7 +218,7 @@ Add it to your client's MCP config, for example Claude Code (`.mcp.json`) or Cod
       "command": "npx",
       "args": [
         "-y",
-        "@gotsaeng/mcp@0.12.0",
+        "@gotsaeng/mcp@0.12.1",
         "--vault",
         "<vaultPath>",
         "--output",
@@ -242,7 +252,11 @@ cp apps/obsidian-plugin/dist/main.js \
   "/path/to/vault/.obsidian/plugins/gotsaeng-os/"
 ```
 
-Then enable **GotSaeng OS** in Obsidian community plugin settings. The adapter adds commands:
+Then enable **GotSaeng OS** in Obsidian community plugin settings. If you instead downloaded a
+built release from GitHub Releases, see
+[Verifying a Downloaded Release Build](./apps/obsidian-plugin/README.md#verifying-a-downloaded-release-build)
+to confirm the assets were produced by this repo's release workflow before installing them. The
+adapter adds commands:
 
 - Compile Context Pack
 - Generate Weekly Review

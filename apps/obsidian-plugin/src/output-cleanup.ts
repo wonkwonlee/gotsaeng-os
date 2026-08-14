@@ -1,7 +1,6 @@
-import fs from "node:fs/promises";
 import path from "node:path";
 
-import { CompileReportSchema } from "@gotsaeng/core";
+import { CompileReportSchema, type FileSystemAdapter } from "@gotsaeng/core";
 
 import { OUTPUT_ARTIFACTS } from "./artifacts";
 import { HIDDEN_OUTPUT_FOLDER, VISIBLE_OUTPUT_FOLDER, normalizeOutputFolder } from "./settings";
@@ -16,46 +15,64 @@ export type OutputCleanupResult = {
 const MANAGED_OUTPUT_FOLDERS = [HIDDEN_OUTPUT_FOLDER, VISIBLE_OUTPUT_FOLDER] as const;
 const MANAGED_OUTPUT_FILE_NAMES = new Set(OUTPUT_ARTIFACTS.map((artifact) => artifact.fileName));
 
-// The two built-in folders are always candidates for cleanup, but a *custom*
-// output folder is not one of them: leaving one would orphan its generated
-// files forever, because no later cleanup pass ever looks at that path again.
-// Callers that know which folder is being vacated pass it as
-// `previousOutputFolder` so it is swept too.
+// Candidates come from the caller's persisted `managedOutputFolders` (folders
+// this plugin instance has actually written to with consent — see
+// GotSaengPluginSettings.managedOutputFolders), not from the two built-in
+// folder *names* unconditionally. A folder merely being named
+// `.gotsaeng/context-pack` or `Gotsaeng/Context Pack` is not proof this vault
+// ever used it: sweeping it anyway would silently delete files that
+// reappeared there from a vault sync, backup restore, or coincidence, even
+// though the plugin is not (and may never have been) managing that folder in
+// this vault. Callers that know which folder is being vacated right now pass
+// it as `previousOutputFolder` so it is swept too, even if the caller hasn't
+// re-saved settings yet with it included in `managedOutputFolders`.
+//
+// `managedOutputFolders` defaults to both built-ins so direct callers that
+// don't pass it (including existing tests) keep the original permissive
+// behavior; real plugin call sites in main.ts always pass
+// `this.settings.managedOutputFolders` explicitly.
 export function getStaleManagedOutputFolders(
   currentOutputFolder: string,
   previousOutputFolder?: string,
+  managedOutputFolders: readonly string[] = MANAGED_OUTPUT_FOLDERS,
 ): string[] {
   const normalizedCurrent = normalizeOutputFolder(currentOutputFolder);
-  const candidates: string[] = [...MANAGED_OUTPUT_FOLDERS];
+  const candidates = new Set<string>();
 
-  if (previousOutputFolder !== undefined) {
-    const normalizedPrevious = normalizeOutputFolder(previousOutputFolder);
-    if (!candidates.includes(normalizedPrevious)) {
-      candidates.push(normalizedPrevious);
-    }
+  for (const folder of managedOutputFolders) {
+    candidates.add(normalizeOutputFolder(folder));
   }
 
-  return candidates.filter((folder) => folder !== normalizedCurrent);
+  if (previousOutputFolder !== undefined) {
+    candidates.add(normalizeOutputFolder(previousOutputFolder));
+  }
+
+  candidates.delete(normalizedCurrent);
+  return [...candidates];
 }
 
 // Non-destructive dry run for cleanupStaleManagedOutputFolders: counts how many
 // GotSaeng-managed files a cleanup would remove, without removing anything. Lets
 // callers show an honest confirmation ("this deletes N files") before acting.
 export async function countStaleManagedOutputFiles(
+  fsAdapter: FileSystemAdapter,
   vaultRoot: string,
   currentOutputFolder: string,
   previousOutputFolder?: string,
+  managedOutputFolders: readonly string[] = MANAGED_OUTPUT_FOLDERS,
 ): Promise<number> {
   let total = 0;
 
   for (const outputFolder of await resolveSweepableOutputFolders(
+    fsAdapter,
     vaultRoot,
     currentOutputFolder,
     previousOutputFolder,
+    managedOutputFolders,
   )) {
     const outputDir = path.resolve(vaultRoot, outputFolder);
     for (const fileName of MANAGED_OUTPUT_FILE_NAMES) {
-      if (await pathExists(path.join(outputDir, fileName))) {
+      if (await fsAdapter.exists(path.join(outputDir, fileName))) {
         total += 1;
       }
     }
@@ -65,20 +82,24 @@ export async function countStaleManagedOutputFiles(
 }
 
 export async function cleanupStaleManagedOutputFolders(
+  fsAdapter: FileSystemAdapter,
   vaultRoot: string,
   currentOutputFolder: string,
   previousOutputFolder?: string,
+  managedOutputFolders: readonly string[] = MANAGED_OUTPUT_FOLDERS,
 ): Promise<OutputCleanupResult[]> {
   const results: OutputCleanupResult[] = [];
 
   for (const outputFolder of await resolveSweepableOutputFolders(
+    fsAdapter,
     vaultRoot,
     currentOutputFolder,
     previousOutputFolder,
+    managedOutputFolders,
   )) {
     const outputDir = path.resolve(vaultRoot, outputFolder);
-    const removedFiles = await removeManagedOutputFiles(outputDir);
-    const removedDirectories = await removeEmptyOutputDirectories(vaultRoot, outputDir);
+    const removedFiles = await removeManagedOutputFiles(fsAdapter, outputDir);
+    const removedDirectories = await removeEmptyOutputDirectories(fsAdapter, vaultRoot, outputDir);
 
     if (removedFiles.length > 0 || removedDirectories.length > 0) {
       results.push({ outputFolder, removedFiles, removedDirectories });
@@ -96,15 +117,24 @@ export async function cleanupStaleManagedOutputFolders(
 // Require a parseable COMPILE_REPORT.json (the compiler's own report, written on
 // every compile) as a real ownership marker before a custom folder is swept.
 async function resolveSweepableOutputFolders(
+  fsAdapter: FileSystemAdapter,
   vaultRoot: string,
   currentOutputFolder: string,
   previousOutputFolder: string | undefined,
+  managedOutputFolders: readonly string[],
 ): Promise<string[]> {
-  const candidates = getStaleManagedOutputFolders(currentOutputFolder, previousOutputFolder);
+  const candidates = getStaleManagedOutputFolders(
+    currentOutputFolder,
+    previousOutputFolder,
+    managedOutputFolders,
+  );
   const sweepable: string[] = [];
 
   for (const folder of candidates) {
-    if (isBuiltInManagedOutputFolder(folder) || (await hasManagedOutputMarker(vaultRoot, folder))) {
+    if (
+      isBuiltInManagedOutputFolder(folder) ||
+      (await hasManagedOutputMarker(fsAdapter, vaultRoot, folder))
+    ) {
       sweepable.push(folder);
     }
   }
@@ -116,72 +146,73 @@ function isBuiltInManagedOutputFolder(folder: string): boolean {
   return (MANAGED_OUTPUT_FOLDERS as readonly string[]).includes(folder);
 }
 
-async function hasManagedOutputMarker(vaultRoot: string, outputFolder: string): Promise<boolean> {
+async function hasManagedOutputMarker(
+  fsAdapter: FileSystemAdapter,
+  vaultRoot: string,
+  outputFolder: string,
+): Promise<boolean> {
   const reportPath = path.resolve(vaultRoot, outputFolder, "COMPILE_REPORT.json");
+  const raw = await fsAdapter.readText(reportPath);
+  if (raw === null) {
+    return false;
+  }
   try {
-    const raw = await fs.readFile(reportPath, "utf8");
     return CompileReportSchema.safeParse(JSON.parse(raw)).success;
   } catch {
     return false;
   }
 }
 
-async function removeManagedOutputFiles(outputDir: string): Promise<string[]> {
+async function removeManagedOutputFiles(
+  fsAdapter: FileSystemAdapter,
+  outputDir: string,
+): Promise<string[]> {
   const removedFiles: string[] = [];
 
   for (const fileName of MANAGED_OUTPUT_FILE_NAMES) {
     const filePath = path.join(outputDir, fileName);
-    if (!(await pathExists(filePath))) {
+    if (!(await fsAdapter.exists(filePath))) {
       continue;
     }
 
-    await fs.rm(filePath, { force: true });
+    await fsAdapter.remove(filePath);
     removedFiles.push(fileName);
   }
 
   return removedFiles;
 }
 
+// Removes outputDir itself if it is empty — nothing more. This intentionally
+// does NOT walk further upward toward vaultRoot: outputDir's ancestors (e.g.
+// "Reports" in a custom folder "Reports/GotSaeng") are not directories this
+// plugin created, even for a built-in folder's own container ("Gotsaeng" in
+// "Gotsaeng/Context Pack") — only the exact managed leaf folder is ever safe
+// to remove. Returns an array (0 or 1 entries) rather than a plain boolean to
+// keep OutputCleanupResult.removedDirectories's shape unchanged for callers.
 async function removeEmptyOutputDirectories(
+  fsAdapter: FileSystemAdapter,
   vaultRoot: string,
   outputDir: string,
 ): Promise<string[]> {
-  const removedDirectories: string[] = [];
   const resolvedVaultRoot = path.resolve(vaultRoot);
-  let currentDir = path.resolve(outputDir);
+  const resolvedOutputDir = path.resolve(outputDir);
 
-  while (currentDir !== resolvedVaultRoot && isInsidePath(resolvedVaultRoot, currentDir)) {
-    try {
-      await fs.rmdir(currentDir);
-      removedDirectories.push(path.relative(resolvedVaultRoot, currentDir));
-      currentDir = path.dirname(currentDir);
-    } catch (error) {
-      if (isExpectedNonEmptyOrMissingDirectoryError(error)) {
-        break;
-      }
-      throw error;
-    }
+  if (
+    resolvedOutputDir === resolvedVaultRoot ||
+    !isInsidePath(resolvedVaultRoot, resolvedOutputDir)
+  ) {
+    return [];
   }
 
-  return removedDirectories;
-}
-
-async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await fs.stat(filePath);
-    return true;
-  } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return false;
-    }
-    throw error;
+  if (!(await fsAdapter.exists(resolvedOutputDir))) {
+    return [];
   }
-}
 
-function isExpectedNonEmptyOrMissingDirectoryError(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    "code" in error &&
-    (error.code === "ENOTEMPTY" || error.code === "ENOENT" || error.code === "EEXIST")
-  );
+  const { files, folders } = await fsAdapter.list(resolvedOutputDir);
+  if (files.length > 0 || folders.length > 0) {
+    return [];
+  }
+
+  await fsAdapter.rmdir(resolvedOutputDir);
+  return [path.relative(resolvedVaultRoot, resolvedOutputDir)];
 }

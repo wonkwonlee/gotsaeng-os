@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import type { App, PluginManifest } from "obsidian";
+import type { App, PluginManifest, SettingDefinition } from "obsidian";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import GotSaengObsidianPlugin from "../src/main";
@@ -17,6 +17,7 @@ import {
 import { createFakeApp } from "./mocks/fake-app";
 import {
   PluginSettingTab,
+  Setting,
   TFile,
   createdModals,
   createdSettings,
@@ -177,16 +178,45 @@ describe("GotSaengObsidianPlugin runSafely error funnelling", () => {
 
     await failingPlugin.compileContextPackCommand();
 
-    expect(failingPlugin.lastError).toBe(
-      "Compile Context Pack failed: Output folder cannot include '..' path segments.",
-    );
+    expect(failingPlugin.lastError).toMatchObject({
+      action: "Compile Context Pack",
+      message: "Output folder cannot include '..' path segments.",
+    });
+    expect(typeof failingPlugin.lastError?.timestamp).toBe("number");
 
     const { plugin } = createPlugin(tempRoot, { ...DEFAULT_SETTINGS, openAfterCompile: false });
-    plugin.lastError = "stale error from a previous run";
+    plugin.lastError = { action: "Compile Context Pack", message: "stale", timestamp: 0 };
 
     await plugin.compileContextPackCommand();
 
     expect(plugin.lastError).toBeNull();
+  });
+
+  it("dismisses the last error on demand without waiting for another command", () => {
+    const { plugin } = createPlugin(tempRoot, { ...DEFAULT_SETTINGS });
+    plugin.lastError = { action: "Compile Context Pack", message: "disk full", timestamp: 123 };
+
+    plugin.dismissLastError();
+
+    expect(plugin.lastError).toBeNull();
+  });
+});
+
+describe("ConfirmModal accessibility", () => {
+  it("sets an accessible title and moves focus to the Cancel button on open", async () => {
+    const staleDir = path.join(tempRoot, HIDDEN_OUTPUT_FOLDER);
+    await fs.mkdir(staleDir, { recursive: true });
+    await fs.writeFile(path.join(staleDir, "REPORT_HUB.md"), "stale", "utf8");
+
+    const { plugin } = createPlugin(tempRoot, { ...DEFAULT_SETTINGS });
+
+    const switchPromise = plugin.switchOutputFolderVisibilityCommand("visible");
+    const modal = await waitForConfirmModal();
+
+    expect(modal.titleEl.text).toBe("Move generated output to Gotsaeng/Context Pack?");
+
+    clickModalButton(modal, "Cancel");
+    await switchPromise;
   });
 });
 
@@ -643,5 +673,391 @@ describe("GotSaengObsidianPlugin settings tab", () => {
     expect(items.map((el) => el.text)).toEqual([
       "Output folder cannot include '..' path segments.",
     ]);
+  });
+
+  it("does not persist custom visibility until a custom path actually commits, and reverts cleanly on decline (#26)", async () => {
+    const staleDir = path.join(tempRoot, HIDDEN_OUTPUT_FOLDER);
+    await fs.mkdir(staleDir, { recursive: true });
+    await fs.writeFile(path.join(staleDir, "REPORT_HUB.md"), "stale", "utf8");
+
+    const { plugin } = await renderSettingsTab({
+      outputFolderVisibility: "hidden",
+      outputFolder: HIDDEN_OUTPUT_FOLDER,
+    });
+
+    const visibilitySetting = createdSettings.find(
+      (setting) => setting.name === "Output folder visibility",
+    );
+    await visibilitySetting?.dropdownComponents[0]?.emitChange("custom");
+
+    // Selecting "Custom path" alone must not write settings or open a modal
+    // — only unlocking the field, so a decline further down has nothing
+    // committed to revert.
+    expect(plugin.settings.outputFolderVisibility).toBe("hidden");
+    expect(createdModals).toHaveLength(0);
+
+    const pathSetting = createdSettings
+      .filter((setting) => setting.name === "Output folder path")
+      .at(-1);
+    const inputEl = pathSetting?.textComponents[0]?.inputEl;
+    expect(inputEl?.disabled).toBe(false);
+    if (inputEl) {
+      inputEl.value = "Reports/GotSaeng";
+    }
+    inputEl?.dispatch("blur");
+
+    const modal = await waitForConfirmModal();
+    clickModalButton(modal, "Cancel");
+    await vi.waitFor(() => {
+      if (inputEl?.value !== HIDDEN_OUTPUT_FOLDER) {
+        throw new Error("expected the input to revert to the persisted folder");
+      }
+    });
+
+    expect(plugin.settings.outputFolderVisibility).toBe("hidden");
+    expect(plugin.settings.outputFolder).toBe(HIDDEN_OUTPUT_FOLDER);
+    const staleDirEntries = await fs.readdir(staleDir).catch(() => []);
+    expect(staleDirEntries).toContain("REPORT_HUB.md");
+
+    // The dropdown itself must reflect the revert, not linger on "Custom path".
+    const finalVisibilitySetting = createdSettings
+      .filter((setting) => setting.name === "Output folder visibility")
+      .at(-1);
+    expect(finalVisibilitySetting?.dropdownComponents[0]?.getValue()).toBe("hidden");
+  });
+
+  it("does not commit or open a modal on a no-op blur when the custom path field is unchanged (#22)", async () => {
+    const { plugin } = await renderSettingsTab({
+      outputFolderVisibility: "custom",
+      outputFolder: "Reports/GotSaeng",
+    });
+    const savedDataBefore = asTestable(plugin).savedData;
+
+    const pathSetting = createdSettings.find((setting) => setting.name === "Output folder path");
+    const inputEl = pathSetting?.textComponents[0]?.inputEl;
+    expect(inputEl?.value).toBe("Reports/GotSaeng");
+    inputEl?.dispatch("blur");
+
+    expect(createdModals).toHaveLength(0);
+    expect(plugin.settings.outputFolder).toBe("Reports/GotSaeng");
+    expect(asTestable(plugin).savedData).toBe(savedDataBefore);
+  });
+
+  it("serializes a blur commit and a dropdown change instead of racing, and never opens two modals at once (#22)", async () => {
+    const customDir = path.join(tempRoot, "Reports/GotSaeng");
+    await fs.mkdir(customDir, { recursive: true });
+    await fs.writeFile(
+      path.join(customDir, "COMPILE_REPORT.json"),
+      JSON.stringify({
+        filesScanned: 0,
+        markdownFilesParsed: 0,
+        filesSkipped: 0,
+        parseErrors: [],
+        warnings: [],
+        generatedFiles: [],
+      }),
+      "utf8",
+    );
+    await fs.writeFile(path.join(customDir, "REPORT_HUB.md"), "stale", "utf8");
+
+    const { plugin } = await renderSettingsTab({
+      outputFolderVisibility: "custom",
+      outputFolder: "Reports/GotSaeng",
+    });
+
+    const pathSetting = createdSettings.find((setting) => setting.name === "Output folder path");
+    const inputEl = pathSetting?.textComponents[0]?.inputEl;
+    if (inputEl) {
+      inputEl.value = "Reports/Other";
+    }
+    // Starts the blur commit; it is still queued behind pendingFolderChange
+    // and has not reached applyOutputFolderChangeNow yet.
+    inputEl?.dispatch("blur");
+
+    const visibilitySetting = createdSettings.find(
+      (setting) => setting.name === "Output folder visibility",
+    );
+    // Fire the dropdown change immediately, before the blur commit has had a
+    // chance to run — the exact race from issue #22. Don't await directly:
+    // emitChange awaits the onChange handler itself, and that handler is now
+    // queued behind the blur commit's pendingFolderChange.
+    const dropdownChangePromise = visibilitySetting?.dropdownComponents[0]?.emitChange("hidden");
+
+    const modal = await waitForConfirmModal();
+    expect(createdModals).toHaveLength(1);
+    // The blur commit's own call was superseded (its target was "Reports/
+    // Other") and skipped outright rather than running first: the one modal
+    // that does open is for the dropdown's actual target, proving the two
+    // queued calls were coalesced into one user-facing prompt instead of two
+    // sequential ones.
+    expect(modal.titleEl.text).toBe(`Move generated output to ${HIDDEN_OUTPUT_FOLDER}?`);
+    clickModalButton(modal, "Delete and switch");
+
+    await dropdownChangePromise;
+
+    // The dropdown's queued call never opened a second, concurrent modal.
+    expect(createdModals).toHaveLength(1);
+    expect(plugin.settings.outputFolderVisibility).toBe("hidden");
+    expect(plugin.settings.outputFolder).toBe(HIDDEN_OUTPUT_FOLDER);
+    // The superseded blur commit never wrote its own intermediate target.
+    expect(recordedNotices.some((notice) => notice.message.includes("Reports/Other"))).toBe(false);
+  });
+
+  it("only focuses the custom path field on the transition into custom mode, not on every re-render (#25)", async () => {
+    const { plugin, settingTab } = await renderSettingsTab({
+      outputFolderVisibility: "custom",
+      outputFolder: "Reports/GotSaeng",
+    });
+
+    const initialPathSetting = createdSettings
+      .filter((setting) => setting.name === "Output folder path")
+      .at(-1);
+    expect(initialPathSetting?.textComponents[0]?.inputEl.focusCount).toBe(0);
+
+    // Re-rendering the tab (e.g. reopening Settings) while already in custom
+    // mode must not (re-)focus the field.
+    settingTab.display();
+    const reopenedPathSetting = createdSettings
+      .filter((setting) => setting.name === "Output folder path")
+      .at(-1);
+    expect(reopenedPathSetting?.textComponents[0]?.inputEl.focusCount).toBe(0);
+
+    // A genuine transition into custom mode (from hidden, no stale files so
+    // no confirm modal) focuses the field exactly once.
+    await plugin.switchOutputFolderVisibility("hidden");
+    settingTab.display();
+    const visibilitySetting = createdSettings
+      .filter((setting) => setting.name === "Output folder visibility")
+      .at(-1);
+    await visibilitySetting?.dropdownComponents[0]?.emitChange("custom");
+
+    const transitionedPathSetting = createdSettings
+      .filter((setting) => setting.name === "Output folder path")
+      .at(-1);
+    expect(transitionedPathSetting?.textComponents[0]?.inputEl.focusCount).toBe(1);
+  });
+
+  it("re-renders the settings tab automatically after a successful custom-path commit, without requiring the tab to be reopened (#25)", async () => {
+    const { plugin } = await renderSettingsTab({
+      outputFolderVisibility: "hidden",
+      outputFolder: HIDDEN_OUTPUT_FOLDER,
+    });
+
+    const visibilitySetting = createdSettings.find(
+      (setting) => setting.name === "Output folder visibility",
+    );
+    await visibilitySetting?.dropdownComponents[0]?.emitChange("custom");
+
+    const pathSetting = createdSettings
+      .filter((setting) => setting.name === "Output folder path")
+      .at(-1);
+    const inputEl = pathSetting?.textComponents[0]?.inputEl;
+    if (inputEl) {
+      inputEl.value = "Reports/GotSaeng";
+    }
+
+    const settingsCountBeforeCommit = createdSettings.length;
+    inputEl?.dispatch("blur");
+
+    await vi.waitFor(() => {
+      if (plugin.settings.outputFolder !== "Reports/GotSaeng") {
+        throw new Error("expected the custom output folder to be committed");
+      }
+    });
+
+    // A fresh display() ran on its own once the commit settled — this test
+    // never called settingTab.display() itself for that to happen, so the
+    // validation banner (and everything else display() renders) reflects the
+    // committed state without the tab needing to be reopened.
+    expect(createdSettings.length).toBeGreaterThan(settingsCountBeforeCommit);
+    const latestPathSetting = createdSettings
+      .filter((setting) => setting.name === "Output folder path")
+      .at(-1);
+    expect(latestPathSetting?.textComponents[0]?.inputEl.value).toBe("Reports/GotSaeng");
+  });
+});
+
+// Coverage for the declarative settings API (Obsidian >=1.13.0): the object
+// getSettingDefinitions() returns, and getControlValue/setControlValue,
+// which real Obsidian calls instead of display() on those hosts (see
+// GotSaengSettingTab's class-level comment in src/main.ts). display() itself
+// stays covered by the describe block above, which is the fallback path for
+// hosts older than 1.13.0.
+// The mock PluginSettingTab (./mocks/obsidian) intentionally only declares
+// display()/hide()/containerEl — the surface main.ts's imperative fallback
+// path needs. GotSaengSettingTab's real, ambient-obsidian-typed
+// getSettingDefinitions/getControlValue/setControlValue exist on the actual
+// runtime instance regardless (it's the same object), just not on that
+// narrower mock type, so tests exercising them need this wider view.
+type DeclarativeSettingTab = InstanceType<typeof PluginSettingTab> & {
+  // GotSaengSettingTab only ever returns flat control/render definitions —
+  // never a group/list/page — so this narrows the ambient
+  // SettingDefinitionItem[] return type to just SettingDefinition[], which
+  // is what every definition below actually is.
+  getSettingDefinitions(): SettingDefinition[];
+  getControlValue(key: string): unknown;
+  setControlValue(key: string, value: unknown): Promise<void>;
+};
+
+function controlTypeOf(def: SettingDefinition | undefined): string | undefined {
+  return def && "control" in def && def.control ? def.control.type : undefined;
+}
+
+describe("GotSaengObsidianPlugin declarative settings (getSettingDefinitions)", () => {
+  async function createSettingTab(persistedSettings: Partial<GotSaengPluginSettings> = {}) {
+    const fakeApp = createFakeApp(tempRoot);
+    const plugin = new GotSaengObsidianPlugin(fakeApp as unknown as App, FAKE_MANIFEST);
+    const testablePlugin = asTestable(plugin);
+    testablePlugin.savedData = persistedSettings;
+    await plugin.onload();
+    const settingTab = testablePlugin.settingTab;
+    if (!(settingTab instanceof PluginSettingTab)) {
+      throw new Error("expected onload() to register a settings tab");
+    }
+    return { plugin, settingTab: settingTab as unknown as DeclarativeSettingTab };
+  }
+
+  it("declares all six settings, matching display()'s names and order", async () => {
+    const { settingTab } = await createSettingTab();
+
+    const defs = settingTab.getSettingDefinitions();
+
+    expect(defs.map((def) => def.name)).toEqual([
+      "Project name",
+      "Output folder visibility",
+      "Output folder path",
+      "Stale days",
+      "Strict validation",
+      "Open generated file",
+    ]);
+    // The two settings a plain `control` type can't express (see the
+    // class-level comment on getSettingDefinitions() in src/main.ts) fall
+    // back to the `render` escape hatch; the rest are native controls.
+    const byName = Object.fromEntries(defs.map((def) => [def.name, def]));
+    expect("control" in byName["Output folder visibility"]!).toBe(false);
+    expect("control" in byName["Output folder path"]!).toBe(false);
+    expect(controlTypeOf(byName["Project name"])).toBe("text");
+    expect(controlTypeOf(byName["Stale days"])).toBe("number");
+  });
+
+  it("round-trips the four control-type settings through getControlValue/setControlValue", async () => {
+    const { plugin, settingTab } = await createSettingTab();
+
+    expect(settingTab.getControlValue("projectName")).toBe(DEFAULT_SETTINGS.projectName);
+    await settingTab.setControlValue("projectName", "My Vault");
+    expect(plugin.settings.projectName).toBe("My Vault");
+    expect(settingTab.getControlValue("projectName")).toBe("My Vault");
+    expect(asTestable(plugin).savedData).toMatchObject({ projectName: "My Vault" });
+
+    await settingTab.setControlValue("staleDays", 30);
+    expect(plugin.settings.staleDays).toBe(30);
+    expect(settingTab.getControlValue("staleDays")).toBe(30);
+
+    await settingTab.setControlValue("strictValidation", true);
+    expect(plugin.settings.strictValidation).toBe(true);
+    expect(settingTab.getControlValue("strictValidation")).toBe(true);
+
+    await settingTab.setControlValue("openAfterCompile", false);
+    expect(plugin.settings.openAfterCompile).toBe(false);
+    expect(settingTab.getControlValue("openAfterCompile")).toBe(false);
+  });
+
+  it("rejects an invalid stale-days value via validate() without persisting", async () => {
+    const { plugin, settingTab } = await createSettingTab();
+    const defs = settingTab.getSettingDefinitions();
+    const staleDaysDef = defs.find((def) => def.name === "Stale days");
+    const control = staleDaysDef && "control" in staleDaysDef ? staleDaysDef.control : undefined;
+    if (!control || control.type !== "number") {
+      throw new Error("expected Stale days to declare a number control");
+    }
+
+    expect(await control.validate?.(0)).toMatch(/positive whole number/);
+    expect(await control.validate?.(30)).toBeUndefined();
+
+    // validate() rejecting is the framework's cue not to call setControlValue
+    // at all — confirm this class's own setControlValue is equally a no-op
+    // for the same input, so nothing here depends on the framework enforcing
+    // the rejection on its own.
+    await settingTab.setControlValue("staleDays", 0);
+    expect(plugin.settings.staleDays).toBe(DEFAULT_SETTINGS.staleDays);
+  });
+
+  it("throws for an unrecognized control key", async () => {
+    const { settingTab } = await createSettingTab();
+
+    await expect(settingTab.setControlValue("notARealKey", "x")).rejects.toThrow(
+      "Unknown setting key",
+    );
+  });
+
+  it("the output-folder-visibility render() shares the confirm-gated switch with display()", async () => {
+    const staleDir = path.join(tempRoot, HIDDEN_OUTPUT_FOLDER);
+    await fs.mkdir(staleDir, { recursive: true });
+    await fs.writeFile(path.join(staleDir, "REPORT_HUB.md"), "stale", "utf8");
+
+    const { plugin, settingTab } = await createSettingTab({
+      outputFolderVisibility: "hidden",
+      outputFolder: HIDDEN_OUTPUT_FOLDER,
+    });
+    const defs = settingTab.getSettingDefinitions();
+    const visibilityDef = defs.find((def) => def.name === "Output folder visibility");
+    if (!visibilityDef || !("render" in visibilityDef) || !visibilityDef.render) {
+      throw new Error("expected Output folder visibility to declare a render() definition");
+    }
+
+    // Simulates what the real host does with a `render`-type definition:
+    // hand it a freshly constructed Setting and let it build the row.
+    createdSettings.length = 0;
+    visibilityDef.render(new Setting(settingTab.containerEl) as never, {} as never);
+    const visibilitySetting = createdSettings.find(
+      (setting) => setting.name === "Output folder visibility",
+    );
+
+    const changePromise = visibilitySetting?.dropdownComponents[0]?.emitChange("visible");
+    await vi.waitFor(() => {
+      if (createdModals.length === 0) {
+        throw new Error("expected a confirmation modal to open");
+      }
+    });
+    const modal = createdModals[0]!;
+    const cancelButton = modal.contentEl.findAllByTag("button").find((el) => el.text === "Cancel");
+    cancelButton?.dispatch("click");
+    await changePromise;
+
+    expect(plugin.settings.outputFolderVisibility).toBe("hidden");
+    const staleDirEntries = await fs.readdir(staleDir).catch(() => []);
+    expect(staleDirEntries).toContain("REPORT_HUB.md");
+  });
+
+  it("the output-folder-path render() shares the blur-commit logic with display()", async () => {
+    const { plugin, settingTab } = await createSettingTab({
+      outputFolderVisibility: "custom",
+      outputFolder: "Reports/GotSaeng",
+    });
+    const defs = settingTab.getSettingDefinitions();
+    const pathDef = defs.find((def) => def.name === "Output folder path");
+    if (!pathDef || !("render" in pathDef) || !pathDef.render) {
+      throw new Error("expected Output folder path to declare a render() definition");
+    }
+
+    createdSettings.length = 0;
+    pathDef.render(new Setting(settingTab.containerEl) as never, {} as never);
+    const pathSetting = createdSettings.find((setting) => setting.name === "Output folder path");
+    const inputEl = pathSetting?.textComponents[0]?.inputEl;
+    expect(inputEl?.value).toBe("Reports/GotSaeng");
+
+    if (inputEl) {
+      inputEl.value = "/absolute/path";
+    }
+    inputEl?.dispatch("blur");
+
+    expect(plugin.settings.outputFolder).toBe("Reports/GotSaeng");
+    expect(
+      recordedNotices.some((notice) =>
+        notice.message.includes(
+          "GotSaeng OS settings: Output folder must be vault-relative; absolute paths are not supported.",
+        ),
+      ),
+    ).toBe(true);
   });
 });

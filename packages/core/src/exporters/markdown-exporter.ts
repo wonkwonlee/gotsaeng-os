@@ -1,6 +1,6 @@
-import fs from "node:fs/promises";
 import path from "node:path";
 
+import type { FileSystemAdapter } from "../adapters/file-system";
 import {
   createWarningTriage,
   groupItemsBySource,
@@ -77,15 +77,16 @@ export function renderMarkdownFiles(
 }
 
 export async function writeMarkdownContextPack(
+  fsAdapter: FileSystemAdapter,
   pack: ContextPack,
   outputDir: string,
   caps: RegisterCaps = {},
 ): Promise<string[]> {
-  await fs.mkdir(outputDir, { recursive: true });
+  await fsAdapter.mkdir(outputDir);
   const files = renderMarkdownFiles(pack, caps);
 
   for (const fileName of GENERATED_MARKDOWN_FILES) {
-    await fs.writeFile(path.join(outputDir, fileName), files[fileName], "utf8");
+    await fsAdapter.writeText(path.join(outputDir, fileName), files[fileName]);
   }
 
   return [...GENERATED_MARKDOWN_FILES];

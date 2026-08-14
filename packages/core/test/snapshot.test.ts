@@ -12,6 +12,9 @@ import {
   renderCompileReport,
   renderMarkdownFiles,
 } from "../src/index";
+import { createNodeFileSystemAdapter } from "./helpers/node-file-system";
+
+const fsAdapter = createNodeFileSystemAdapter();
 
 describe("generated output snapshots", () => {
   const sampleVault = path.resolve(process.cwd(), "examples/sample-vault");
@@ -20,7 +23,7 @@ describe("generated output snapshots", () => {
   const clock = () => new Date(generatedAt);
 
   it("matches the checked sample Markdown output", async () => {
-    const pack = await compileContextPack({
+    const pack = await compileContextPack(fsAdapter, {
       sourceRoot: sampleVault,
       projectName: "GotSaeng OS",
       generatedAt,
@@ -35,7 +38,7 @@ describe("generated output snapshots", () => {
   });
 
   it("matches the checked sample compile report", async () => {
-    const pack = await compileContextPack({
+    const pack = await compileContextPack(fsAdapter, {
       sourceRoot: sampleVault,
       projectName: "GotSaeng OS",
       generatedAt,
@@ -56,7 +59,7 @@ describe("generated output snapshots", () => {
   });
 
   it("matches the checked sample context manifest except for the local source root", async () => {
-    const pack = await compileContextPack({
+    const pack = await compileContextPack(fsAdapter, {
       sourceRoot: sampleVault,
       projectName: "GotSaeng OS",
       generatedAt,

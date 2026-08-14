@@ -8,6 +8,11 @@ import { describe, expect, it } from "vitest";
 
 const execFileAsync = promisify(execFile);
 
+// vitest types its asymmetric matchers as `any`; these aliases keep the
+// rejection shapes below type-checked while passing the matcher through.
+const matchingString = (pattern: RegExp): string => expect.stringMatching(pattern) as string;
+const containingString = (value: string): string => expect.stringContaining(value) as string;
+
 describe("cli", () => {
   const cliPath = path.resolve(process.cwd(), "packages/cli/dist/index.js");
   const sampleVault = path.resolve(process.cwd(), "examples/sample-vault");
@@ -113,7 +118,7 @@ describe("cli", () => {
     await expect(
       execFileAsync(process.execPath, [cliPath, "validate", vaultDir, "--strict"]),
     ).rejects.toMatchObject({
-      stdout: expect.stringMatching(/Mode: strict[\s\S]*Invalid note type: wiki/),
+      stdout: matchingString(/Mode: strict[\s\S]*Invalid note type: wiki/),
     });
   });
 
@@ -131,7 +136,7 @@ describe("cli", () => {
         "GotSaeng OS",
       ]),
     ).rejects.toMatchObject({
-      stderr: expect.stringMatching(
+      stderr: matchingString(
         /GotSaeng OS compile failed[\s\S]*The source vault path exists and is a directory\./,
       ),
     });
@@ -193,7 +198,7 @@ describe("cli", () => {
       execFileAsync(process.execPath, [cliPath, "compile", sampleVault, "--output", outputDir]),
     ).rejects.toMatchObject({
       code: 1,
-      stderr: expect.stringContaining("required option '--project"),
+      stderr: containingString("required option '--project"),
     });
   });
 });

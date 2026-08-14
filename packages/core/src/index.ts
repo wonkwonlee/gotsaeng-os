@@ -1,3 +1,4 @@
+export * from "./adapters/file-system";
 export * from "./schemas/note";
 export * from "./schemas/context";
 export * from "./schemas/config";

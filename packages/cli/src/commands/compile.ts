@@ -3,6 +3,7 @@ import { Command, InvalidArgumentError } from "commander";
 import { compileContextPack, getItemCounts, writeContextPack } from "@gotsaeng/core";
 
 import { installJsonErrorHandling } from "../json-error";
+import { createNodeFileSystemAdapter } from "../node-file-system";
 import {
   renderCliError,
   renderCliErrorJson,
@@ -31,13 +32,14 @@ export function createCompileCommand(): Command {
     )
     .option("--json", "Print a machine-readable JSON summary instead of text.")
     .action(async (vaultPath: string, options: CompileCommandOptions) => {
+      const fsAdapter = createNodeFileSystemAdapter();
       try {
-        const pack = await compileContextPack({
+        const pack = await compileContextPack(fsAdapter, {
           sourceRoot: vaultPath,
           projectName: options.project,
           staleDays: options.staleDays,
         });
-        const report = await writeContextPack(pack, options.output);
+        const report = await writeContextPack(fsAdapter, pack, options.output);
 
         const summaryInput = {
           projectName: pack.projectName,

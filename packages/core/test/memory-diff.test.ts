@@ -14,6 +14,9 @@ import {
   type ContextPack,
   type ExtractedItem,
 } from "../src/index";
+import { createNodeFileSystemAdapter } from "./helpers/node-file-system";
+
+const fsAdapter = createNodeFileSystemAdapter();
 
 describe("memory diff", () => {
   it("creates a baseline diff when no previous manifest exists", () => {
@@ -78,10 +81,12 @@ describe("memory diff", () => {
     const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), "gotsaeng-memory-diff-"));
 
     await writeContextPack(
+      fsAdapter,
       createPack([createItem("action", "Write memory diff.", "open")]),
       outputDir,
     );
     await writeContextPack(
+      fsAdapter,
       createPack([createItem("action", "Write memory diff.", "done")]),
       outputDir,
     );

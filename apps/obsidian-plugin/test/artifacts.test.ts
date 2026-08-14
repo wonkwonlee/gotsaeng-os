@@ -30,11 +30,12 @@ describe("Obsidian output artifacts", () => {
 });
 
 describe("groupOutputArtifacts", () => {
-  it("groups every artifact into Core Reports, Analysis, or Raw Data with none left over", () => {
+  it("groups every artifact into Core Reports, Governance, Analysis, or Raw Data with none left over", () => {
     const groups = groupOutputArtifacts();
 
     expect(groups.map((section) => section.label)).toEqual([
       "Core Reports",
+      "Governance",
       "Analysis",
       "Raw Data",
     ]);
@@ -48,6 +49,25 @@ describe("groupOutputArtifacts", () => {
       "COMPILE_REPORT.json",
       "ARTIFACT_INDEX.json",
     ]);
+
+    const governanceGroup = groups.find((section) => section.group === "governance");
+    expect(governanceGroup?.artifacts.map((artifact) => artifact.fileName)).toEqual([
+      "DECISION_LOG.md",
+      "RISK_REGISTER.md",
+      "OPEN_QUESTIONS.md",
+      "STALE_CONTEXT.md",
+    ]);
+  });
+
+  // Regression guard for the cognitive-load guideline (roughly 7 items per
+  // decision point) that motivated splitting "Core Reports" into a separate
+  // "Governance" group in the first place.
+  it("keeps every group at 7 items or fewer", () => {
+    const groups = groupOutputArtifacts();
+
+    for (const section of groups) {
+      expect(section.artifacts.length).toBeLessThanOrEqual(7);
+    }
   });
 
   it("omits a group heading entirely when it has no artifacts", () => {
@@ -55,6 +75,6 @@ describe("groupOutputArtifacts", () => {
       OUTPUT_ARTIFACTS.filter((artifact) => artifact.group !== "raw"),
     );
 
-    expect(groups.map((section) => section.group)).toEqual(["core", "analysis"]);
+    expect(groups.map((section) => section.group)).toEqual(["core", "governance", "analysis"]);
   });
 });

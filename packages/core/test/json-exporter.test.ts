@@ -5,6 +5,9 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { renderCompileReport, writeCompileReport, type CompileReport } from "../src/index";
+import { createNodeFileSystemAdapter } from "./helpers/node-file-system";
+
+const fsAdapter = createNodeFileSystemAdapter();
 
 describe("renderCompileReport", () => {
   it("renders a schema-valid report as pretty-printed JSON with a trailing newline", () => {
@@ -21,7 +24,7 @@ describe("renderCompileReport", () => {
   it("throws instead of silently emitting an invalid report", () => {
     // Downstream consumers rely on renderCompileReport's `.parse()` call to
     // fail loudly on a malformed report rather than writing bad JSON to disk.
-    const malformed = { ...createReport(), filesScanned: -1 } as unknown as CompileReport;
+    const malformed: CompileReport = { ...createReport(), filesScanned: -1 };
 
     expect(() => renderCompileReport(malformed)).toThrow();
   });
@@ -33,7 +36,7 @@ describe("writeCompileReport", () => {
     const outputDir = path.join(baseDir, "nested", "output");
     const report = createReport();
 
-    await writeCompileReport(report, outputDir);
+    await writeCompileReport(fsAdapter, report, outputDir);
 
     const written = await fs.readFile(path.join(outputDir, "COMPILE_REPORT.json"), "utf8");
     expect(written).toBe(renderCompileReport(report));

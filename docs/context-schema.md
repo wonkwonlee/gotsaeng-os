@@ -88,7 +88,8 @@ Priority can be inferred from `priority: high`, `priority: medium`, `priority: l
 
 ## Compile Options
 
-`compileContextPack(options)` accepts:
+`compileContextPack(fsAdapter, options)` — see the core package README's "Public API" section for
+`fsAdapter` — accepts an `options` object with:
 
 - `sourceRoot`, `projectName`: required.
 - `staleDays`: optional, defaults to `90`.

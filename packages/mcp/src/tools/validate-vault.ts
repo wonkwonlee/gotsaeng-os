@@ -3,6 +3,7 @@ import path from "node:path";
 import { parseMarkdownFile, scanMarkdownFiles, validateNoteMetadata } from "@gotsaeng/core";
 
 import type { ServerConfig } from "../config";
+import { createNodeFileSystemAdapter } from "../node-file-system";
 
 const ISSUE_LIST_CAP = 50;
 
@@ -24,11 +25,12 @@ export async function validateVault(
   const strict = input.strict ?? false;
   const errors: string[] = [];
   const warnings: string[] = [];
+  const fsAdapter = createNodeFileSystemAdapter();
 
-  const files = await scanMarkdownFiles(config.vaultRoot);
+  const files = await scanMarkdownFiles(fsAdapter, config.vaultRoot);
   for (const filePath of files) {
     try {
-      const note = await parseMarkdownFile(filePath, config.vaultRoot);
+      const note = await parseMarkdownFile(fsAdapter, filePath, config.vaultRoot);
       for (const issue of validateNoteMetadata(note, { strict })) {
         (issue.severity === "error" ? errors : warnings).push(`${issue.path}: ${issue.message}`);
       }

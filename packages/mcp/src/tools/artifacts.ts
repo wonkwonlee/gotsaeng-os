@@ -1,8 +1,7 @@
-import fs from "node:fs/promises";
-
 import { hashArtifactContent, readArtifactIndex } from "@gotsaeng/core";
 
 import { resolveArtifactPath, type ServerConfig } from "../config";
+import { createNodeFileSystemAdapter } from "../node-file-system";
 
 export const DEFAULT_READ_BYTES = 65536;
 export const MAX_READ_BYTES = 262144;
@@ -14,7 +13,7 @@ export async function listContextArtifacts(config: ServerConfig): Promise<{
   compiled: boolean;
   artifacts: Array<{ name: string; bytes: number; description: string }>;
 }> {
-  const index = await readArtifactIndex(config.outputRoot);
+  const index = await readArtifactIndex(createNodeFileSystemAdapter(), config.outputRoot);
   if (index === null) {
     return { compiled: false, artifacts: [] };
   }
@@ -40,7 +39,8 @@ export async function readContextArtifact(
   note: string;
   content: string;
 }> {
-  const index = await readArtifactIndex(config.outputRoot);
+  const fsAdapter = createNodeFileSystemAdapter();
+  const index = await readArtifactIndex(fsAdapter, config.outputRoot);
   const entry = index?.artifacts.find((artifact) => artifact.name === input.name);
   if (!entry) {
     throw new Error(
@@ -50,8 +50,11 @@ export async function readContextArtifact(
 
   const cap = Math.min(Math.max(input.maxBytes ?? DEFAULT_READ_BYTES, 1), MAX_READ_BYTES);
   const filePath = resolveArtifactPath(config.outputRoot, entry.name);
-  const buffer = await fs.readFile(filePath);
-  const sliced = buffer.subarray(0, cap);
+  const buffer = await fsAdapter.readBinary(filePath);
+  if (buffer === null) {
+    throw new Error(`Artifact listed in ARTIFACT_INDEX.json but missing on disk: ${filePath}`);
+  }
+  const sliced = Buffer.from(buffer.subarray(0, cap));
 
   return {
     name: entry.name,

@@ -58,7 +58,7 @@ describe("createGotsaengMcpServer", () => {
 
     const result = await client.callTool({ name: "validate_vault", arguments: {} });
     const first = (result.content as Array<{ type: string; text: string }>)[0];
-    const payload = JSON.parse(first?.text ?? "{}");
+    const payload = JSON.parse(first?.text ?? "{}") as { filesChecked?: number };
     expect(payload.filesChecked).toBe(1);
 
     const bad = await client.callTool({

@@ -1,5 +1,6 @@
 import path from "node:path";
 
+import type { FileSystemAdapter } from "./adapters/file-system";
 import { extractItems, sortExtractedItems } from "./extractor";
 import { parseMarkdownFile } from "./parser";
 import { createWarningTriage } from "./quality";
@@ -36,12 +37,17 @@ import {
   writeArtifactIndex,
 } from "./exporters/artifact-index";
 
-export async function compileContextPack(options: CompileOptions): Promise<ContextPack> {
+export async function compileContextPack(
+  fsAdapter: FileSystemAdapter,
+  options: CompileOptions,
+): Promise<ContextPack> {
   const parsedOptions = CompileOptionsSchema.parse(options);
   const dateProvider: DateProvider = options.dateProvider ?? (() => new Date());
   const sourceRoot = path.resolve(parsedOptions.sourceRoot);
-  const allFiles = await scanSourceFiles(sourceRoot, { ignoreGlobs: parsedOptions.ignoreGlobs });
-  const markdownFiles = await scanMarkdownFiles(sourceRoot, {
+  const allFiles = await scanSourceFiles(fsAdapter, sourceRoot, {
+    ignoreGlobs: parsedOptions.ignoreGlobs,
+  });
+  const markdownFiles = await scanMarkdownFiles(fsAdapter, sourceRoot, {
     ignoreGlobs: parsedOptions.ignoreGlobs,
   });
   const notes = [];
@@ -49,7 +55,7 @@ export async function compileContextPack(options: CompileOptions): Promise<Conte
 
   for (const filePath of markdownFiles) {
     try {
-      notes.push(await parseMarkdownFile(filePath, sourceRoot));
+      notes.push(await parseMarkdownFile(fsAdapter, filePath, sourceRoot));
     } catch (error) {
       parseErrors.push({
         path: path.relative(sourceRoot, filePath),
@@ -122,16 +128,17 @@ export async function compileContextPack(options: CompileOptions): Promise<Conte
 }
 
 export async function writeContextPack(
+  fsAdapter: FileSystemAdapter,
   pack: ContextPack,
   outputDir: string,
   caps: RegisterCaps = {},
 ): Promise<ContextPack["report"]> {
-  const previousManifest = await readPreviousContextManifest(outputDir);
+  const previousManifest = await readPreviousContextManifest(fsAdapter, outputDir);
   const manifest = createContextManifest(pack);
   const memoryDiff = diffContextManifests(previousManifest.manifest, manifest, pack.generatedAt);
-  const markdownFiles = await writeMarkdownContextPack(pack, outputDir, caps);
-  await writeMemoryDiff(memoryDiff, outputDir);
-  await writeContextManifest(manifest, outputDir);
+  const markdownFiles = await writeMarkdownContextPack(fsAdapter, pack, outputDir, caps);
+  await writeMemoryDiff(fsAdapter, memoryDiff, outputDir);
+  await writeContextManifest(fsAdapter, manifest, outputDir);
 
   const warnings = previousManifest.warning
     ? [...pack.report.warnings, previousManifest.warning].sort()
@@ -154,13 +161,14 @@ export async function writeContextPack(
     generatedFiles,
   };
   pack.report = report;
-  await writeCompileReport(report, outputDir);
+  await writeCompileReport(fsAdapter, report, outputDir);
 
   const artifactIndex = await buildArtifactIndex(
+    fsAdapter,
     outputDir,
     generatedFiles.filter((name) => name !== ARTIFACT_INDEX_FILE),
     { projectName: pack.projectName, generatedAt: pack.generatedAt },
   );
-  await writeArtifactIndex(artifactIndex, outputDir);
+  await writeArtifactIndex(fsAdapter, artifactIndex, outputDir);
   return report;
 }

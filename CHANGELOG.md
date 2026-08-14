@@ -1,5 +1,134 @@
 # Changelog
 
+## 0.12.1
+
+- Fix: the Obsidian adapter's Report Hub settings tab and output-folder cleanup had four related
+  bugs, all found during an `/impeccable` critique of `apps/obsidian-plugin` (public repo issues
+  #21, #22, #25, #26):
+  - Routine output-folder cleanup (every Compile/Weekly Review/LLM Handoff/Validate command) only
+    ever considered the two built-in folder names as sweep candidates, regardless of whether this
+    plugin instance had ever actually used them. A file reappearing in an unused built-in folder
+    (e.g. from a vault sync or backup restore) was silently deleted on the next compile. Cleanup
+    now sweeps only folders in a persisted `managedOutputFolders` set, populated as the user
+    actually consents to output-folder changes.
+  - Output-folder cleanup could delete empty ancestor directories above the managed output folder
+    (walking up toward the vault root) even when the plugin did not create them. It now only ever
+    removes the exact managed folder itself.
+  - The custom-path text field's blur-commit and the visibility dropdown's change handler could
+    race on a fast user gesture, opening two confirm modals for one logical change and reading
+    settings before either had settled. Output-folder mutations are now serialized.
+  - Selecting "Custom path" in the settings dropdown no longer eagerly persists
+    `outputFolderVisibility: "custom"` before an actual custom folder is committed; declining the
+    subsequent confirm modal now cleanly reverts instead of leaving a mismatched
+    `custom` + built-in-folder state. The path field is now focused only on the transition into
+    custom mode (not on every settings-tab re-render), and the validation banner refreshes
+    immediately after a successful commit instead of waiting for the tab to be reopened.
+  - (Codex review follow-up) A `data.json` predating `managedOutputFolders` grandfathered the
+    hidden folder into that set regardless of which folder the vault actually used, reopening the
+    same silent-deletion risk the field was added to close. Legacy settings now start from an empty
+    managed set, plus only the folder actually in use. Serializing racing blur/dropdown calls also
+    still let a fast gesture open two sequential confirm modals (the blur commit's, then the
+    dropdown's, against whatever the first one left behind) instead of one; a generation counter now
+    cancels a superseded queued call outright so only the most current intent ever prompts.
+- Security: `writeText`/`mkdir` in every `node:fs`-backed `FileSystemAdapter` (`packages/cli`,
+  `packages/mcp`, and the corresponding test helpers) now delete a pre-existing symlink at the
+  target path before creating a real file/directory there, instead of writing through it.
+  `fs.writeFile` follows a symlink at its final path segment; a vault (or CLI output directory)
+  that already had a symlink planted at a generated artifact's predictable name (e.g.
+  `.gotsaeng/context-pack/PROJECT_CONTEXT.md`) would have that symlink's target truncated and
+  overwritten by a compile, corrupting whatever file or directory it pointed to outside the vault.
+  `writeText` gates the removal on `lstat` (not a plain existence check, and not an unconditional
+  remove): `lstat` reports the link itself rather than following it, so it also catches a
+  _dangling_ symlink (target missing) that an `exists()`-style check would miss and let the write
+  follow anyway — and only removing when the target is actually a symlink preserves the
+  mode/permissions of a normal pre-existing file across an overwrite, instead of losing them to a
+  remove-then-recreate. `apps/obsidian-plugin/src/obsidian-file-system.ts`'s `writeText` got the
+  equivalent unconditional try/catch-wrapped removal (Obsidian's `DataAdapter` exposes no `lstat`
+  equivalent to gate on directly, so `mkdir` there is unchanged — see its inline comment), but only
+  swallows a confirmed `ENOENT` from that removal — any other failure (e.g. a symlink sitting in a
+  directory this process can't write to) now aborts the write instead of falling through to
+  `adapter.write()`, which would still follow whatever the failed removal left in place. None of
+  this protects against a symlinked _ancestor_ directory in the output path, only the leaf artifact
+  path itself; closing that fully would need validating every path segment, a separate, larger
+  pass.
+- Security: `.github/workflows/release.yml`'s `quality` job now retains the `obsidian-plugin-dist`
+  artifact for 14 days instead of the 1-day default. The `publish` job can sit waiting on a
+  required-reviewer approval (see `docs/release.md`'s "Optional: require manual approval before
+  publish") for as long as the approver takes; a 1-day retention could expire the artifact mid-wait,
+  so `github-release` would fail to download it after `publish` already published the (now
+  immutable) npm packages, leaving the release stuck with no clean way to finish just the GitHub
+  Release step.
+- Security: `.github/workflows/release.yml`'s `github-release` job no longer runs `pnpm
+install`/`pnpm build` itself while holding a `contents: write` token — a compromised dependency's
+  install/build script running in that job could have used the checkout-persisted git credential to
+  push commits or tags. It now downloads the Obsidian plugin build produced under the `quality`
+  job's read-only token instead. All three jobs' `actions/checkout` steps now set
+  `persist-credentials: false`.
+- Security: `.github/workflows/release.yml`'s `quality` job now refuses to proceed (before
+  installing any dependency or running any script) unless the pushed tag's commit is reachable from
+  `origin/main` — a tag alone only proves tag-push rights, not that its target was reviewed;
+  without this check, and absent separate tag protection in repo settings, anyone who could push a
+  tag could point a version release at unreviewed history. `docs/release.md` also documents an
+  optional additional layer: binding the `publish` job to a GitHub Environment (`release`) that can
+  be configured with required-reviewer approval.
+- Security: `.claude/skills/address-pr-review/SKILL.md` now checks out a PR with `gh pr checkout
+<n>` instead of `git checkout <headRefName>`. A fork PR's `headRefName` is attacker-controlled,
+  not globally unique (can collide with an existing local/origin branch, including `main`), and can
+  contain shell metacharacters — `gh pr checkout` resolves the PR by its immutable number via the
+  API instead of building a git command out of that text. Also added an explicit trust caveat,
+  since the skill goes on to run this repo's own package scripts and push a commit.
+
+- Obsidian adapter: `GotSaengSettingTab` now implements the declarative settings API
+  (`getSettingDefinitions`/`getControlValue`/`setControlValue`, Obsidian >=1.13.0), so its six
+  settings are searchable in Obsidian's built-in settings search. `display()` stays as the
+  fallback for hosts older than 1.13.0 — `manifest.json`'s `minAppVersion` is unchanged (`1.5.0`).
+  Four settings (project name, stale days, strict validation, open-after-compile) use native
+  `control` definitions. The other two (output folder visibility, output folder path) use the
+  `render` escape hatch instead: no `control` type exposes a blur-only commit or a
+  confirm-before-persist gate, and reproducing either with a native `text`/`dropdown` control's
+  per-change `setControlValue` would fire the 0.12.0 delete-confirmation dialog once per
+  keystroke — exactly the regression that release fixed. Both `render` definitions share their
+  actual logic with `display()` via two extracted methods, so nothing is implemented twice.
+  Closes #24.
+- Obsidian adapter: `apps/obsidian-plugin/tsconfig.json` now includes the `DOM` lib. Without it
+  `HTMLElement` and friends resolved to TypeScript's `error` type, so every `createEl`,
+  `createDiv`, and `addEventListener` call in `main.ts` and `view.ts` was silently unchecked —
+  `tsc` stayed quiet because the `error` type is assignable to everything. This is what produced
+  the bulk of the "unsafe member access on an `any` value" findings in the Obsidian community
+  plugin scorecard for the adapter's own source. Types only; no runtime change.
+- Tooling: ESLint now runs `typescript-eslint`'s `recommendedTypeChecked` rule set over all
+  TypeScript, wired to the real tsconfigs via `projectService`. The `no-unsafe-*` rules that
+  the scorecard reports were never active locally, so `pnpm lint` could not catch what it
+  flagged. `pnpm lint` still exits 0 at `--max-warnings 0`.
+- Core: validation messages for `type`, `created`, and `updated` now show the offending
+  frontmatter value as JSON when it is a map or a sequence. They previously ran it through
+  `String()`, which rendered any object-valued field as an unhelpful `[object Object]`.
+- CLI: the `--json` payload shapes are now named types (`CompileJsonPayload`, `CliErrorJsonPayload`,
+  `ValidationJsonPayload`) annotated onto the literals `packages/cli/src/output.ts` emits, so a
+  drift from the documented schema is a type error. This is an internal type-safety change, not a
+  new public API: `output.ts` is not re-exported from the package entry point. Output is
+  byte-identical.
+- Core: `packages/core` no longer imports `node:fs` (or `fast-glob`, which pulls it in) anywhere.
+  Every read/write goes through a new `FileSystemAdapter` interface
+  (`adapters/file-system.ts`) injected by the caller: `compileContextPack`, `writeContextPack`,
+  `scanSourceFiles`/`scanMarkdownFiles`, `parseMarkdownFile`, and every exporter now take one as
+  their first argument. `packages/cli` and `packages/mcp` each construct a `node:fs`-backed
+  implementation (`node-file-system.ts`); `apps/obsidian-plugin` constructs one backed by
+  `app.vault.adapter` instead (`obsidian-file-system.ts`), translating the same absolute,
+  under-vault-root paths core has always used into the vault-relative paths Obsidian's adapter
+  expects. `output-cleanup.ts` and the three remaining direct-`fs` call sites in `main.ts` (output
+  read/write, compile-report read) were converted the same way. Scanning itself moved from
+  fast-glob to an `adapter.list()`-based recursive walk with `micromatch` ignore-glob filtering, a
+  known-`**`-suffix pruning optimization to avoid walking `.git`/`node_modules`-sized ignored
+  subtrees, and explicit dotfile exclusion to preserve fast-glob's old `dot: false` behavior.
+  Closes #22. `apps/obsidian-plugin/dist/main.js` also aliases `fs`/`node:fs` to a throwing stub at
+  build time (`tsup.config.ts`, `scripts/fs-stub.cjs`), since `gray-matter`'s `index.js` does an
+  unconditional (but, for how this plugin calls it, unreachable) top-level `require('fs')` for its
+  unused `matter.read(filePath)` overload — the stub is what makes "no `node:fs` import reachable
+  from the built plugin" true of the bundle as shipped, not just of this repo's own source.
+  Local-only I/O throughout; no behavior change for CLI/MCP users, and Obsidian users get the same
+  compiled output as before.
+
 ## 0.12.0
 
 - MCP: added `@gotsaeng/mcp`, a stdio MCP server exposing `validate_vault`,

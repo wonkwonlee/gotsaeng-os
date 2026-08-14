@@ -50,72 +50,104 @@ export function renderCliError(input: { title: string; reason: string; checks: s
 
 export const CLI_JSON_SCHEMA_VERSION = 1;
 
-export function renderCompileJson(input: CompileSummaryInput): string {
-  return `${JSON.stringify(
-    {
-      schemaVersion: CLI_JSON_SCHEMA_VERSION,
-      command: "compile",
-      project: input.projectName,
-      source: input.source,
-      output: input.output,
-      itemCounts: input.itemCounts,
-      report: input.report,
-    },
-    null,
-    2,
-  )}\n`;
-}
+export type ValidationStatus = "valid" | "valid with warnings" | "invalid";
 
-export function renderCliErrorJson(input: { title: string; reason: string }): string {
-  return `${JSON.stringify(
-    { schemaVersion: CLI_JSON_SCHEMA_VERSION, error: { title: input.title, reason: input.reason } },
-    null,
-    2,
-  )}\n`;
-}
-
-export function renderValidationJson(input: {
+export type ValidationInput = {
   source: string;
   markdownFiles: number;
   mode: "compatibility" | "strict";
   warnings: string[];
   errors: string[];
-}): string {
-  const status =
-    input.errors.length > 0
-      ? "invalid"
-      : input.warnings.length > 0
-        ? "valid with warnings"
-        : "valid";
-  return `${JSON.stringify(
-    {
-      schemaVersion: CLI_JSON_SCHEMA_VERSION,
-      command: "validate",
-      source: input.source,
-      markdownFiles: input.markdownFiles,
-      mode: input.mode,
-      status,
-      warnings: input.warnings,
-      errors: input.errors,
-    },
-    null,
-    2,
-  )}\n`;
-}
+};
 
-export function renderValidationSummary(input: {
-  source: string;
-  markdownFiles: number;
-  mode?: "compatibility" | "strict";
+/**
+ * Single source of truth for the validate status wording, shared by the text
+ * and JSON renderers so the two cannot drift apart.
+ */
+function resolveValidationStatus(input: {
   warnings: string[];
   errors: string[];
-}): string {
-  const status =
-    input.errors.length > 0
-      ? "invalid"
-      : input.warnings.length > 0
-        ? "valid with warnings"
-        : "valid";
+}): ValidationStatus {
+  if (input.errors.length > 0) {
+    return "invalid";
+  }
+  return input.warnings.length > 0 ? "valid with warnings" : "valid";
+}
+
+// The `--json` payloads are a versioned contract with external tools that parse
+// the CLI's stdout (see CLI_JSON_SCHEMA_VERSION), so their shapes are named
+// rather than left implicit in the JSON.stringify argument. Annotating the
+// literals below makes any drift a type error, and lets this package's own
+// tests parse into a real type instead of `any`. These types are internal —
+// not re-exported from the package entry point — since the schema they
+// describe is the wire contract; nothing in-process needs the TS type.
+export type CompileJsonPayload = {
+  schemaVersion: typeof CLI_JSON_SCHEMA_VERSION;
+  command: "compile";
+  project: string;
+  source: string;
+  output: string;
+  itemCounts: Record<string, number>;
+  report: CompileReport;
+};
+
+export type CliErrorJsonPayload = {
+  schemaVersion: typeof CLI_JSON_SCHEMA_VERSION;
+  error: { title: string; reason: string };
+};
+
+export type ValidationJsonPayload = {
+  schemaVersion: typeof CLI_JSON_SCHEMA_VERSION;
+  command: "validate";
+  source: string;
+  markdownFiles: number;
+  mode: "compatibility" | "strict";
+  status: ValidationStatus;
+  warnings: string[];
+  errors: string[];
+};
+
+export function renderCompileJson(input: CompileSummaryInput): string {
+  const payload: CompileJsonPayload = {
+    schemaVersion: CLI_JSON_SCHEMA_VERSION,
+    command: "compile",
+    project: input.projectName,
+    source: input.source,
+    output: input.output,
+    itemCounts: input.itemCounts,
+    report: input.report,
+  };
+  return `${JSON.stringify(payload, null, 2)}\n`;
+}
+
+export function renderCliErrorJson(input: { title: string; reason: string }): string {
+  const payload: CliErrorJsonPayload = {
+    schemaVersion: CLI_JSON_SCHEMA_VERSION,
+    error: { title: input.title, reason: input.reason },
+  };
+  return `${JSON.stringify(payload, null, 2)}\n`;
+}
+
+export function renderValidationJson(input: ValidationInput): string {
+  const payload: ValidationJsonPayload = {
+    schemaVersion: CLI_JSON_SCHEMA_VERSION,
+    command: "validate",
+    source: input.source,
+    markdownFiles: input.markdownFiles,
+    mode: input.mode,
+    status: resolveValidationStatus(input),
+    warnings: input.warnings,
+    errors: input.errors,
+  };
+  return `${JSON.stringify(payload, null, 2)}\n`;
+}
+
+// The text renderer keeps `mode` optional — it falls back to "compatibility" —
+// while the JSON payload always carries an explicit mode.
+export function renderValidationSummary(
+  input: Omit<ValidationInput, "mode"> & { mode?: ValidationInput["mode"] },
+): string {
+  const status = resolveValidationStatus(input);
   const sections = [
     "GotSaeng OS Vault Validation",
     "",
