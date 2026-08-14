@@ -13,7 +13,9 @@ import {
   renderArtifactIndex,
   writeArtifactIndex,
 } from "../src/exporters/artifact-index";
+import { createNodeFileSystemAdapter } from "./helpers/node-file-system";
 
+const fsAdapter = createNodeFileSystemAdapter();
 let dir: string;
 
 beforeEach(async () => {
@@ -40,7 +42,7 @@ describe("artifact index", () => {
     await writeFile(path.join(dir, "A.md"), "alpha", "utf8");
     await writeFile(path.join(dir, "B.json"), "{}", "utf8");
 
-    const index = await buildArtifactIndex(dir, ["A.md", "B.json"], {
+    const index = await buildArtifactIndex(fsAdapter, dir, ["A.md", "B.json"], {
       projectName: "Demo",
       generatedAt: "2026-08-11",
     });
@@ -48,14 +50,14 @@ describe("artifact index", () => {
     expect(index.artifacts[0]).toMatchObject({ name: "A.md", bytes: 5 });
     expect(index.artifacts[0]?.sha256).toMatch(/^[0-9a-f]{64}$/);
 
-    await writeArtifactIndex(index, dir);
-    const roundTripped = await readArtifactIndex(dir);
+    await writeArtifactIndex(fsAdapter, index, dir);
+    const roundTripped = await readArtifactIndex(fsAdapter, dir);
     expect(roundTripped).toEqual(index);
     expect(renderArtifactIndex(index)).toContain('"projectName": "Demo"');
   });
 
   it("returns null when no index file exists", async () => {
-    expect(await readArtifactIndex(dir)).toBeNull();
+    expect(await readArtifactIndex(fsAdapter, dir)).toBeNull();
   });
 
   it("names the index file ARTIFACT_INDEX.json (CONTEXT_MANIFEST is taken)", () => {

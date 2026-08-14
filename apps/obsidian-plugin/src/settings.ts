@@ -4,6 +4,13 @@ export type GotSaengPluginSettings = {
   projectName: string;
   outputFolderVisibility: OutputFolderVisibility;
   outputFolder: string;
+  // Folders this plugin instance has actually written to with user consent
+  // (see applyOutputFolderChange in main.ts). Output-folder cleanup only ever
+  // sweeps folders in this set (plus, when passed, the folder being vacated
+  // right now) — being one of the two built-in folder *names* is no longer by
+  // itself sufficient reason to sweep it. See getStaleManagedOutputFolders in
+  // output-cleanup.ts.
+  managedOutputFolders: string[];
   staleDays: number;
   strictValidation: boolean;
   openAfterCompile: boolean;
@@ -16,6 +23,7 @@ export const DEFAULT_SETTINGS: GotSaengPluginSettings = {
   projectName: "GotSaeng OS",
   outputFolderVisibility: "hidden",
   outputFolder: HIDDEN_OUTPUT_FOLDER,
+  managedOutputFolders: [HIDDEN_OUTPUT_FOLDER],
   staleDays: 90,
   strictValidation: false,
   openAfterCompile: true,
@@ -36,17 +44,45 @@ export function normalizeSettings(
       ? DEFAULT_SETTINGS.outputFolderVisibility
       : requestedVisibility;
 
+  const outputFolder = resolveOutputFolderForVisibility(
+    outputFolderVisibility,
+    validCustomOutputFolder ?? DEFAULT_SETTINGS.outputFolder,
+  );
+
   return {
     projectName: normalizeProjectName(settings.projectName),
     outputFolderVisibility,
-    outputFolder: resolveOutputFolderForVisibility(
-      outputFolderVisibility,
-      validCustomOutputFolder ?? DEFAULT_SETTINGS.outputFolder,
+    outputFolder,
+    managedOutputFolders: normalizeManagedOutputFolders(
+      settings.managedOutputFolders,
+      outputFolder,
     ),
     staleDays: normalizeStaleDays(settings.staleDays),
     strictValidation: settings.strictValidation ?? DEFAULT_SETTINGS.strictValidation,
     openAfterCompile: settings.openAfterCompile ?? DEFAULT_SETTINGS.openAfterCompile,
   };
+}
+
+// The currently active output folder is always trivially "managed" — folding
+// it in here means every saveSettings() call (which routes through
+// normalizeSettings) automatically records the folder-in-use as authorized
+// for cleanup, without applyOutputFolderChange needing its own bookkeeping.
+// When `value` is undefined (a data.json predating this field, or a fresh
+// install), this starts from an *empty* set rather than
+// DEFAULT_SETTINGS.managedOutputFolders (which seeds the hidden folder): a
+// vault migrating from a pre-this-field version may have always used the
+// visible or a custom folder, and grandfathering in the hidden folder too
+// would mark it managed — and therefore swept — even though this plugin
+// instance never wrote to it. Only `outputFolder`, added below, is known-safe
+// to grandfather in.
+export function normalizeManagedOutputFolders(
+  value: string[] | undefined,
+  outputFolder: string,
+): string[] {
+  const base = value ?? [];
+  const normalized = new Set(base.map((folder) => normalizeOutputFolder(folder)));
+  normalized.add(normalizeOutputFolder(outputFolder));
+  return [...normalized];
 }
 
 export function normalizeProjectName(value: string | undefined): string {

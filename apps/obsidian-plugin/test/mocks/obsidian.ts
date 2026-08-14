@@ -29,6 +29,9 @@ export class FakeElement {
   min = "";
   value = "";
   disabled = false;
+  /** Mirrors the real DOM `HTMLElement.hidden` IDL attribute that `hide()`/`show()`/`toggle()` set. */
+  hidden = false;
+  private readonly attrs: Record<string, string> = {};
   readonly children: FakeElement[] = [];
   private readonly listeners = new Map<string, Array<() => void>>();
 
@@ -36,13 +39,27 @@ export class FakeElement {
     this.tag = tag;
   }
 
-  createEl(tag: string, options?: { text?: string; cls?: string | string[] }): FakeElement {
+  createEl(
+    tag: string,
+    options?: {
+      text?: string;
+      cls?: string | string[];
+      attr?: Record<string, string | number | boolean | null>;
+    },
+  ): FakeElement {
     const el = new FakeElement(tag);
     if (options?.text !== undefined) {
       el.text = options.text;
     }
     if (options?.cls) {
       el.addClass(...(Array.isArray(options.cls) ? options.cls : [options.cls]));
+    }
+    if (options?.attr) {
+      for (const [name, attrValue] of Object.entries(options.attr)) {
+        if (attrValue !== null) {
+          el.setAttr(name, attrValue);
+        }
+      }
     }
     this.children.push(el);
     return el;
@@ -60,6 +77,30 @@ export class FakeElement {
     this.cls.push(...classes);
   }
 
+  setText(value: string): void {
+    this.text = value;
+  }
+
+  setAttr(name: string, value: string | number | boolean): void {
+    this.attrs[name] = String(value);
+  }
+
+  getAttr(name: string): string | null {
+    return this.attrs[name] ?? null;
+  }
+
+  hide(): void {
+    this.hidden = true;
+  }
+
+  show(): void {
+    this.hidden = false;
+  }
+
+  toggle(show: boolean): void {
+    this.hidden = !show;
+  }
+
   addEventListener(type: string, callback: () => void): void {
     const existing = this.listeners.get(type) ?? [];
     existing.push(callback);
@@ -73,8 +114,11 @@ export class FakeElement {
     }
   }
 
+  /** Test helper: how many times `focus()` has been called on this element. */
+  focusCount = 0;
+
   focus(): void {
-    // No-op: real Obsidian focuses the underlying input; nothing to assert.
+    this.focusCount += 1;
   }
 
   /** Test helper: depth-first search for a descendant carrying `cls`. */
@@ -209,6 +253,12 @@ export class PluginSettingTab {
 
   display(): void {}
   hide(): void {}
+  // Real SettingTab.update() re-fetches getSettingDefinitions() and
+  // re-renders; GotSaengSettingTab calls it as the declarative-API
+  // equivalent of display() (see its class-level comment in src/main.ts).
+  // Tests that need to observe its effect call getSettingDefinitions()
+  // themselves rather than relying on this mock to re-render anything.
+  update(): void {}
 }
 
 export class FakeTextComponent {
@@ -391,10 +441,17 @@ export class Modal {
   app: unknown;
   readonly containerEl: FakeElement = new FakeElement("div");
   readonly contentEl: FakeElement;
+  readonly titleEl: FakeElement;
 
   constructor(app: unknown) {
     this.app = app;
     this.contentEl = this.containerEl.createDiv();
+    this.titleEl = this.containerEl.createDiv();
+  }
+
+  setTitle(title: string): this {
+    this.titleEl.setText(title);
+    return this;
   }
 
   onOpen(): void {}

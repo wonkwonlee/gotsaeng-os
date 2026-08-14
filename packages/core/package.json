@@ -1,6 +1,6 @@
 {
   "name": "@gotsaeng/core",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "Core context compiler for GotSaeng OS.",
   "type": "module",
   "license": "MIT",
@@ -45,8 +45,11 @@
     "prepack": "pnpm build"
   },
   "dependencies": {
-    "fast-glob": "^3.3.2",
     "gray-matter": "^4.0.3",
+    "micromatch": "^4.0.8",
     "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/micromatch": "^4.0.9"
   }
 }

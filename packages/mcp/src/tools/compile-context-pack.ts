@@ -6,6 +6,7 @@ import {
 } from "@gotsaeng/core";
 
 import type { ServerConfig } from "../config";
+import { createNodeFileSystemAdapter } from "../node-file-system";
 
 export type CompileResult = {
   project: string;
@@ -19,13 +20,14 @@ export type CompileResult = {
 };
 
 export async function runCompile(config: ServerConfig): Promise<CompileResult> {
-  const pack = await compileContextPack({
+  const fsAdapter = createNodeFileSystemAdapter();
+  const pack = await compileContextPack(fsAdapter, {
     sourceRoot: config.vaultRoot,
     projectName: config.projectName,
     staleDays: config.staleDays,
   });
-  const report = await writeContextPack(pack, config.outputRoot);
-  const index = await readArtifactIndex(config.outputRoot);
+  const report = await writeContextPack(fsAdapter, pack, config.outputRoot);
+  const index = await readArtifactIndex(fsAdapter, config.outputRoot);
 
   return {
     project: pack.projectName,

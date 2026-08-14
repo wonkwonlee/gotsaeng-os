@@ -71,4 +71,22 @@ describe("parser", () => {
     ]);
     expect(strictIssues.filter((issue) => issue.severity === "error")).toHaveLength(3);
   });
+  it("shows the offending shape when a scalar field holds a map or sequence", () => {
+    // Regression coverage: these messages used to run the raw frontmatter value
+    // through String(), so an object-valued field rendered as "[object Object]"
+    // and told the reader nothing about what they had actually written.
+    const note = parseMarkdown(
+      ["---", "type:", "  name: wiki", "updated:", "  - 2026-06-06", "---", "", "# Nested"].join(
+        "\n",
+      ),
+      "/vault/notes/nested.md",
+      "/vault",
+    );
+
+    const messages = validateNoteMetadata(note, { strict: true }).map((issue) => issue.message);
+
+    expect(messages).toContain('Invalid note type: {"name":"wiki"}.');
+    expect(messages).toContain('Invalid updated date: ["2026-06-06"].');
+    expect(messages.some((message) => message.includes("[object Object]"))).toBe(false);
+  });
 });

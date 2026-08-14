@@ -1,0 +1,14 @@
+{
+  // Root-level tooling config that no package owns. It exists so type-aware
+  // ESLint resolves `vitest.config.ts` through a real program (with Node types)
+  // instead of falling back to an inferred default project, where `node:path`
+  // and `import.meta` resolve to the `error` type and every use of them reads
+  // as an unsafe `any`.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
+  },
+  "include": ["vitest.config.ts"]
+}

@@ -50,6 +50,13 @@ review queues. Both are generated from the same local compiler signals as the ot
 the Report Hub previews both like every other generated artifact.
 The adapter also groups memory-diff sections by source note and shows calibrated provenance
 summaries with strong, moderate, and weak buckets.
+The Context Pack Files grid groups artifacts into Core Reports, Governance (Decision Log, Risk
+Register, Open Questions, Stale Context), Analysis, and Raw Data so no single group holds more than
+about 7 items, and a filter field above the grid narrows the visible buttons by name as you type.
+A command button in flight relabels itself (e.g. "Compile…") and sets `aria-busy` in addition to
+being disabled, so a slow compile on a large vault reads as running rather than unresponsive. A
+command failure's banner shows the action name and a timestamp alongside the error message, and can
+be dismissed on its own without needing to run another command first.
 
 ## Build
 
@@ -88,6 +95,23 @@ cp apps/obsidian-plugin/dist/main.js \
 
 Then restart Obsidian or disable/enable **GotSaeng OS** in Obsidian community plugin settings. Complete
 `docs/obsidian-manual-smoke.md` before tagging a release that includes adapter changes.
+
+## Verifying a Downloaded Release Build
+
+Each tagged release publishes `main.js`, `manifest.json`, and `styles.css` as GitHub Release
+assets, built and uploaded by this repo's `release.yml` workflow with
+[build provenance attestation](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds).
+If you downloaded these files from a GitHub Release instead of building them locally, verify they
+were produced by that workflow from this repo's source before installing them into a vault:
+
+```bash
+gh attestation verify main.js --repo wonkwonlee/gotsaeng-os
+gh attestation verify manifest.json --repo wonkwonlee/gotsaeng-os
+gh attestation verify styles.css --repo wonkwonlee/gotsaeng-os
+```
+
+Each command should report a successful verification against the `wonkwonlee/gotsaeng-os` build
+workflow. Requires the [GitHub CLI](https://cli.github.com/) (`gh`) version 2.49 or newer.
 
 ## Privacy
 

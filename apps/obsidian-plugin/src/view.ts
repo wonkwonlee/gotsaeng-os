@@ -16,10 +16,20 @@ const BACKLINK_NOTE_LIMIT = 20;
 const BACKLINK_REPORT_LIMIT = 6;
 const ARTIFACT_GROUPS = groupOutputArtifacts();
 
+// A command failure recorded by `runSafely` (main.ts). Carries enough to
+// distinguish "the run that just happened" from a stale failure from 40
+// minutes ago (see the error-banner dismiss/timestamp fix), instead of a bare
+// pre-formatted string.
+export type ReportHubLastError = {
+  action: string;
+  message: string;
+  timestamp: number;
+};
+
 export type ReportHubController = {
   settings: GotSaengPluginSettings;
   selectedOutputFileName: string | null;
-  lastError: string | null;
+  lastError: ReportHubLastError | null;
   compileContextPackCommand(): Promise<void>;
   generateWeeklyReviewCommand(): Promise<void>;
   exportLlmHandoffCommand(): Promise<void>;
@@ -30,11 +40,34 @@ export type ReportHubController = {
   openOutputFileByName(fileName: string): Promise<void>;
   openSourceFileByPath(sourcePath: string): Promise<void>;
   readCurrentCompileReport(): Promise<CompileReport | null>;
+  dismissLastError(): void;
+  refreshReportHubViews(): Promise<void>;
 };
+
+/** Exported for tests: formats a `ReportHubLastError.timestamp` for display. */
+export function formatErrorTimestamp(timestamp: number): string {
+  return new Date(timestamp).toLocaleTimeString();
+}
 
 export class GotSaengReportHubView extends ItemView {
   override icon = "file-text";
   override navigation = false;
+
+  // Preserved across renders so re-opening the view (or a re-render triggered
+  // by an unrelated action) does not silently reset an in-progress filter.
+  private artifactFilterQuery = "";
+
+  // Label of the action currently in flight, if any. Every command action
+  // (Compile, Weekly Review, LLM Handoff) calls the plugin's
+  // refreshReportHubViews() partway through its own work (see main.ts),
+  // which re-renders this leaf — including the button runAndRefresh is still
+  // awaiting — before the outer action() promise settles. Without this field
+  // surviving that render(), the rebuilt button would come back enabled with
+  // its normal label, making the in-progress indicator disappear early and
+  // letting the user fire a second overlapping command. render() consults
+  // this field on every button it creates, so the running state survives any
+  // render() call regardless of what triggered it.
+  private runningActionLabel: string | null = null;
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -68,10 +101,7 @@ export class GotSaengReportHubView extends ItemView {
     });
 
     if (this.controller.lastError) {
-      contentEl.createEl("p", {
-        text: this.controller.lastError,
-        cls: "gotsaeng-os-error-banner",
-      });
+      this.renderErrorBanner(contentEl, this.controller.lastError);
     }
 
     const actions = contentEl.createDiv({ cls: "gotsaeng-os-action-grid" });
@@ -124,16 +154,7 @@ export class GotSaengReportHubView extends ItemView {
     });
     const selectedFileName =
       this.controller.selectedOutputFileName ?? DEFAULT_OUTPUT_ARTIFACT.fileName;
-    for (const section of ARTIFACT_GROUPS) {
-      contentEl.createEl("h4", {
-        text: section.label,
-        cls: "gotsaeng-os-artifact-group-heading",
-      });
-      const files = contentEl.createDiv({ cls: "gotsaeng-os-artifact-grid" });
-      for (const artifact of section.artifacts) {
-        this.addArtifactButton(files, artifact, selectedFileName);
-      }
-    }
+    this.renderArtifactFiles(contentEl, selectedFileName);
 
     await this.renderArtifactPreview(contentEl, selectedFileName);
     await this.renderBacklinks(contentEl);
@@ -141,27 +162,130 @@ export class GotSaengReportHubView extends ItemView {
 
   private addActionButton(parent: HTMLElement, label: string, action: () => Promise<void>): void {
     const button = parent.createEl("button", { text: label, cls: "gotsaeng-os-button" });
+    if (this.runningActionLabel === label) {
+      this.applyRunningState(button, label);
+    }
     button.addEventListener("click", () => {
-      void this.runAndRefresh(button, action);
+      void this.runAndRefresh(button, label, action);
     });
+  }
+
+  private applyRunningState(button: HTMLElement & { disabled: boolean }, label: string): void {
+    button.disabled = true;
+    button.addClass("is-running");
+    button.setAttr("aria-busy", "true");
+    button.setText(`${label}…`);
+  }
+
+  private renderErrorBanner(parent: HTMLElement, lastError: ReportHubLastError): void {
+    const banner = parent.createDiv({ cls: "gotsaeng-os-error-banner" });
+    banner.createEl("span", {
+      text: `${lastError.action} · ${formatErrorTimestamp(lastError.timestamp)}`,
+      cls: "gotsaeng-os-error-banner-meta",
+    });
+    banner.createEl("span", {
+      text: lastError.message,
+      cls: "gotsaeng-os-error-banner-message",
+    });
+
+    const dismissButton = banner.createEl("button", {
+      text: "×",
+      cls: "gotsaeng-os-error-banner-dismiss",
+      attr: { "aria-label": "Dismiss error", type: "button" },
+    });
+    // Clears independently of running another command — the banner previously
+    // stuck around until the *next successful run of any command*, which a
+    // user just browsing other reports (which never fail) had no way to
+    // trigger while still reading the error. `lastError` is shared plugin
+    // state, not per-leaf, so a workspace with multiple Report Hub leaves
+    // open needs every leaf refreshed, not just the one the click happened
+    // in — otherwise the other leaves keep showing a banner for an error
+    // that has already been dismissed.
+    dismissButton.addEventListener("click", () => {
+      this.controller.dismissLastError();
+      void this.controller.refreshReportHubViews();
+    });
+  }
+
+  // Renders the "Context Pack Files" artifact grid: a filter input above
+  // grouped buttons. Filtering toggles button/heading visibility in place
+  // (via HTMLElement.toggle) rather than going through a full `render()`, so
+  // the input keeps DOM identity (and focus) across keystrokes.
+  private renderArtifactFiles(parent: HTMLElement, selectedFileName: string): void {
+    const filterInput = parent.createEl("input", {
+      cls: "gotsaeng-os-artifact-filter",
+      attr: {
+        type: "search",
+        placeholder: "Filter files by name…",
+        "aria-label": "Filter context pack files",
+      },
+    });
+    filterInput.value = this.artifactFilterQuery;
+
+    const sections: {
+      heading: HTMLElement;
+      grid: HTMLElement;
+      entries: { button: HTMLElement; label: string }[];
+    }[] = [];
+
+    for (const section of ARTIFACT_GROUPS) {
+      const headingId = `gotsaeng-os-artifact-group-${section.group}`;
+      const heading = parent.createEl("h4", {
+        text: section.label,
+        cls: "gotsaeng-os-artifact-group-heading",
+        attr: { id: headingId },
+      });
+      const grid = parent.createDiv({
+        cls: "gotsaeng-os-artifact-grid",
+        attr: { role: "group", "aria-labelledby": headingId },
+      });
+      const entries = section.artifacts.map((artifact) => ({
+        button: this.addArtifactButton(grid, artifact, selectedFileName),
+        label: artifact.label,
+      }));
+      sections.push({ heading, grid, entries });
+    }
+
+    const applyArtifactFilter = (query: string): void => {
+      this.artifactFilterQuery = query;
+      const needle = query.trim().toLowerCase();
+      for (const { heading, grid, entries } of sections) {
+        let visibleCount = 0;
+        for (const { button, label } of entries) {
+          const matches = needle === "" || label.toLowerCase().includes(needle);
+          button.toggle(matches);
+          if (matches) {
+            visibleCount += 1;
+          }
+        }
+        heading.toggle(visibleCount > 0);
+        grid.toggle(visibleCount > 0);
+      }
+    };
+
+    filterInput.addEventListener("input", () => applyArtifactFilter(filterInput.value));
+    applyArtifactFilter(this.artifactFilterQuery);
   }
 
   private addArtifactButton(
     parent: HTMLElement,
     artifact: OutputArtifact,
     selectedFileName: string,
-  ): void {
+  ): HTMLElement {
+    const isActive = artifact.fileName === selectedFileName;
     const button = parent.createEl("button", {
       text: artifact.label,
       cls: "gotsaeng-os-artifact-button",
+      attr: { "aria-pressed": String(isActive) },
     });
-    if (artifact.fileName === selectedFileName) {
+    if (isActive) {
       button.addClass("is-active");
     }
     button.addEventListener("click", () => {
       this.controller.setSelectedOutputFileName(artifact.fileName);
       void this.render();
     });
+    return button;
   }
 
   private addStat(parent: HTMLElement, label: string, value: string): void {
@@ -171,19 +295,28 @@ export class GotSaengReportHubView extends ItemView {
   }
 
   // Disables the clicked button for the duration of the async command so a
-  // user can't fire overlapping compiles by clicking repeatedly. render()
-  // rebuilds the action grid from scratch afterward, so the buttons come
-  // back enabled without any explicit re-enable step here.
+  // user can't fire overlapping compiles by clicking repeatedly, and swaps
+  // its label/aria-busy so a slow command reads as "running", not just
+  // "disabled and maybe broken". `runningActionLabel` is set for the whole
+  // duration of action(), not just this call's disabled flag, because
+  // action() itself triggers a mid-flight refreshReportHubViews() render()
+  // that rebuilds this button — addActionButton re-applies the running state
+  // to the new element as long as runningActionLabel still matches. Clearing
+  // the field and calling render() once more after action() settles restores
+  // the normal label/enabled state without any other explicit teardown.
   private async runAndRefresh(
     button: HTMLElement & { disabled: boolean },
+    label: string,
     action: () => Promise<void>,
   ): Promise<void> {
     if (button.disabled) {
       return;
     }
 
-    button.disabled = true;
+    this.runningActionLabel = label;
+    this.applyRunningState(button, label);
     await action();
+    this.runningActionLabel = null;
     await this.render();
   }
 

@@ -10,6 +10,11 @@ import {
   type NoteDocument,
 } from "../src/index";
 
+// vitest types its asymmetric matchers as `any`, which would leak into every
+// expectation object below. These aliases restore the declared field types
+// while still passing the matcher through at runtime.
+const anyNumber = expect.any(Number) as number;
+
 describe("confidence metadata", () => {
   it("scores explicit marker extraction as high confidence", () => {
     const note = createNote({
@@ -87,8 +92,8 @@ describe("confidence metadata", () => {
 
     expect(items.map((item) => item.confidence?.level)).toContain("high");
     expect(stats).toMatchObject({
-      averageScore: expect.any(Number),
-      highItems: expect.any(Number),
+      averageScore: anyNumber,
+      highItems: anyNumber,
       lowItems: 0,
     });
   });

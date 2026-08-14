@@ -1,5 +1,3 @@
-import fs from "node:fs/promises";
-
 import {
   compileContextPack,
   DEFAULT_HANDOFF_SECTIONS,
@@ -12,9 +10,11 @@ import {
   renderMarkdownFiles,
   writeArtifactIndex,
   type ArtifactEntry,
+  type FileSystemAdapter,
 } from "@gotsaeng/core";
 
 import { resolveArtifactPath, type ServerConfig } from "../config";
+import { createNodeFileSystemAdapter } from "../node-file-system";
 import { UNTRUSTED_CONTENT_NOTE } from "./artifacts";
 
 export async function prepareAiHandoff(
@@ -31,7 +31,8 @@ export async function prepareAiHandoff(
     }
   }
 
-  const pack = await compileContextPack({
+  const fsAdapter = createNodeFileSystemAdapter();
+  const pack = await compileContextPack(fsAdapter, {
     sourceRoot: config.vaultRoot,
     projectName: config.projectName,
     staleDays: config.staleDays,
@@ -40,12 +41,12 @@ export async function prepareAiHandoff(
   const handoff = renderLlmHandoff(pack, files, { sections });
 
   const filePath = resolveArtifactPath(config.outputRoot, LLM_HANDOFF_FILE);
-  await fs.mkdir(config.outputRoot, { recursive: true });
-  await fs.writeFile(filePath, handoff, "utf8");
+  await fsAdapter.writeText(filePath, handoff);
 
   const bytes = Buffer.byteLength(handoff, "utf8");
   const sha256 = hashArtifactContent(handoff);
   await indexHandoffArtifact(
+    fsAdapter,
     config.outputRoot,
     { name: LLM_HANDOFF_FILE, bytes, sha256, description: describeArtifact(LLM_HANDOFF_FILE) },
     { projectName: pack.projectName, generatedAt: pack.generatedAt },
@@ -68,16 +69,18 @@ export async function prepareAiHandoff(
 // only (and not correctly, since compile would drop it again) after a
 // subsequent compile_context_pack.
 async function indexHandoffArtifact(
+  fsAdapter: FileSystemAdapter,
   outputRoot: string,
   entry: ArtifactEntry,
   fallbackMeta: { projectName: string; generatedAt: string },
 ): Promise<void> {
-  const existing = await readArtifactIndex(outputRoot);
+  const existing = await readArtifactIndex(fsAdapter, outputRoot);
   const artifacts = existing
     ? [...existing.artifacts.filter((artifact) => artifact.name !== entry.name), entry]
     : [entry];
 
   await writeArtifactIndex(
+    fsAdapter,
     {
       projectName: existing?.projectName ?? fallbackMeta.projectName,
       generatedAt: existing?.generatedAt ?? fallbackMeta.generatedAt,

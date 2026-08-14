@@ -1,11 +1,12 @@
-import fs from "node:fs/promises";
 import path from "node:path";
 
 import matter from "gray-matter";
 
+import type { FileSystemAdapter } from "./adapters/file-system";
 import { classifyNoteType, isNoteType, mapCompatibleNoteType } from "./classifier";
 import { NoteDocumentSchema, type NoteDocument } from "./schemas/note";
 import { createDeterministicId } from "./utils/hash";
+import { describeValue } from "./utils/describe";
 import { isValidDateLike, normalizeDateValue } from "./utils/date";
 import { titleFromFilename, toRelativeSourcePath } from "./utils/path";
 
@@ -19,8 +20,15 @@ export type ValidationOptions = {
   strict?: boolean;
 };
 
-export async function parseMarkdownFile(filePath: string, rootPath: string): Promise<NoteDocument> {
-  const raw = await fs.readFile(filePath, "utf8");
+export async function parseMarkdownFile(
+  fsAdapter: FileSystemAdapter,
+  filePath: string,
+  rootPath: string,
+): Promise<NoteDocument> {
+  const raw = await fsAdapter.readText(filePath);
+  if (raw === null) {
+    throw new Error(`Source file not found: ${filePath}`);
+  }
   return parseMarkdown(raw, filePath, rootPath);
 }
 
@@ -109,10 +117,10 @@ export function validateNoteMetadata(
       path: note.path,
       severity: strict ? "error" : "warning",
       message: strict
-        ? `Invalid note type: ${String(rawType)}.`
+        ? `Invalid note type: ${describeValue(rawType)}.`
         : mappedType
-          ? `Custom note type: ${String(rawType)}; mapped to ${mappedType}.`
-          : `Unsupported note type: ${String(rawType)}; inferred ${note.noteType}.`,
+          ? `Custom note type: ${describeValue(rawType)}; mapped to ${mappedType}.`
+          : `Unsupported note type: ${describeValue(rawType)}; inferred ${note.noteType}.`,
     });
   }
 
@@ -138,8 +146,8 @@ export function validateNoteMetadata(
         path: note.path,
         severity: strict ? "error" : "warning",
         message: strict
-          ? `Invalid ${field} date: ${String(value)}.`
-          : `Unvalidated ${field} date: ${String(value)}.`,
+          ? `Invalid ${field} date: ${describeValue(value)}.`
+          : `Unvalidated ${field} date: ${describeValue(value)}.`,
       });
     }
   }

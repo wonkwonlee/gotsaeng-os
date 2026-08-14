@@ -8,7 +8,16 @@ import {
   renderCompileSummary,
   renderValidationJson,
   renderValidationSummary,
+  type CliErrorJsonPayload,
+  type CompileJsonPayload,
+  type ValidationJsonPayload,
 } from "../src/output";
+
+// JSON.parse is typed `any`. The renderers declare the shapes they emit, so the
+// assertions below go through those types and stay checked against drift.
+function parseJson<T>(raw: string): T {
+  return JSON.parse(raw) as T;
+}
 
 // cli.test.ts drives the built binary as a subprocess, which exercises these
 // renderers but cannot assert their edge cases (or register as coverage). These
@@ -138,7 +147,7 @@ describe("renderCompileJson", () => {
         generatedFiles: ["PROJECT_CONTEXT.md"],
       },
     });
-    const parsed = JSON.parse(out);
+    const parsed = parseJson<CompileJsonPayload>(out);
     expect(parsed.schemaVersion).toBe(CLI_JSON_SCHEMA_VERSION);
     expect(parsed.command).toBe("compile");
     expect(parsed.project).toBe("Demo");
@@ -150,7 +159,7 @@ describe("renderCompileJson", () => {
 
 describe("renderCliErrorJson", () => {
   it("emits a JSON error object", () => {
-    const parsed = JSON.parse(renderCliErrorJson({ title: "t", reason: "r" }));
+    const parsed = parseJson<CliErrorJsonPayload>(renderCliErrorJson({ title: "t", reason: "r" }));
     expect(parsed.error).toEqual({ title: "t", reason: "r" });
     expect(parsed.schemaVersion).toBe(CLI_JSON_SCHEMA_VERSION);
   });
@@ -158,7 +167,7 @@ describe("renderCliErrorJson", () => {
 
 describe("renderValidationJson", () => {
   it("computes status and carries full issue lists", () => {
-    const parsed = JSON.parse(
+    const parsed = parseJson<ValidationJsonPayload>(
       renderValidationJson({
         source: "/vault",
         markdownFiles: 3,
@@ -174,7 +183,7 @@ describe("renderValidationJson", () => {
   });
 
   it("reports invalid when errors exist", () => {
-    const parsed = JSON.parse(
+    const parsed = parseJson<ValidationJsonPayload>(
       renderValidationJson({
         source: "/vault",
         markdownFiles: 1,

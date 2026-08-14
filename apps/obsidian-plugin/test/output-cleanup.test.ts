@@ -9,7 +9,9 @@ import {
   countStaleManagedOutputFiles,
   getStaleManagedOutputFolders,
 } from "../src/output-cleanup";
+import { createNodeFileSystemAdapter } from "./helpers/node-file-system";
 
+const fsAdapter = createNodeFileSystemAdapter();
 let tempRoot: string;
 
 beforeEach(async () => {
@@ -80,6 +82,7 @@ describe("Obsidian output cleanup", () => {
     await fs.writeFile(path.join(customOutputDir, "USER_NOTE.md"), "keep", "utf8");
 
     const count = await countStaleManagedOutputFiles(
+      fsAdapter,
       tempRoot,
       ".gotsaeng/context-pack",
       "Reports/GotSaeng",
@@ -98,6 +101,7 @@ describe("Obsidian output cleanup", () => {
     await fs.writeFile(path.join(customOutputDir, "USER_NOTE.md"), "keep", "utf8");
 
     const results = await cleanupStaleManagedOutputFolders(
+      fsAdapter,
       tempRoot,
       ".gotsaeng/context-pack",
       "Reports/GotSaeng",
@@ -124,10 +128,16 @@ describe("Obsidian output cleanup", () => {
     await fs.mkdir(customOutputDir, { recursive: true });
     await fs.writeFile(path.join(customOutputDir, "DECISION_LOG.md"), "my own notes", "utf8");
 
-    const count = await countStaleManagedOutputFiles(tempRoot, ".gotsaeng/context-pack", "Notes");
+    const count = await countStaleManagedOutputFiles(
+      fsAdapter,
+      tempRoot,
+      ".gotsaeng/context-pack",
+      "Notes",
+    );
     expect(count).toBe(0);
 
     const results = await cleanupStaleManagedOutputFolders(
+      fsAdapter,
       tempRoot,
       ".gotsaeng/context-pack",
       "Notes",
@@ -148,7 +158,11 @@ describe("Obsidian output cleanup", () => {
     await fs.writeFile(path.join(staleOutputDir, "USER_NOTE.md"), "keep", "utf8");
     await fs.writeFile(path.join(currentOutputDir, "PROJECT_CONTEXT.md"), "current", "utf8");
 
-    const results = await cleanupStaleManagedOutputFolders(tempRoot, "Gotsaeng/Context Pack");
+    const results = await cleanupStaleManagedOutputFolders(
+      fsAdapter,
+      tempRoot,
+      "Gotsaeng/Context Pack",
+    );
 
     expect(results).toEqual([
       {
@@ -165,23 +179,27 @@ describe("Obsidian output cleanup", () => {
     ).resolves.toBe("current");
   });
 
-  it("removes empty managed output directories after generated files are removed", async () => {
+  it("removes an empty managed output directory after generated files are removed", async () => {
     const staleOutputDir = path.join(tempRoot, "Gotsaeng/Context Pack");
     await fs.mkdir(staleOutputDir, { recursive: true });
     await fs.writeFile(path.join(staleOutputDir, "PROJECT_CONTEXT.md"), "stale", "utf8");
 
-    const results = await cleanupStaleManagedOutputFolders(tempRoot, ".gotsaeng/context-pack");
+    const results = await cleanupStaleManagedOutputFolders(
+      fsAdapter,
+      tempRoot,
+      ".gotsaeng/context-pack",
+    );
 
     expect(results).toEqual([
       {
         outputFolder: "Gotsaeng/Context Pack",
         removedFiles: ["PROJECT_CONTEXT.md"],
-        removedDirectories: ["Gotsaeng/Context Pack", "Gotsaeng"],
+        removedDirectories: ["Gotsaeng/Context Pack"],
       },
     ]);
-    await expect(fs.stat(path.join(tempRoot, "Gotsaeng"))).rejects.toMatchObject({
-      code: "ENOENT",
-    });
+    // The "Gotsaeng" container is left in place: the plugin only ever removes
+    // the exact managed leaf folder, never an ancestor it did not create.
+    await expect(fs.stat(path.join(tempRoot, "Gotsaeng"))).resolves.toBeDefined();
   });
 
   it("counts and removes ARTIFACT_INDEX.json, so a vacated folder doesn't stay non-empty", async () => {
@@ -193,20 +211,80 @@ describe("Obsidian output cleanup", () => {
     await fs.writeFile(path.join(staleOutputDir, "PROJECT_CONTEXT.md"), "stale", "utf8");
     await fs.writeFile(path.join(staleOutputDir, "ARTIFACT_INDEX.json"), "{}", "utf8");
 
-    const count = await countStaleManagedOutputFiles(tempRoot, ".gotsaeng/context-pack");
+    const count = await countStaleManagedOutputFiles(fsAdapter, tempRoot, ".gotsaeng/context-pack");
     expect(count).toBe(2);
 
-    const results = await cleanupStaleManagedOutputFolders(tempRoot, ".gotsaeng/context-pack");
+    const results = await cleanupStaleManagedOutputFolders(
+      fsAdapter,
+      tempRoot,
+      ".gotsaeng/context-pack",
+    );
 
     expect(results).toEqual([
       {
         outputFolder: "Gotsaeng/Context Pack",
         removedFiles: ["PROJECT_CONTEXT.md", "ARTIFACT_INDEX.json"],
-        removedDirectories: ["Gotsaeng/Context Pack", "Gotsaeng"],
+        removedDirectories: ["Gotsaeng/Context Pack"],
       },
     ]);
-    await expect(fs.stat(path.join(tempRoot, "Gotsaeng"))).rejects.toMatchObject({
-      code: "ENOENT",
-    });
+    await expect(fs.stat(path.join(tempRoot, "Gotsaeng"))).resolves.toBeDefined();
+  });
+
+  it("never removes an ancestor directory it did not create, even when it becomes empty", async () => {
+    // Regression test for issue #21: a custom output folder nested inside a
+    // pre-existing user directory must not have that ancestor swept away just
+    // because it happens to be empty after the leaf folder is removed.
+    const userDir = path.join(tempRoot, "Reports");
+    const customOutputDir = path.join(userDir, "GotSaeng");
+    await fs.mkdir(customOutputDir, { recursive: true });
+    await writeManagedOutputMarker(customOutputDir);
+    await fs.writeFile(path.join(customOutputDir, "PROJECT_CONTEXT.md"), "stale", "utf8");
+
+    const results = await cleanupStaleManagedOutputFolders(
+      fsAdapter,
+      tempRoot,
+      ".gotsaeng/context-pack",
+      "Reports/GotSaeng",
+    );
+
+    expect(results).toEqual([
+      {
+        outputFolder: "Reports/GotSaeng",
+        removedFiles: ["PROJECT_CONTEXT.md", "COMPILE_REPORT.json"],
+        removedDirectories: ["Reports/GotSaeng"],
+      },
+    ]);
+    await expect(fs.stat(userDir)).resolves.toBeDefined();
+  });
+
+  it("only sweeps a built-in folder that is in the persisted managed set", async () => {
+    // Regression test for issue #21: being one of the two built-in folder
+    // *names* is not by itself proof this vault ever used it. A file that
+    // reappears in a built-in folder the plugin never actually managed (e.g.
+    // from a vault sync or backup restore) must survive a routine cleanup.
+    const untouchedBuiltInDir = path.join(tempRoot, "Gotsaeng/Context Pack");
+    await fs.mkdir(untouchedBuiltInDir, { recursive: true });
+    await fs.writeFile(path.join(untouchedBuiltInDir, "REPORT_HUB.md"), "reappeared", "utf8");
+
+    const count = await countStaleManagedOutputFiles(
+      fsAdapter,
+      tempRoot,
+      ".gotsaeng/context-pack",
+      undefined,
+      [".gotsaeng/context-pack"],
+    );
+    expect(count).toBe(0);
+
+    const results = await cleanupStaleManagedOutputFolders(
+      fsAdapter,
+      tempRoot,
+      ".gotsaeng/context-pack",
+      undefined,
+      [".gotsaeng/context-pack"],
+    );
+    expect(results).toEqual([]);
+    await expect(
+      fs.readFile(path.join(untouchedBuiltInDir, "REPORT_HUB.md"), "utf8"),
+    ).resolves.toBe("reappeared");
   });
 });

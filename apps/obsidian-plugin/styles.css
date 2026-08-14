@@ -22,6 +22,33 @@
   padding: 8px 12px;
 }
 
+.gotsaeng-os-error-banner {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.gotsaeng-os-error-banner-meta {
+  flex-basis: 100%;
+  font-size: var(--font-ui-smaller);
+  opacity: 0.8;
+}
+
+.gotsaeng-os-error-banner-message {
+  flex: 1 1 auto;
+}
+
+.gotsaeng-os-error-banner-dismiss {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: var(--font-ui-medium);
+  line-height: 1;
+  padding: 0 0 0 8px;
+}
+
 .gotsaeng-os-setting-warning ul {
   margin: 4px 0 0;
   padding-left: 20px;
@@ -36,6 +63,30 @@
 
 .gotsaeng-os-button {
   width: 100%;
+}
+
+.gotsaeng-os-button.is-running {
+  animation: gotsaeng-os-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes gotsaeng-os-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* A user who has asked the OS to reduce motion still needs to see that a
+   command is running — just not via a continuously animating opacity pulse.
+   Fall back to a static, still-distinguishable dimmed state instead. */
+@media (prefers-reduced-motion: reduce) {
+  .gotsaeng-os-button.is-running {
+    animation: none;
+    opacity: 0.6;
+  }
 }
 
 .gotsaeng-os-stats {
@@ -70,6 +121,11 @@
 
 .gotsaeng-os-artifact-group-heading {
   margin: 16px 0 8px;
+}
+
+.gotsaeng-os-artifact-filter {
+  margin: 8px 0;
+  width: 100%;
 }
 
 .gotsaeng-os-artifact-grid {

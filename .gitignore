@@ -15,7 +15,6 @@ apps/*/dist/
 # packages/* or apps/* too (tool state follows cwd), not just at the repo root.
 # Public contributor guidance lives in the root AGENTS.md and CLAUDE.md files instead.
 .agents/
-.claude/
 .codex/
 .impeccable/
 .omc/
@@ -23,5 +22,27 @@ apps/*/dist/
 .playwright-mcp/
 .superpowers/
 .worktrees/
+
+# Phased implementation plan docs (superpowers:executing-plans /
+# subagent-driven-development artifacts): internal working notes for a
+# specific feature branch, not user-facing documentation — see
+# docs/superpowers/plans/*.md in git history for prior examples. Tracking
+# these on `main` let them leak into the public deploy mirror's history via
+# the wholesale dev->public sync (see docs/release.md), which must never
+# happen per CLAUDE.md's repo boundary. Keep new plan docs uncommitted on
+# `main`, or ignored like this, and cherry-pick them onto the branch that
+# needs them instead.
+docs/superpowers/plans/
 /.mcp.json
 /MEMORY.md
+
+# .claude/ is a mix: shared, repo-owned config (settings.json, skills/) is
+# tracked and must stay visible to `git status`/`git add`, but Claude Code
+# also drops local runtime state in the same directory. Ignore everything
+# there by default, then explicitly un-ignore the shared paths — so adding a
+# new shared skill or config file later is a visible, deliberate decision
+# instead of a silent gap.
+.claude/*
+!.claude/settings.json
+!.claude/skills/
+!.claude/skills/**

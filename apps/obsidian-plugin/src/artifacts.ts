@@ -1,4 +1,4 @@
-export type OutputArtifactGroup = "core" | "analysis" | "raw";
+export type OutputArtifactGroup = "core" | "governance" | "analysis" | "raw";
 
 export type OutputArtifact = {
   label: string;
@@ -23,11 +23,26 @@ export const OUTPUT_ARTIFACTS: OutputArtifact[] = [
     format: "markdown",
     group: "core",
   },
-  { label: "Decision Log", fileName: "DECISION_LOG.md", format: "markdown", group: "core" },
+  { label: "Decision Log", fileName: "DECISION_LOG.md", format: "markdown", group: "governance" },
   { label: "Action Backlog", fileName: "ACTION_BACKLOG.md", format: "markdown", group: "core" },
-  { label: "Risk Register", fileName: "RISK_REGISTER.md", format: "markdown", group: "core" },
-  { label: "Open Questions", fileName: "OPEN_QUESTIONS.md", format: "markdown", group: "core" },
-  { label: "Stale Context", fileName: "STALE_CONTEXT.md", format: "markdown", group: "core" },
+  {
+    label: "Risk Register",
+    fileName: "RISK_REGISTER.md",
+    format: "markdown",
+    group: "governance",
+  },
+  {
+    label: "Open Questions",
+    fileName: "OPEN_QUESTIONS.md",
+    format: "markdown",
+    group: "governance",
+  },
+  {
+    label: "Stale Context",
+    fileName: "STALE_CONTEXT.md",
+    format: "markdown",
+    group: "governance",
+  },
   {
     label: "Validation Report",
     fileName: "VALIDATION_REPORT.md",
@@ -79,15 +94,18 @@ export const DEFAULT_OUTPUT_ARTIFACT: OutputArtifact = OUTPUT_ARTIFACTS[0]!;
 
 export const ARTIFACT_GROUP_LABELS: Record<OutputArtifactGroup, string> = {
   core: "Core Reports",
+  governance: "Governance",
   analysis: "Analysis",
   raw: "Raw Data",
 };
 
 // Stable render order for grouped artifact buttons: core reports first (the
-// files most people open), then analysis reports, then raw JSON. Groups with
-// zero artifacts (shouldn't happen today, but a future edit could empty one)
-// are skipped rather than rendered as an empty heading.
-const ARTIFACT_GROUP_ORDER: OutputArtifactGroup[] = ["core", "analysis", "raw"];
+// files most people open), then governance reports (a Core Reports subset
+// split out to keep every group at roughly 7 items or fewer — see the
+// cognitive-load guideline this addresses), then analysis reports, then raw
+// JSON. Groups with zero artifacts (shouldn't happen today, but a future edit
+// could empty one) are skipped rather than rendered as an empty heading.
+const ARTIFACT_GROUP_ORDER: OutputArtifactGroup[] = ["core", "governance", "analysis", "raw"];
 
 export type ArtifactGroupSection = {
   group: OutputArtifactGroup;

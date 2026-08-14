@@ -1,10 +1,18 @@
-# This is the public release repository. Tags are cut here, after the full-history
-# development checkout has been synchronized; see docs/release.md.
-# npm Trusted Publisher OIDC is bound to this repository and this workflow for
-# @gotsaeng/core, @gotsaeng/cli, and @gotsaeng/mcp — all three are registered and publish
-# through this workflow, confirmed by the Release 0.12.0 tag.
-# @gotsaeng/mcp was bootstrap-published (0.0.1, manual auth) so its Trusted Publisher
-# could be configured — see the historical "bootstrap publish" section in docs/release.md.
+# DO NOT TAG THIS DEV REPO TO RELEASE.
+# Releases are cut on the PUBLIC deploy mirror (wonkwonlee/gotsaeng-os), not here.
+# The npm OIDC Trusted Publisher is bound to the public repo's release.yml, so tagging
+# this dev repo runs the workflow but the publish step fails (404 / no permission).
+# See CLAUDE.md § "Release Process".
+#
+# PRE-REQUISITE (manual, npm web UI): npm Trusted Publisher (OIDC) must be configured for
+# @gotsaeng/core, @gotsaeng/cli, AND @gotsaeng/mcp, bound to this repository's release.yml
+# workflow, or the OIDC publish step for that package silently fails. Done for all three as
+# of the Release 0.12.0 tag, which published @gotsaeng/mcp@0.12.0 through this workflow —
+# @gotsaeng/mcp needed a one-time manual bootstrap publish before its Trusted Publisher
+# could be configured (an unpublished package has no npm Settings page); see the historical
+# "bootstrap publish" section in docs/release.md. Re-run this pre-requisite only if adding a
+# new publishable package in the future.
+# See: https://docs.npmjs.com/generating-provenance-statements#publishing-packages-with-provenance-via-github-actions
 
 name: Release
 
@@ -24,7 +32,26 @@ jobs:
     name: Quality gates
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 — the tag-on-main check below needs full history to
+      # compute ancestry, not just the tagged commit itself.
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # A tag only proves someone with tag-push rights created it — not that
+      # it points at reviewed code. Branch protection on `main` doesn't cover
+      # tags unless a separate ruleset does, so without this check, anyone
+      # who can push a tag (even without merge rights on `main`) could point
+      # a version tag at unreviewed history and trigger a provenance-backed
+      # npm publish + GitHub release from it, bypassing PR review entirely.
+      - name: Verify tag targets a commit on main
+        run: |
+          git fetch origin main --quiet
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag $GITHUB_REF_NAME (commit $GITHUB_SHA) is not reachable from origin/main. Refusing to publish from unreviewed history."
+            exit 1
+          fi
 
       - uses: pnpm/action-setup@v6
         with:
@@ -41,16 +68,49 @@ jobs:
       - run: pnpm build
       - run: pnpm lint
 
+      # Built once here and reused by the github-release job below, so that
+      # write-permission job never has to run pnpm install/build itself —
+      # see the comment on github-release's permissions for why.
+      #
+      # retention-days is generous (not the 1-day default) because the
+      # `publish` job below can sit waiting on a required-reviewer approval
+      # (see docs/release.md's "Optional: require manual approval before
+      # publish") for as long as the approver takes. A 1-day retention could
+      # expire this artifact mid-wait: publish would then still succeed
+      # (npm's OIDC exchange doesn't need it), but github-release's download
+      # step would fail afterward with the npm packages already published
+      # and no clean way to rerun just the GitHub Release step, since the
+      # version is now immutable on npm.
+      - name: Upload Obsidian plugin build
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-plugin-dist
+          path: |
+            apps/obsidian-plugin/dist/main.js
+            apps/obsidian-plugin/dist/manifest.json
+            apps/obsidian-plugin/dist/styles.css
+          retention-days: 14
+
   publish:
     name: Publish to npm (OIDC)
     needs: quality
     runs-on: ubuntu-latest
+    # Matches the Environment set on each package's npm Trusted Publisher (see
+    # docs/release.md). A no-op until a "required reviewers" protection rule
+    # is configured on this Environment in repo settings — see docs/release.md
+    # "Optional: require manual approval before publish" for why that's worth
+    # doing: it pauses this job for human approval before the OIDC exchange
+    # and before any package script runs, even for a tag that already passed
+    # the always-on tag-targets-main check in `quality`.
+    environment: release
     permissions:
       contents: read
       id-token: write # Required for npm OIDC trusted publishing + provenance
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v6
         with:
@@ -115,25 +175,37 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # create the GitHub Release and upload the Obsidian plugin assets
+      id-token: write # required by actions/attest-build-provenance
+      attestations: write # required by actions/attest-build-provenance
 
+    # No pnpm install/build runs in this job on purpose: it holds a
+    # contents:write token, and a compromised dependency's install/build
+    # script running here could use the checkout-persisted credential to
+    # push commits or tags. The only things this job does are read
+    # CHANGELOG.md (no code execution) and call `gh release`, so it uses the
+    # plugin build already produced under quality's read-only token instead
+    # of building its own.
     steps:
       - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v6
         with:
-          version: 8.12.0
+          persist-credentials: false
 
-      - uses: actions/setup-node@v6
+      - name: Download Obsidian plugin build
+        uses: actions/download-artifact@v4
         with:
-          node-version: 20
-          cache: pnpm
+          name: obsidian-plugin-dist
+          path: apps/obsidian-plugin/dist
 
-      - run: pnpm install --frozen-lockfile
-
-      # Build the Obsidian plugin so dist/{main.js,manifest.json,styles.css} exist.
-      # Obsidian clients download these three files for community-plugin installs.
-      - name: Build plugin assets
-        run: pnpm build
+      # Attest build provenance for the Obsidian plugin assets before they are
+      # uploaded, so installers can verify the release artifacts were built by
+      # this workflow from this repo's source rather than uploaded by hand.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            apps/obsidian-plugin/dist/main.js
+            apps/obsidian-plugin/dist/manifest.json
+            apps/obsidian-plugin/dist/styles.css
 
       # Use this version's CHANGELOG.md section as the release body.
       - name: Extract release notes

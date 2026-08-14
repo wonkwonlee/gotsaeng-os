@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
-import fs from "node:fs/promises";
 import path from "node:path";
 
 import { z } from "zod";
+
+import type { FileSystemAdapter } from "../adapters/file-system";
 
 // Output-file index for compiled artifacts. Named ARTIFACT_INDEX because
 // CONTEXT_MANIFEST.json already means the item-level manifest (memory-diff.ts).
@@ -57,13 +58,18 @@ export function renderArtifactIndex(index: ArtifactIndex): string {
 }
 
 export async function buildArtifactIndex(
+  fsAdapter: FileSystemAdapter,
   outputDir: string,
   fileNames: string[],
   meta: { projectName: string; generatedAt: string },
 ): Promise<ArtifactIndex> {
   const artifacts: ArtifactEntry[] = [];
   for (const name of fileNames) {
-    const content = await fs.readFile(path.join(outputDir, name));
+    const filePath = path.join(outputDir, name);
+    const content = await fsAdapter.readBinary(filePath);
+    if (content === null) {
+      throw new Error(`Generated artifact not found while indexing: ${filePath}`);
+    }
     artifacts.push({
       name,
       bytes: content.byteLength,
@@ -74,20 +80,22 @@ export async function buildArtifactIndex(
   return ArtifactIndexSchema.parse({ ...meta, artifacts });
 }
 
-export async function writeArtifactIndex(index: ArtifactIndex, outputDir: string): Promise<void> {
-  await fs.mkdir(outputDir, { recursive: true });
-  await fs.writeFile(path.join(outputDir, ARTIFACT_INDEX_FILE), renderArtifactIndex(index), "utf8");
+export async function writeArtifactIndex(
+  fsAdapter: FileSystemAdapter,
+  index: ArtifactIndex,
+  outputDir: string,
+): Promise<void> {
+  await fsAdapter.mkdir(outputDir);
+  await fsAdapter.writeText(path.join(outputDir, ARTIFACT_INDEX_FILE), renderArtifactIndex(index));
 }
 
-export async function readArtifactIndex(outputDir: string): Promise<ArtifactIndex | null> {
-  let raw: string;
-  try {
-    raw = await fs.readFile(path.join(outputDir, ARTIFACT_INDEX_FILE), "utf8");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return null;
-    }
-    throw error;
+export async function readArtifactIndex(
+  fsAdapter: FileSystemAdapter,
+  outputDir: string,
+): Promise<ArtifactIndex | null> {
+  const raw = await fsAdapter.readText(path.join(outputDir, ARTIFACT_INDEX_FILE));
+  if (raw === null) {
+    return null;
   }
   return ArtifactIndexSchema.parse(JSON.parse(raw));
 }

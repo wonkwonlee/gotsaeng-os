@@ -45,7 +45,7 @@ export function toVaultRelativePath(outputFolder: string, fileName: string): str
   return normalizeVaultPath(`${outputFolder}/${fileName}`);
 }
 
-// fast-glob/picomatch metacharacters. A literal output folder containing any of
+// micromatch (picomatch) metacharacters. A literal output folder containing any of
 // these (e.g. "Reports [v2]") would otherwise be parsed as glob syntax and fail
 // to ignore the real folder, silently re-introducing the issue #6 self-scan.
 const GLOB_METACHARS = /[\\*?[\]{}()!+@|]/g;
@@ -58,7 +58,7 @@ export function buildOutputIgnoreGlobs(outputFolder: string): string[] {
   return [`${escaped}/**`];
 }
 
-function normalizeVaultPath(value: string): string {
+export function normalizeVaultPath(value: string): string {
   return value.replace(/\\/g, "/").replace(/\/+/g, "/");
 }
 

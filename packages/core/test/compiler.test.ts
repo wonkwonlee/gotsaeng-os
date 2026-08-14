@@ -14,13 +14,22 @@ import {
   writeContextPack,
 } from "../src/index";
 import { ARTIFACT_INDEX_FILE, readArtifactIndex } from "../src/exporters/artifact-index";
+import { createNodeFileSystemAdapter } from "./helpers/node-file-system";
+
+// vitest types its asymmetric matchers as `any`, which would leak into every
+// expectation object below. These aliases restore the declared field types
+// while still passing the matcher through at runtime.
+const anyNumber = expect.any(Number) as number;
+const matchingString = <T extends string>(pattern: RegExp): T =>
+  expect.stringMatching(pattern) as T;
+const fsAdapter = createNodeFileSystemAdapter();
 
 describe("compiler", () => {
   const sampleVault = path.resolve(process.cwd(), "examples/sample-vault");
   const clock = () => new Date("2026-06-06T00:00:00.000Z");
 
   it("generates a valid ContextPack from the sample vault", async () => {
-    const pack = await compileContextPack({
+    const pack = await compileContextPack(fsAdapter, {
       sourceRoot: sampleVault,
       projectName: "GotSaeng OS",
       generatedAt: "2026-06-06T00:00:00.000Z",
@@ -64,32 +73,32 @@ describe("compiler", () => {
       ],
     });
     expect(pack.report.provenanceStats).toMatchObject({
-      averageScore: expect.any(Number),
-      strongItems: expect.any(Number),
-      weakItems: expect.any(Number),
+      averageScore: anyNumber,
+      strongItems: anyNumber,
+      weakItems: anyNumber,
     });
     expect(pack.report.confidenceStats).toMatchObject({
-      averageScore: expect.any(Number),
-      highItems: expect.any(Number),
-      lowItems: expect.any(Number),
+      averageScore: anyNumber,
+      highItems: anyNumber,
+      lowItems: anyNumber,
     });
     expect(pack.report.contradictionStats).toMatchObject({
-      totalCandidates: expect.any(Number),
-      reviewItems: expect.any(Number),
-      watchItems: expect.any(Number),
+      totalCandidates: anyNumber,
+      reviewItems: anyNumber,
+      watchItems: anyNumber,
     });
     expect(pack.actions[0]?.provenance).toMatchObject({
-      score: expect.any(Number),
-      level: expect.stringMatching(/strong|moderate|weak/),
+      score: anyNumber,
+      level: matchingString(/strong|moderate|weak/),
     });
     expect(pack.actions[0]?.confidence).toMatchObject({
-      score: expect.any(Number),
-      level: expect.stringMatching(/high|medium|low/),
+      score: anyNumber,
+      level: matchingString(/high|medium|low/),
     });
   });
 
   it("renders all generated Markdown files with source paths", async () => {
-    const pack = await compileContextPack({
+    const pack = await compileContextPack(fsAdapter, {
       sourceRoot: sampleVault,
       projectName: "GotSaeng OS",
       generatedAt: "2026-06-06T00:00:00.000Z",
@@ -113,14 +122,14 @@ describe("compiler", () => {
   });
 
   it("writes Markdown files and JSON report", async () => {
-    const pack = await compileContextPack({
+    const pack = await compileContextPack(fsAdapter, {
       sourceRoot: sampleVault,
       projectName: "GotSaeng OS",
       generatedAt: "2026-06-06T00:00:00.000Z",
       dateProvider: clock,
     });
     const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), "gotsaeng-core-"));
-    const report = await writeContextPack(pack, outputDir);
+    const report = await writeContextPack(fsAdapter, pack, outputDir);
 
     for (const fileName of [
       ...GENERATED_MARKDOWN_FILES,
@@ -156,7 +165,7 @@ describe("compiler", () => {
     });
 
     expect(report.generatedFiles).toContain(ARTIFACT_INDEX_FILE);
-    const index = await readArtifactIndex(outputDir);
+    const index = await readArtifactIndex(fsAdapter, outputDir);
     expect(index).not.toBeNull();
     expect(index?.artifacts.map((entry) => entry.name).sort()).toEqual(
       report.generatedFiles.filter((name) => name !== ARTIFACT_INDEX_FILE).sort(),
@@ -189,7 +198,7 @@ describe("compiler", () => {
       "utf8",
     );
 
-    const firstPack = await compileContextPack({
+    const firstPack = await compileContextPack(fsAdapter, {
       sourceRoot: vaultDir,
       projectName: "GotSaeng OS",
       generatedAt: "2026-06-06T00:00:00.000Z",
@@ -208,7 +217,7 @@ describe("compiler", () => {
     }
 
     // Without ignoreGlobs the generated files are re-scanned and pollute the report.
-    const pollutedPack = await compileContextPack({
+    const pollutedPack = await compileContextPack(fsAdapter, {
       sourceRoot: vaultDir,
       projectName: "GotSaeng OS",
       generatedAt: "2026-06-06T00:00:00.000Z",
@@ -219,7 +228,7 @@ describe("compiler", () => {
     );
 
     // With ignoreGlobs the generated output folder is excluded entirely.
-    const ignoredPack = await compileContextPack({
+    const ignoredPack = await compileContextPack(fsAdapter, {
       sourceRoot: vaultDir,
       projectName: "GotSaeng OS",
       generatedAt: "2026-06-06T00:00:00.000Z",

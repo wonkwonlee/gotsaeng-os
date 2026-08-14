@@ -17,12 +17,30 @@ Before the first tag, configure **npm Trusted Publisher (OIDC)** for **all three
    - **Owner:** `wonkwonlee`
    - **Repository:** `gotsaeng-os`
    - **Workflow file:** `release.yml`
-   - **Environment:** _(leave blank)_
+   - **Environment:** `release`
 3. Repeat step 2 for `@gotsaeng/cli`.
 4. Repeat step 2 for `@gotsaeng/mcp` — **but see the bootstrap requirement below first.**
 
 > **Why all three packages?** The workflow publishes core, cli, _and_ mcp in the same job using
 > OIDC. If any package lacks a trusted publisher entry, its publish step will silently fail.
+
+### Optional: require manual approval before publish
+
+`release.yml`'s `publish` job runs under a GitHub Environment named `release` (matching the
+Environment set above). `quality` already refuses to run this pipeline at all for a tag that
+doesn't point at a commit on `main` (see its "Verify tag targets a commit on main" step) — that
+check is always on and needs no setup. For an additional, optional layer, configure the `release`
+environment (repo **Settings → Environments → New environment**, name it `release`) with a
+**required reviewers** protection rule. With that set, `publish` pauses for manual approval before
+it runs at all — before the OIDC token exchange, before any package script executes — so even a
+tag pointing at reviewed `main` history still needs a human to approve the actual publish.
+
+If you set this up, keep the approval turnaround under the `quality` job's `obsidian-plugin-dist`
+artifact retention window (14 days as of this writing). `github-release` downloads that artifact
+after `publish` succeeds; if it expired while `publish` was waiting on your approval, the npm
+packages are already published (npm versions are immutable) but the GitHub Release step has
+nothing to attach and can't be cleanly rerun. Approve promptly, or raise `retention-days` on that
+upload step if your review cadence runs longer.
 
 ### `@gotsaeng/mcp` bootstrap publish — completed, kept as a historical record
 
@@ -169,7 +187,6 @@ git rm -r -q .                                                 # clear tracked f
 git -C ../gotsaeng-os-dev archive HEAD | tar -x -C .           # extract dev's tracked files only
 git add -A
 git commit -m "Release <version>"
-git push
 ```
 
 Why this shape:
@@ -181,7 +198,28 @@ Why this shape:
 - `.vault-notes/` holds personal vault material (the release journal that gets copied into the
   local Obsidian vault). It is **gitignored** in dev, so `git archive HEAD` excludes it
   automatically — no manual removal step is needed.
+- **`docs/launch.md` is always overwritten with dev's generic outreach-copy draft by this step —
+  fix it before committing, don't skip this.** Dev keeps a channel-agnostic, version-agnostic
+  draft workspace at this path (Show HN / Reddit / Discussion copy); public instead needs a
+  concise, ship-ready Launch Kit with this release's actual facts (tag, exact npm versions per
+  package, release assets, a launch checklist). Rewrite `docs/launch.md` on the public checkout
+  with those facts — see any previous release's version in the public repo's git history
+  (`git log -- docs/launch.md`) for the format — **before** the `git add -A` / commit above, or
+  the wholesale overwrite ships the wrong content and nobody notices until the next audit.
 - Run the **Pre-Publish Safety Scan** (below) in the public repo before pushing.
+- Public `main` carries a GitHub ruleset requiring a PR with passing status checks — a direct
+  `git push` is rejected (`GH013: Repository rule violations`). Push to a branch and open a PR
+  against public `main` instead, wait for both `Quality (Node 20)`/`Quality (Node 22)` checks,
+  then squash-merge (keeps the existing one-commit-per-release history):
+  ```bash
+  git checkout -b release-<version>
+  git push -u origin release-<version>
+  gh pr create --repo wonkwonlee/gotsaeng-os --base main --head release-<version> \
+    --title "Release <version>" --body "Sync from dev for the <version> release."
+  gh pr checks <pr-number> --repo wonkwonlee/gotsaeng-os --watch
+  gh pr merge <pr-number> --repo wonkwonlee/gotsaeng-os --squash --delete-branch
+  git checkout main && git pull --ff-only origin main
+  ```
 
 ---
 
@@ -193,7 +231,9 @@ Why this shape:
    ```bash
    pnpm typecheck && pnpm test && pnpm build && pnpm lint
    ```
-4. **Sync to the public repository** (see "Dev → Public Repository Sync" above) and push.
+4. **Sync to the public repository**, including rewriting `docs/launch.md` with this release's
+   facts before committing (see "Dev → Public Repository Sync" above), then push via a PR (public
+   `main` rejects direct pushes) and squash-merge once its checks pass.
 5. **Tag on the public repository** (bare version, no `v` prefix):
    ```bash
    git tag 0.11.1

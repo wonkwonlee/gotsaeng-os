@@ -7,6 +7,7 @@ import {
   VISIBLE_OUTPUT_FOLDER,
   getSettingsValidationMessages,
   isHiddenOutputFolder,
+  normalizeManagedOutputFolders,
   normalizeOutputFolder,
   normalizeOutputFolderVisibility,
   normalizeSettings,
@@ -23,6 +24,26 @@ import {
 describe("Obsidian plugin settings", () => {
   it("normalizes empty settings to defaults", () => {
     expect(normalizeSettings({})).toEqual(DEFAULT_SETTINGS);
+  });
+
+  it("does not grandfather the hidden folder into managedOutputFolders for settings that predate the field", () => {
+    // A data.json from before managedOutputFolders existed has no such field.
+    // A vault that has always used the visible or a custom folder must not
+    // have the hidden folder marked managed on migration — that would make
+    // routine cleanup sweep a folder this plugin instance never wrote to.
+    expect(normalizeManagedOutputFolders(undefined, VISIBLE_OUTPUT_FOLDER)).toEqual([
+      VISIBLE_OUTPUT_FOLDER,
+    ]);
+    expect(normalizeManagedOutputFolders(undefined, "Reports/GotSaeng")).toEqual([
+      "Reports/GotSaeng",
+    ]);
+
+    const migrated = normalizeSettings({
+      outputFolderVisibility: "visible",
+      outputFolder: VISIBLE_OUTPUT_FOLDER,
+    });
+    expect(migrated.managedOutputFolders).toEqual([VISIBLE_OUTPUT_FOLDER]);
+    expect(migrated.managedOutputFolders).not.toContain(HIDDEN_OUTPUT_FOLDER);
   });
 
   it("keeps output folders relative to the vault", () => {

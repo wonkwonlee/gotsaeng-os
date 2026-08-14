@@ -227,7 +227,7 @@ Run all six commands before requesting review. All must pass:
 pnpm typecheck      # strict TypeScript — zero errors required
 pnpm test           # Vitest unit tests
 pnpm build          # tsup build for all packages
-pnpm lint           # ESLint
+pnpm lint           # ESLint — type-aware rules; needs a successful typecheck first
 pnpm format:check   # Prettier — CI gate
 pnpm check:versions # release version-agreement invariant — CI gate; only relevant if you touched
                      # version-bump files (see docs/release.md)

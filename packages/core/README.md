@@ -16,20 +16,76 @@ npm install @gotsaeng/core
 
 ## Public API
 
-```ts
-import { compileContextPack, writeContextPack } from "@gotsaeng/core";
+`@gotsaeng/core` never touches the filesystem itself — every read/write goes through a
+`FileSystemAdapter` you inject, so the same compiler runs unmodified against `node:fs`, an
+in-memory store, or (as `apps/obsidian-plugin` does) `app.vault.adapter`. `@gotsaeng/core` does not
+ship a `node:fs`-backed implementation; write a thin one, or use `@gotsaeng/cli`, which already has
+one:
 
-const pack = await compileContextPack({
+```ts
+import fs from "node:fs/promises";
+import path from "node:path";
+import { compileContextPack, writeContextPack, type FileSystemAdapter } from "@gotsaeng/core";
+
+// readText/readBinary return null only for a missing path — any other error
+// (permissions, I/O) should still throw, or callers like
+// readPreviousContextManifest will misread "the read genuinely failed" as
+// "there's nothing here yet" and silently fall back to an empty baseline.
+const isEnoent = (error: unknown) =>
+  error instanceof Error && "code" in error && error.code === "ENOENT";
+
+const fsAdapter: FileSystemAdapter = {
+  exists: (p) =>
+    fs.access(p).then(
+      () => true,
+      () => false,
+    ),
+  isDirectory: (p) =>
+    fs.stat(p).then(
+      (s) => s.isDirectory(),
+      () => false,
+    ),
+  // This minimal example follows real directories and files only. The
+  // production Node adapters (packages/cli, packages/mcp) also follow
+  // symlinks, matching what the compiler's default fast-glob-based scanner
+  // used to do — see packages/cli/src/node-file-system.ts if you need that.
+  list: async (p) => {
+    const entries = await fs.readdir(p, { withFileTypes: true });
+    return {
+      files: entries.filter((e) => e.isFile()).map((e) => path.join(p, e.name)),
+      folders: entries.filter((e) => e.isDirectory()).map((e) => path.join(p, e.name)),
+    };
+  },
+  readText: (p) =>
+    fs.readFile(p, "utf8").catch((error: unknown) => {
+      if (isEnoent(error)) return null;
+      throw error;
+    }),
+  readBinary: (p) =>
+    fs.readFile(p).catch((error: unknown) => {
+      if (isEnoent(error)) return null;
+      throw error;
+    }),
+  writeText: async (p, data) => {
+    await fs.mkdir(path.dirname(p), { recursive: true });
+    await fs.writeFile(p, data, "utf8");
+  },
+  mkdir: (p) => fs.mkdir(p, { recursive: true }).then(() => undefined),
+  remove: (p) => fs.rm(p, { force: true }),
+  rmdir: (p) => fs.rmdir(p),
+};
+
+const pack = await compileContextPack(fsAdapter, {
   sourceRoot: "./notes",
   projectName: "My Project",
   staleDays: 90,
   ignoreGlobs: ["context-pack/**"],
 });
 
-await writeContextPack(pack, "./context-pack");
+await writeContextPack(fsAdapter, pack, "./context-pack");
 ```
 
-`ignoreGlobs` is an optional list of `fast-glob` patterns (relative to `sourceRoot`) excluded from
+`ignoreGlobs` is an optional list of `micromatch` patterns (relative to `sourceRoot`) excluded from
 scanning in addition to the built-in defaults. Use it to keep a previously generated output folder
 from being re-scanned on the next compile.
 
@@ -74,14 +130,14 @@ const caps = {
   insights: 300, // markdown-exporter.ts: Memory Snapshot Insights list (default 120)
 };
 
-const pack = await compileContextPack({
+const pack = await compileContextPack(fsAdapter, {
   sourceRoot: "./notes",
   projectName: "My Project",
   caps, // only `caps.perHeading` matters here — it shapes extraction
 });
 
 // register/insights only take effect at export time, so pass caps again:
-await writeContextPack(pack, "./context-pack", caps);
+await writeContextPack(fsAdapter, pack, "./context-pack", caps);
 ```
 
 `perHeading` only affects `compileContextPack` (it changes what gets extracted in the first place).
