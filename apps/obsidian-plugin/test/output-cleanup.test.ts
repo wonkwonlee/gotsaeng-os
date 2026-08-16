@@ -9,7 +9,14 @@ import {
   countStaleManagedOutputFiles,
   getStaleManagedOutputFolders,
 } from "../src/output-cleanup";
+import { HIDDEN_OUTPUT_FOLDER, VISIBLE_OUTPUT_FOLDER } from "../src/settings";
 import { createNodeFileSystemAdapter } from "./helpers/node-file-system";
+
+// These tests used to get this set from the functions' own default parameter.
+// That default quietly re-enabled sweeping both built-in folders for any
+// caller that forgot the argument, so it is gone and every call site — tests
+// included — now states which folders it authorizes for cleanup.
+const BUILT_IN_MANAGED_FOLDERS = [HIDDEN_OUTPUT_FOLDER, VISIBLE_OUTPUT_FOLDER];
 
 const fsAdapter = createNodeFileSystemAdapter();
 let tempRoot: string;
@@ -40,37 +47,46 @@ async function writeManagedOutputMarker(outputDir: string): Promise<void> {
 
 describe("Obsidian output cleanup", () => {
   it("targets the alternate managed output folder for hidden and visible output modes", () => {
-    expect(getStaleManagedOutputFolders(".gotsaeng/context-pack")).toEqual([
-      "Gotsaeng/Context Pack",
-    ]);
-    expect(getStaleManagedOutputFolders("Gotsaeng/Context Pack")).toEqual([
-      ".gotsaeng/context-pack",
-    ]);
-    expect(getStaleManagedOutputFolders("Reports/GotSaeng")).toEqual([
-      ".gotsaeng/context-pack",
-      "Gotsaeng/Context Pack",
-    ]);
+    expect(
+      getStaleManagedOutputFolders(".gotsaeng/context-pack", undefined, BUILT_IN_MANAGED_FOLDERS),
+    ).toEqual(["Gotsaeng/Context Pack"]);
+    expect(
+      getStaleManagedOutputFolders("Gotsaeng/Context Pack", undefined, BUILT_IN_MANAGED_FOLDERS),
+    ).toEqual([".gotsaeng/context-pack"]);
+    expect(
+      getStaleManagedOutputFolders("Reports/GotSaeng", undefined, BUILT_IN_MANAGED_FOLDERS),
+    ).toEqual([".gotsaeng/context-pack", "Gotsaeng/Context Pack"]);
   });
 
   it("also targets a vacated custom folder, which is not one of the built-in managed folders", () => {
     // Leaving a custom folder for a built-in one: without the explicit
     // previous-folder argument the custom path is invisible to cleanup and its
     // generated files would be orphaned permanently.
-    expect(getStaleManagedOutputFolders(".gotsaeng/context-pack", "Reports/GotSaeng")).toEqual([
-      "Gotsaeng/Context Pack",
-      "Reports/GotSaeng",
-    ]);
+    expect(
+      getStaleManagedOutputFolders(
+        ".gotsaeng/context-pack",
+        "Reports/GotSaeng",
+        BUILT_IN_MANAGED_FOLDERS,
+      ),
+    ).toEqual(["Gotsaeng/Context Pack", "Reports/GotSaeng"]);
   });
 
   it("never targets the current folder, even when it is passed as the previous one", () => {
-    expect(getStaleManagedOutputFolders("Reports/GotSaeng", "Reports/GotSaeng")).toEqual([
-      ".gotsaeng/context-pack",
-      "Gotsaeng/Context Pack",
-    ]);
+    expect(
+      getStaleManagedOutputFolders(
+        "Reports/GotSaeng",
+        "Reports/GotSaeng",
+        BUILT_IN_MANAGED_FOLDERS,
+      ),
+    ).toEqual([".gotsaeng/context-pack", "Gotsaeng/Context Pack"]);
     // A built-in previous folder must not be duplicated in the candidate list.
-    expect(getStaleManagedOutputFolders("Gotsaeng/Context Pack", ".gotsaeng/context-pack")).toEqual(
-      [".gotsaeng/context-pack"],
-    );
+    expect(
+      getStaleManagedOutputFolders(
+        "Gotsaeng/Context Pack",
+        ".gotsaeng/context-pack",
+        BUILT_IN_MANAGED_FOLDERS,
+      ),
+    ).toEqual([".gotsaeng/context-pack"]);
   });
 
   it("counts generated files in a vacated custom folder without deleting anything", async () => {
@@ -86,6 +102,7 @@ describe("Obsidian output cleanup", () => {
       tempRoot,
       ".gotsaeng/context-pack",
       "Reports/GotSaeng",
+      BUILT_IN_MANAGED_FOLDERS,
     );
 
     expect(count).toBe(3);
@@ -105,6 +122,7 @@ describe("Obsidian output cleanup", () => {
       tempRoot,
       ".gotsaeng/context-pack",
       "Reports/GotSaeng",
+      BUILT_IN_MANAGED_FOLDERS,
     );
 
     expect(results).toEqual([
@@ -133,6 +151,7 @@ describe("Obsidian output cleanup", () => {
       tempRoot,
       ".gotsaeng/context-pack",
       "Notes",
+      BUILT_IN_MANAGED_FOLDERS,
     );
     expect(count).toBe(0);
 
@@ -141,6 +160,7 @@ describe("Obsidian output cleanup", () => {
       tempRoot,
       ".gotsaeng/context-pack",
       "Notes",
+      BUILT_IN_MANAGED_FOLDERS,
     );
     expect(results).toEqual([]);
     await expect(fs.readFile(path.join(customOutputDir, "DECISION_LOG.md"), "utf8")).resolves.toBe(
@@ -162,6 +182,8 @@ describe("Obsidian output cleanup", () => {
       fsAdapter,
       tempRoot,
       "Gotsaeng/Context Pack",
+      undefined,
+      BUILT_IN_MANAGED_FOLDERS,
     );
 
     expect(results).toEqual([
@@ -188,6 +210,8 @@ describe("Obsidian output cleanup", () => {
       fsAdapter,
       tempRoot,
       ".gotsaeng/context-pack",
+      undefined,
+      BUILT_IN_MANAGED_FOLDERS,
     );
 
     expect(results).toEqual([
@@ -211,13 +235,21 @@ describe("Obsidian output cleanup", () => {
     await fs.writeFile(path.join(staleOutputDir, "PROJECT_CONTEXT.md"), "stale", "utf8");
     await fs.writeFile(path.join(staleOutputDir, "ARTIFACT_INDEX.json"), "{}", "utf8");
 
-    const count = await countStaleManagedOutputFiles(fsAdapter, tempRoot, ".gotsaeng/context-pack");
+    const count = await countStaleManagedOutputFiles(
+      fsAdapter,
+      tempRoot,
+      ".gotsaeng/context-pack",
+      undefined,
+      BUILT_IN_MANAGED_FOLDERS,
+    );
     expect(count).toBe(2);
 
     const results = await cleanupStaleManagedOutputFolders(
       fsAdapter,
       tempRoot,
       ".gotsaeng/context-pack",
+      undefined,
+      BUILT_IN_MANAGED_FOLDERS,
     );
 
     expect(results).toEqual([
@@ -245,6 +277,7 @@ describe("Obsidian output cleanup", () => {
       tempRoot,
       ".gotsaeng/context-pack",
       "Reports/GotSaeng",
+      BUILT_IN_MANAGED_FOLDERS,
     );
 
     expect(results).toEqual([
@@ -255,6 +288,40 @@ describe("Obsidian output cleanup", () => {
       },
     ]);
     await expect(fs.stat(userDir)).resolves.toBeDefined();
+  });
+
+  it("leaves both built-in folders alone when neither is in the persisted managed set (#9)", async () => {
+    // The strongest form of the property the required `managedOutputFolders`
+    // parameter exists for: both built-in folders exist, both carry a real
+    // ownership marker, and both are stale relative to the folder in use — so
+    // the *only* thing keeping them out of the sweep is that this vault never
+    // recorded them as managed. Under the old permissive default (both
+    // built-in folder names, whatever the caller passed) every file below is
+    // deleted.
+    const hiddenDir = path.join(tempRoot, HIDDEN_OUTPUT_FOLDER);
+    const visibleDir = path.join(tempRoot, VISIBLE_OUTPUT_FOLDER);
+    await fs.mkdir(hiddenDir, { recursive: true });
+    await fs.mkdir(visibleDir, { recursive: true });
+    await writeManagedOutputMarker(hiddenDir);
+    await writeManagedOutputMarker(visibleDir);
+    await fs.writeFile(path.join(hiddenDir, "REPORT_HUB.md"), "keep-hidden", "utf8");
+    await fs.writeFile(path.join(visibleDir, "REPORT_HUB.md"), "keep-visible", "utf8");
+
+    const managed = ["Reports/GotSaeng"];
+    expect(getStaleManagedOutputFolders("Reports/GotSaeng", undefined, managed)).toEqual([]);
+    await expect(
+      countStaleManagedOutputFiles(fsAdapter, tempRoot, "Reports/GotSaeng", undefined, managed),
+    ).resolves.toBe(0);
+    await expect(
+      cleanupStaleManagedOutputFolders(fsAdapter, tempRoot, "Reports/GotSaeng", undefined, managed),
+    ).resolves.toEqual([]);
+
+    await expect(fs.readFile(path.join(hiddenDir, "REPORT_HUB.md"), "utf8")).resolves.toBe(
+      "keep-hidden",
+    );
+    await expect(fs.readFile(path.join(visibleDir, "REPORT_HUB.md"), "utf8")).resolves.toBe(
+      "keep-visible",
+    );
   });
 
   it("only sweeps a built-in folder that is in the persisted managed set", async () => {

@@ -3,7 +3,22 @@
   font-size: var(--font-ui-small);
 }
 
+/* The Report Hub renders inside an independently resizable workspace leaf, not
+   a window: a pane dragged into the sidebar can be 250px wide while the
+   Obsidian window is 1600px. So every responsive rule here queries this
+   element (see the `@container` block at the bottom) rather than the viewport.
+   Deliberately `inline-size` and not `size`: size containment would need this
+   element to take its height from outside its own content, which is Obsidian's
+   layout to decide, not ours — a host or theme that sizes `.view-content` by
+   its contents would collapse the whole pane to zero height. The pane height
+   the preview needs is measured in JS instead and published as
+   `--gotsaeng-os-pane-height` (see syncPaneHeight in src/view.ts); the value
+   here is the fallback for before the first measurement lands. */
 .gotsaeng-os-report-view {
+  --gotsaeng-os-pane-height: 100vh;
+
+  container-name: gotsaeng-os-report;
+  container-type: inline-size;
   padding: 16px;
 }
 
@@ -13,11 +28,20 @@
   margin-top: 0;
 }
 
+/* `--text-error` is Obsidian's token for error text on the *page* background
+   (which is what `.gotsaeng-os-setting-error` below is). On a tinted error
+   *surface* the two are both reds pulled from the same theme ramp, so the pair
+   is at best marginal and its real ratio depends on the user's theme — we have
+   no running Obsidian here to measure it in, and a guessed number would be
+   worse than none. `--text-normal` is the theme's guaranteed body-text color
+   and `--background-modifier-error` is a low-alpha tint over the same base
+   background the theme guarantees it against, so this pairing is the one that
+   holds up without measurement. */
 .gotsaeng-os-error-banner,
 .gotsaeng-os-setting-warning {
   background: var(--background-modifier-error);
   border-radius: 6px;
-  color: var(--text-error);
+  color: var(--text-normal);
   margin: 12px 0;
   padding: 8px 12px;
 }
@@ -29,24 +53,79 @@
   gap: 4px 12px;
 }
 
+/* De-emphasized with an explicit token rather than `opacity: 0.8`: alpha
+   blending reduces contrast against whatever happens to be behind it, on top
+   of a pair that is already the least certain one on this surface. */
 .gotsaeng-os-error-banner-meta {
+  color: var(--text-muted);
   flex-basis: 100%;
   font-size: var(--font-ui-smaller);
-  opacity: 0.8;
 }
 
 .gotsaeng-os-error-banner-message {
   flex: 1 1 auto;
 }
 
+/* WCAG 2.2 target size (minimum) is 24x24 CSS px; the bare "×" glyph on its
+   own came to roughly 16x16, which is a hard target to hit with a trackpad or
+   on a touch-enabled display. */
 .gotsaeng-os-error-banner-dismiss {
+  align-items: center;
   background: none;
   border: none;
+  border-radius: 4px;
   color: inherit;
   cursor: pointer;
+  display: inline-flex;
   font-size: var(--font-ui-medium);
+  justify-content: center;
   line-height: 1;
-  padding: 0 0 0 8px;
+  min-height: 24px;
+  min-width: 24px;
+  padding: 0;
+}
+
+/* Matches the banner's own text color for the same reason it does: this
+   outline sits on the tinted error surface, not on the page background. */
+.gotsaeng-os-error-banner-dismiss:focus-visible {
+  outline: 2px solid var(--text-normal);
+  outline-offset: 2px;
+}
+
+/* Live regions exist before they have anything to say (see createLiveRegion in
+   src/a11y.ts), so the empty case must take up no space. Deliberately NOT
+   `display: none` or `visibility: hidden`: both take the element out of the
+   accessibility tree, so the first message put into it would read as the region
+   appearing rather than as a change inside a region already being watched —
+   and nothing gets announced. Collapse it to zero size instead, which leaves it
+   rendered and observable. */
+.gotsaeng-os-error-region:empty,
+.gotsaeng-os-status-region:empty,
+.gotsaeng-os-setting-warning:empty,
+.gotsaeng-os-setting-error:empty {
+  block-size: 0;
+  border: 0;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.gotsaeng-os-setting-error {
+  color: var(--text-error);
+  font-size: var(--font-ui-smaller);
+  margin-top: 4px;
+}
+
+.gotsaeng-os-setting-status {
+  border-top: none;
+  display: block;
+  padding-top: 0;
+}
+
+.gotsaeng-os-status-region {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  margin: 4px 0;
 }
 
 .gotsaeng-os-setting-warning ul {
@@ -54,14 +133,70 @@
   padding-left: 20px;
 }
 
-.gotsaeng-os-action-grid {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 12px 0 16px;
+/* Everything below the command buttons is reference material: what the last
+   compile found, where it was written, what can be previewed. Marking those
+   section headings as quiet labels rather than full headings is what leaves
+   the command grid as the loudest thing on the pane — the four buttons are the
+   only controls here that make the plugin do anything. Scoped by class rather
+   than by `.gotsaeng-os-report-body h3` because the artifact preview renders
+   arbitrary vault Markdown, whose own headings are document content.
+   Demoted by size/weight/letter-spacing rather than color: --text-muted
+   is not contrast-guaranteed across community themes, and the defensive-
+   contrast pass above chose --text-normal for exactly this reason (see the
+   comment on .gotsaeng-os-error-banner-message) rather than risk an
+   unmeasurable ratio at small uppercase text, where WCAG 1.4.3's 4.5:1
+   applies with no large-text exemption. */
+.gotsaeng-os-section-heading {
+  color: var(--text-normal);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-medium);
+  letter-spacing: 0.06em;
+  margin: 20px 0 8px;
+  text-transform: uppercase;
 }
 
+/* The cold-start state (see renderFirstRunNote in src/view.ts). Sits directly
+   above the command grid and is the only thing on the pane that speaks at
+   heading weight, because on a fresh install it is the pane's entire message. */
+.gotsaeng-os-first-run {
+  margin: 12px 0;
+}
+
+.gotsaeng-os-first-run h3 {
+  margin: 0 0 4px;
+}
+
+.gotsaeng-os-first-run p {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  margin: 0;
+}
+
+/* `auto-fill` rather than a fixed track count: the number of columns then
+   follows the pane's width with no query at all. The `min(<floor>, 100%)`
+   inside `minmax` is what keeps that true below the floor itself — a bare
+   `minmax(140px, 1fr)` track stays 140px wide in a 120px pane and overflows
+   it. Every grid below follows the same shape; only the floor differs, chosen
+   from how long that grid's labels are.
+
+   The bottom border is the pane's one structural division: actions above,
+   reference below. */
+.gotsaeng-os-action-grid {
+  border-bottom: 1px solid var(--background-modifier-border);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr));
+  margin: 12px 0 4px;
+  padding-bottom: 16px;
+}
+
+/* Taller and heavier than a default Obsidian button, which is what makes the
+   command grid read as primary without spending the accent color on it — the
+   accent stays reserved for the one thing that is a *state* rather than an
+   action (the selected artifact button). */
 .gotsaeng-os-button {
+  font-weight: var(--font-medium);
+  min-height: 36px;
   width: 100%;
 }
 
@@ -92,14 +227,46 @@
 .gotsaeng-os-stats {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr));
+}
+
+/* The three counts that answer "is anything wrong with my vault right now"
+   (see renderStats in src/view.ts). Wider tracks so they hold their own row on
+   a normal-width pane rather than merging into the eight below them. */
+.gotsaeng-os-stats-health {
+  grid-template-columns: repeat(auto-fill, minmax(min(160px, 100%), 1fr));
+  margin-bottom: 8px;
+}
+
+/* The eight that describe the shape of the vault: same data, denser tracks and
+   a smaller value, so the row above reads first. */
+.gotsaeng-os-stats-details {
+  grid-template-columns: repeat(auto-fill, minmax(min(120px, 100%), 1fr));
   margin-bottom: 16px;
 }
 
+/* A filled chip rather than the 1px-border/6px-radius card every other object
+   on this pane used to share. Four semantically different things (stat tile,
+   source panel, backlink row, artifact button) reading as one interchangeable
+   card is what this and the two rules below undo: the stat is a filled chip,
+   the source panel an outlined container, the backlink an unboxed ruled row,
+   and the artifact button stays a native button. */
 .gotsaeng-os-stat {
-  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
   border-radius: 6px;
-  padding: 8px;
+  padding: 8px 10px;
+}
+
+.gotsaeng-os-stats-health .gotsaeng-os-stat strong {
+  font-size: var(--font-ui-medium);
+}
+
+.gotsaeng-os-stats-details .gotsaeng-os-stat {
+  padding: 6px 8px;
+}
+
+.gotsaeng-os-stats-details .gotsaeng-os-stat strong {
+  font-weight: var(--font-normal);
 }
 
 .gotsaeng-os-stat-label {
@@ -107,6 +274,23 @@
   display: block;
   font-size: var(--font-ui-smaller);
   margin-bottom: 4px;
+}
+
+/* Reads the direction of a metric whose name doesn't ("Avg provenance" is a
+   0-100 score where higher is better; nothing about the number says so). */
+.gotsaeng-os-stat-hint {
+  color: var(--text-muted);
+  display: block;
+  font-size: var(--font-ui-smaller);
+  margin-top: 4px;
+}
+
+/* When the last compile ran. Sits directly under the "Latest Compile" heading
+   so the stats below it are never read as current without a date attached. */
+.gotsaeng-os-compile-time {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  margin: 0 0 8px;
 }
 
 .gotsaeng-os-output-path {
@@ -128,14 +312,51 @@
   width: 100%;
 }
 
+/* The screen-reader half of the artifact filter's match count. It has to live
+   in the persistent shell to be announced at all (see ReportHubShell in
+   src/view.ts), and the shell sits near the top of the pane — nowhere near the
+   input the count describes. So this copy is taken out of the visual layout
+   entirely and `.gotsaeng-os-artifact-filter-count` below carries the sentence
+   on screen, right under the input.
+
+   Clipped to a 1px box rather than `display: none`/`visibility: hidden`: both
+   of those take the element out of the accessibility tree, which would stop it
+   being announced — the one thing it exists for. */
+.gotsaeng-os-artifact-filter-status {
+  block-size: 1px;
+  clip-path: inset(50%);
+  inline-size: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+}
+
+.gotsaeng-os-artifact-filter-count {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  margin: 0 0 4px;
+}
+
+/* Empty until the filter has something to say; the margin would otherwise
+   leave a gap above the first group heading on a pane nobody has filtered. */
+.gotsaeng-os-artifact-filter-count:empty {
+  display: none;
+}
+
 .gotsaeng-os-artifact-grid {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(120px, 100%), 1fr));
   margin: 0 0 8px;
 }
 
 .gotsaeng-os-artifact-button {
+  /* Matches the source/backlink buttons: an artifact label is a file name
+     ("CONTEXT_MANIFEST.json"), which has no break opportunity of its own and
+     overflows its track in a narrow pane without this. */
+  overflow-wrap: anywhere;
   width: 100%;
 }
 
@@ -144,11 +365,13 @@
   color: var(--text-on-accent);
 }
 
+/* A container, not an item: a wider radius and more inner room than the stat
+   chips, and the only object on this pane that keeps a full outline. */
 .gotsaeng-os-source-panel {
   border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
+  border-radius: 10px;
   margin: 12px 0;
-  padding: 12px;
+  padding: 12px 14px;
 }
 
 .gotsaeng-os-source-panel h4 {
@@ -158,7 +381,7 @@
 .gotsaeng-os-source-grid {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr));
 }
 
 .gotsaeng-os-source-button {
@@ -167,10 +390,15 @@
   width: 100%;
 }
 
+/* The cap used to be `55vh`, which is the Obsidian window — a preview in a
+   short horizontally-split pane was then capped well below its own height and
+   scrolled inside a pane that was already scrolling. `--gotsaeng-os-pane-height`
+   is this leaf's measured height (src/view.ts), so the cap is a share of the
+   pane the preview actually lives in. */
 .gotsaeng-os-artifact-preview {
   border: 1px solid var(--background-modifier-border);
   border-radius: 6px;
-  max-height: 55vh;
+  max-height: calc(var(--gotsaeng-os-pane-height) * 0.55);
   overflow: auto;
   padding: 12px;
 }
@@ -180,17 +408,30 @@
   white-space: pre-wrap;
 }
 
+/* "Showing the first N of M lines." plus the button that opens the whole file;
+   wraps to two rows rather than pushing the button out of a narrow pane. */
+.gotsaeng-os-preview-truncation {
+  align-items: baseline;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--font-ui-smaller);
+  gap: 4px 8px;
+  margin: 8px 0;
+}
+
 .gotsaeng-os-backlink-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   margin: 12px 0;
 }
 
+/* Rows in a list, not cards in a grid: a single leading rule instead of a box,
+   so twenty of them stacked read as one list rather than twenty objects. */
 .gotsaeng-os-backlink-entry {
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-  padding: 8px 12px;
+  border-left: 2px solid var(--background-modifier-border);
+  padding: 2px 0 2px 10px;
 }
 
 .gotsaeng-os-backlink-note-button {
@@ -205,6 +446,24 @@
   margin: 4px 0 0;
 }
 
+/* One focus ring for every control this pane owns. Obsidian's own button focus
+   styling varies by theme, and the objects here now differ deliberately in
+   border and fill (chip / container / ruled row / button), so without this the
+   keyboard-visible state differed per object too. Listed by class rather than
+   as `.gotsaeng-os-report-view button:focus-visible`, which at 0,2,1 would
+   have outranked — and silently replaced — the error banner's own 0,2,0 ring,
+   the one deliberately drawn in `--text-normal` because it sits on a tinted
+   error surface rather than on the page background. */
+.gotsaeng-os-button:focus-visible,
+.gotsaeng-os-artifact-button:focus-visible,
+.gotsaeng-os-artifact-filter:focus-visible,
+.gotsaeng-os-source-button:focus-visible,
+.gotsaeng-os-backlink-note-button:focus-visible,
+.gotsaeng-os-preview-truncation button:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
 .gotsaeng-os-modal-buttons {
   display: flex;
   gap: 8px;
@@ -212,7 +471,21 @@
   margin-top: 16px;
 }
 
-@media (max-width: 760px) {
+/* Same ring as the pane's own controls, so a keyboard user moving from the
+   pane into a confirm modal doesn't see the focus indicator change. */
+.gotsaeng-os-modal-buttons button:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
+/* Was `@media (max-width: 760px)`, which measured the Obsidian window: it never
+   fired for a narrow pane in a wide window (the case that actually needs it),
+   and did fire for a wide pane in a narrow window (the case that doesn't).
+   `@container` measures the pane. The auto-fill tracks above already collapse
+   on their own well before this width; this exists because two 120px artifact
+   buttons side by side in a 260px pane are legible only as ellipses, so below
+   400px every grid drops to a single column regardless of what fits. */
+@container gotsaeng-os-report (max-width: 400px) {
   .gotsaeng-os-action-grid,
   .gotsaeng-os-artifact-grid,
   .gotsaeng-os-source-grid,

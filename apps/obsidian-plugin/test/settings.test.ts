@@ -5,6 +5,7 @@ import {
   HIDDEN_OUTPUT_FOLDER,
   assertValidOutputFolderPath,
   VISIBLE_OUTPUT_FOLDER,
+  getPersistedSettingsIssues,
   getSettingsValidationMessages,
   isHiddenOutputFolder,
   normalizeManagedOutputFolders,
@@ -12,6 +13,7 @@ import {
   normalizeOutputFolderVisibility,
   normalizeSettings,
   normalizeStaleDays,
+  pruneManagedOutputFolders,
   updateSettingsWithCustomOutputFolderInput,
   updateSettingsWithOutputFolderVisibility,
   updateSettingsWithStaleDaysInput,
@@ -44,6 +46,39 @@ describe("Obsidian plugin settings", () => {
     });
     expect(migrated.managedOutputFolders).toEqual([VISIBLE_OUTPUT_FOLDER]);
     expect(migrated.managedOutputFolders).not.toContain(HIDDEN_OUTPUT_FOLDER);
+  });
+
+  it("drops blank managed-folder entries instead of normalizing them into the hidden folder (#13)", () => {
+    // normalizeOutputFolder("") resolves to the *default* (hidden) folder, so
+    // a blank entry that slipped into persisted data used to grandfather the
+    // hidden folder into the managed set — marking it sweepable in a vault
+    // that may never have used it.
+    expect(normalizeManagedOutputFolders(["", "   "], VISIBLE_OUTPUT_FOLDER)).toEqual([
+      VISIBLE_OUTPUT_FOLDER,
+    ]);
+    expect(
+      normalizeSettings({
+        outputFolderVisibility: "visible",
+        outputFolder: VISIBLE_OUTPUT_FOLDER,
+        managedOutputFolders: [""],
+      }).managedOutputFolders,
+    ).not.toContain(HIDDEN_OUTPUT_FOLDER);
+  });
+
+  it("prunes managed folders that no longer exist, always keeping the folder in use (#10)", () => {
+    // The set is append-only otherwise: normalizeManagedOutputFolders folds the
+    // folder in use into it on every save, so a vault that has moved its output
+    // folder repeatedly keeps every folder it ever used forever.
+    expect(
+      pruneManagedOutputFolders(
+        [HIDDEN_OUTPUT_FOLDER, "Reports/Gone", VISIBLE_OUTPUT_FOLDER],
+        VISIBLE_OUTPUT_FOLDER,
+        [HIDDEN_OUTPUT_FOLDER],
+      ),
+    ).toEqual([HIDDEN_OUTPUT_FOLDER, VISIBLE_OUTPUT_FOLDER]);
+
+    // The folder in use is kept even before it has been created on disk.
+    expect(pruneManagedOutputFolders(["Reports/New"], "Reports/New", [])).toEqual(["Reports/New"]);
   });
 
   it("keeps output folders relative to the vault", () => {
@@ -98,6 +133,38 @@ describe("Obsidian plugin settings", () => {
         outputFolder: "../outside",
       }),
     ).toEqual(["Output folder cannot include '..' path segments."]);
+  });
+
+  it("reports what a persisted settings object had to be normalized out of", () => {
+    // normalizeSettings coerces these away before anything sees them, so the
+    // raw persisted object is the only place the problem still exists — which
+    // is why the settings banner has to be fed from here, not from the
+    // already-normalized live settings.
+    expect(
+      getPersistedSettingsIssues({
+        outputFolderVisibility: "custom",
+        outputFolder: "../outside",
+        staleDays: 0,
+      }),
+    ).toEqual([
+      "Saved output folder path was reset to the default. Output folder cannot include '..' path segments.",
+      `Saved stale days value was reset to ${DEFAULT_SETTINGS.staleDays}. Stale days must be a positive whole number.`,
+    ]);
+
+    // A built-in folder is not a custom path, so its value is never validated
+    // as one; a valid custom path and a valid stale-days value report nothing;
+    // and absent fields are not a reset (they were never set).
+    expect(getPersistedSettingsIssues({})).toEqual([]);
+    expect(
+      getPersistedSettingsIssues({ outputFolderVisibility: "hidden", outputFolder: "" }),
+    ).toEqual([]);
+    expect(
+      getPersistedSettingsIssues({
+        outputFolderVisibility: "custom",
+        outputFolder: "Reports/GotSaeng",
+        staleDays: 30,
+      }),
+    ).toEqual([]);
   });
 
   it("rejects invalid values through settings update helpers", () => {

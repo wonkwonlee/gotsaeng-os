@@ -16,148 +16,265 @@
 //
 // Keep this honest: if a source file starts using more of the Obsidian API,
 // extend this mock to match rather than casting the gap away in tests.
+//
+// DOM: elements here are REAL jsdom elements (this package's tests run with
+// `environment: "jsdom"` — see root vitest.config.ts), augmented on
+// HTMLElement.prototype with the small `createEl`/`createDiv`/`empty`/… DOM
+// builder surface Obsidian adds to HTMLElement in the real app, plus a few
+// test-only query helpers. This used to be a hand-rolled `FakeElement` object
+// graph with a bare `focusCount` counter and no notion of an active element —
+// which meant src/a11y.ts's `activeFocusKey()` always returned null and both
+// `capture()` and `isFocused()` were provably no-ops under test (neutering
+// either guard left every test green). Backing the mock with real elements is
+// what makes focus restoration assertable at all: `document.activeElement` is
+// real, `data-focus-key` is a real queryable attribute, removing a focused
+// element really drops focus, and disabling a focused control really blurs it.
 
-/** Minimal stand-in for Obsidian's HTMLElement DOM-builder augmentation
- * (createEl/createDiv/empty/addClass, etc). vitest runs with
- * `environment: "node"`, so there is no real DOM to lean on here either. */
-export class FakeElement {
+/** An Obsidian-augmented DOM element: structurally a real `HTMLElement`, plus
+ * the few extras below. The `createEl`/`createDiv`/`empty`/`setText`/`addClass`
+ * /`setAttr`/`getAttr`/`hide`/`show`/`toggle` surface is NOT redeclared here —
+ * obsidian.d.ts already augments the global `HTMLElement` with all of it, which
+ * is exactly what makes `installObsidianDomAugmentation` a faithful stand-in
+ * rather than a parallel object model. */
+export type FakeElement = Omit<HTMLElement, "children"> & {
+  /** Lowercased tag name, e.g. `"button"`. */
   readonly tag: string;
-  text?: string;
-  readonly cls: string[] = [];
-  title = "";
-  type = "";
-  min = "";
-  value = "";
-  disabled = false;
-  /** Mirrors the real DOM `HTMLElement.hidden` IDL attribute that `hide()`/`show()`/`toggle()` set. */
-  hidden = false;
-  private readonly attrs: Record<string, string> = {};
-  readonly children: FakeElement[] = [];
-  private readonly listeners = new Map<string, Array<() => void>>();
+  /** Text set explicitly via `createEl({text})`/`setText()`; `undefined` when
+   * this element was never given text of its own. Deliberately NOT
+   * `textContent`: a container whose children carry text has no text of its
+   * own, and several assertions depend on that distinction. */
+  text: string | undefined;
+  /** This element's class names, as an array. */
+  readonly cls: string[];
+  /** Child *elements*, as an array (the real `children` is an HTMLCollection). */
+  readonly children: FakeElement[];
+  value: string;
+  disabled: boolean;
+  type: string;
+  min: string;
+  /** Test helper: how many times `focus()` has been called on this element.
+   * Says nothing about whether focus actually landed — assert
+   * `document.activeElement` for that. */
+  readonly focusCount: number;
+  /** Test helper: dispatch a plain DOM event of `type` at this element. */
+  dispatch(type: string): void;
+  /** Test helper: first descendant carrying `cls`, in document order. */
+  findByClass(cls: string): FakeElement | undefined;
+  /** Test helper: all descendants carrying `cls`, in document order. */
+  findAllByClass(cls: string): FakeElement[];
+  /** Test helper: all descendants with the given tag name, in document order. */
+  findAllByTag(tag: string): FakeElement[];
+};
 
-  constructor(tag: string) {
-    this.tag = tag;
+export type CreateElOptions = {
+  text?: string;
+  cls?: string | string[];
+  attr?: Record<string, string | number | boolean | null>;
+};
+
+const OWN_TEXT = Symbol("gotsaeng.ownText");
+const FOCUS_COUNT = Symbol("gotsaeng.focusCount");
+
+type Augmented = HTMLElement & {
+  [OWN_TEXT]?: string | undefined;
+  [FOCUS_COUNT]?: number;
+};
+
+function asFake(element: Element): FakeElement {
+  return element as unknown as FakeElement;
+}
+
+// Installed once, at module load. Obsidian augments HTMLElement.prototype the
+// same way in the real app, so src/ code calling `el.createDiv(...)` on a
+// plain HTMLElement is exactly what happens in production.
+function installObsidianDomAugmentation(): void {
+  const proto = HTMLElement.prototype as unknown as Record<PropertyKey, unknown>;
+  if (proto["createEl"] !== undefined) {
+    return;
   }
 
-  createEl(
-    tag: string,
-    options?: {
-      text?: string;
-      cls?: string | string[];
-      attr?: Record<string, string | number | boolean | null>;
+  Object.defineProperties(HTMLElement.prototype, {
+    tag: {
+      configurable: true,
+      get(this: HTMLElement): string {
+        return this.tagName.toLowerCase();
+      },
     },
-  ): FakeElement {
-    const el = new FakeElement(tag);
-    if (options?.text !== undefined) {
-      el.text = options.text;
-    }
-    if (options?.cls) {
-      el.addClass(...(Array.isArray(options.cls) ? options.cls : [options.cls]));
-    }
-    if (options?.attr) {
-      for (const [name, attrValue] of Object.entries(options.attr)) {
-        if (attrValue !== null) {
-          el.setAttr(name, attrValue);
+    text: {
+      configurable: true,
+      get(this: Augmented): string | undefined {
+        return this[OWN_TEXT];
+      },
+      set(this: Augmented, value: string | undefined) {
+        this[OWN_TEXT] = value;
+        this.textContent = value ?? "";
+      },
+    },
+    cls: {
+      configurable: true,
+      get(this: HTMLElement): string[] {
+        return [...this.classList];
+      },
+    },
+    children: {
+      configurable: true,
+      get(this: HTMLElement): FakeElement[] {
+        return [...this.childNodes]
+          .filter((node): node is Element => node.nodeType === 1)
+          .map(asFake);
+      },
+    },
+    focusCount: {
+      configurable: true,
+      get(this: Augmented): number {
+        return this[FOCUS_COUNT] ?? 0;
+      },
+    },
+  });
+
+  Object.assign(HTMLElement.prototype, {
+    createEl(this: HTMLElement, tag: string, options?: CreateElOptions): FakeElement {
+      const el = asFake(this.ownerDocument.createElement(tag));
+      if (options?.text !== undefined) {
+        el.setText(options.text);
+      }
+      if (options?.cls) {
+        el.addClass(...(Array.isArray(options.cls) ? options.cls : [options.cls]));
+      }
+      if (options?.attr) {
+        for (const [name, attrValue] of Object.entries(options.attr)) {
+          if (attrValue !== null) {
+            el.setAttr(name, attrValue);
+          }
         }
       }
-    }
-    this.children.push(el);
-    return el;
-  }
+      this.appendChild(el);
+      return el;
+    },
 
-  createDiv(options?: { cls?: string | string[] }): FakeElement {
-    return this.createEl("div", options);
-  }
+    createDiv(this: FakeElement, options?: CreateElOptions): FakeElement {
+      return asFake(this.createEl("div", options));
+    },
 
-  empty(): void {
-    this.children.length = 0;
-  }
-
-  addClass(...classes: string[]): void {
-    this.cls.push(...classes);
-  }
-
-  setText(value: string): void {
-    this.text = value;
-  }
-
-  setAttr(name: string, value: string | number | boolean): void {
-    this.attrs[name] = String(value);
-  }
-
-  getAttr(name: string): string | null {
-    return this.attrs[name] ?? null;
-  }
-
-  hide(): void {
-    this.hidden = true;
-  }
-
-  show(): void {
-    this.hidden = false;
-  }
-
-  toggle(show: boolean): void {
-    this.hidden = !show;
-  }
-
-  addEventListener(type: string, callback: () => void): void {
-    const existing = this.listeners.get(type) ?? [];
-    existing.push(callback);
-    this.listeners.set(type, existing);
-  }
-
-  /** Test helper: simulate a DOM event dispatched to this element. */
-  dispatch(type: string): void {
-    for (const callback of this.listeners.get(type) ?? []) {
-      callback();
-    }
-  }
-
-  /** Test helper: how many times `focus()` has been called on this element. */
-  focusCount = 0;
-
-  focus(): void {
-    this.focusCount += 1;
-  }
-
-  /** Test helper: depth-first search for a descendant carrying `cls`. */
-  findByClass(cls: string): FakeElement | undefined {
-    for (const child of this.children) {
-      if (child.cls.includes(cls)) {
-        return child;
+    empty(this: Augmented): void {
+      // Real removal, not a bookkeeping reset: dropping a focused descendant
+      // has to really drop focus, which is precisely what FocusRestorer exists
+      // to recover from.
+      while (this.firstChild) {
+        this.removeChild(this.firstChild);
       }
-      const nested = child.findByClass(cls);
-      if (nested) {
-        return nested;
-      }
-    }
-    return undefined;
-  }
+      this[OWN_TEXT] = undefined;
+    },
 
-  /** Test helper: all descendants (any depth) carrying `cls`, in document order. */
-  findAllByClass(cls: string): FakeElement[] {
-    const matches: FakeElement[] = [];
-    for (const child of this.children) {
-      if (child.cls.includes(cls)) {
-        matches.push(child);
-      }
-      matches.push(...child.findAllByClass(cls));
-    }
-    return matches;
-  }
+    addClass(this: HTMLElement, ...classes: string[]): void {
+      this.classList.add(...classes);
+    },
 
-  /** Test helper: all descendants (any depth) with the given tag name, in document order. */
-  findAllByTag(tag: string): FakeElement[] {
-    const matches: FakeElement[] = [];
-    for (const child of this.children) {
-      if (child.tag === tag) {
-        matches.push(child);
-      }
-      matches.push(...child.findAllByTag(tag));
+    removeClass(this: HTMLElement, ...classes: string[]): void {
+      this.classList.remove(...classes);
+    },
+
+    setText(this: FakeElement, value: string): void {
+      this.text = value;
+    },
+
+    setAttr(this: HTMLElement, name: string, value: string | number | boolean): void {
+      this.setAttribute(name, String(value));
+    },
+
+    getAttr(this: HTMLElement, name: string): string | null {
+      return this.getAttribute(name);
+    },
+
+    hide(this: HTMLElement): void {
+      this.hidden = true;
+    },
+
+    show(this: HTMLElement): void {
+      this.hidden = false;
+    },
+
+    toggle(this: HTMLElement, show: boolean): void {
+      this.hidden = !show;
+    },
+
+    dispatch(this: HTMLElement, type: string): void {
+      this.dispatchEvent(new Event(type));
+    },
+
+    findByClass(this: HTMLElement, cls: string): FakeElement | undefined {
+      const match = this.querySelector(`.${cls}`);
+      return match === null ? undefined : asFake(match);
+    },
+
+    findAllByClass(this: HTMLElement, cls: string): FakeElement[] {
+      return [...this.querySelectorAll(`.${cls}`)].map(asFake);
+    },
+
+    findAllByTag(this: HTMLElement, tag: string): FakeElement[] {
+      return [...this.querySelectorAll(tag)].map(asFake);
+    },
+  });
+
+  const nativeFocus = HTMLElement.prototype.focus;
+  HTMLElement.prototype.focus = function focus(this: Augmented, options?: FocusOptions): void {
+    this[FOCUS_COUNT] = (this[FOCUS_COUNT] ?? 0) + 1;
+    nativeFocus.call(this, options);
+  };
+
+  installDisabledBlursFocus();
+}
+
+// Browsers run the "focus fixup rule" when the focused element becomes
+// disabled: focus moves off it to the body. jsdom reflects `disabled` to the
+// attribute but does not run that fixup, and the Report Hub depends on it —
+// starting a command disables all four action buttons, which is exactly what
+// blurs the one the user clicked. Without this, a test could never tell
+// whether focus was recorded before or after the buttons were disabled.
+function installDisabledBlursFocus(): void {
+  const constructors = [
+    HTMLButtonElement,
+    HTMLInputElement,
+    HTMLSelectElement,
+    HTMLTextAreaElement,
+  ];
+
+  for (const ctor of constructors) {
+    const descriptor = Object.getOwnPropertyDescriptor(ctor.prototype, "disabled");
+    const nativeGet = descriptor?.get;
+    const nativeSet = descriptor?.set;
+    if (!nativeGet || !nativeSet) {
+      continue;
     }
-    return matches;
+
+    Object.defineProperty(ctor.prototype, "disabled", {
+      configurable: true,
+      enumerable: descriptor.enumerable ?? true,
+      get: nativeGet,
+      set(this: HTMLElement, value: boolean) {
+        // Blur first: jsdom's blur() is a no-op on an element that is no
+        // longer focusable, so doing it after the flag lands would silently
+        // leave document.activeElement pointing at a disabled control.
+        if (value && this.ownerDocument.activeElement === this) {
+          this.blur();
+        }
+        nativeSet.call(this, value);
+      },
+    });
   }
+}
+
+installObsidianDomAugmentation();
+
+/** Creates a detached-from-any-fixture root element attached to
+ * `document.body`. Attachment matters: jsdom only moves
+ * `document.activeElement` onto elements that are actually in the document,
+ * so a mock whose roots float free would silently make every focus assertion
+ * vacuous again. */
+export function createRootElement(tag = "div"): FakeElement {
+  const el = asFake(document.createElement(tag));
+  document.body.appendChild(el);
+  return el;
 }
 
 export class Notice {
@@ -220,7 +337,7 @@ export class Plugin extends Component {
 
   addRibbonIcon(icon: string, title: string, callback: (evt: unknown) => void): FakeElement {
     this.ribbonIcons.push({ icon, title, callback });
-    return new FakeElement("div");
+    return createRootElement("div");
   }
 
   addCommand(command: FakeCommand): FakeCommand {
@@ -229,7 +346,7 @@ export class Plugin extends Component {
   }
 
   addStatusBarItem(): FakeElement {
-    return new FakeElement("div");
+    return createRootElement("div");
   }
 
   async loadData(): Promise<unknown> {
@@ -244,7 +361,7 @@ export class Plugin extends Component {
 export class PluginSettingTab {
   app: unknown;
   plugin: unknown;
-  readonly containerEl: FakeElement = new FakeElement("div");
+  readonly containerEl: FakeElement = createRootElement("div");
 
   constructor(app: unknown, plugin: unknown) {
     this.app = app;
@@ -262,9 +379,13 @@ export class PluginSettingTab {
 }
 
 export class FakeTextComponent {
-  readonly inputEl = new FakeElement("input");
+  readonly inputEl: FakeElement;
   private value = "";
   private changeHandler: ((value: string) => unknown) | null = null;
+
+  constructor(parent: FakeElement) {
+    this.inputEl = asFake(parent.createEl("input"));
+  }
 
   setPlaceholder(): this {
     return this;
@@ -297,9 +418,14 @@ export class FakeTextComponent {
 }
 
 export class FakeDropdownComponent {
+  readonly selectEl: FakeElement;
   readonly options: Array<{ value: string; display: string }> = [];
   private value = "";
   private changeHandler: ((value: string) => unknown) | null = null;
+
+  constructor(parent: FakeElement) {
+    this.selectEl = asFake(parent.createEl("select"));
+  }
 
   addOption(value: string, display: string): this {
     this.options.push({ value, display });
@@ -327,8 +453,17 @@ export class FakeDropdownComponent {
 }
 
 export class FakeToggleComponent {
+  readonly toggleEl: FakeElement;
   private value = false;
   private changeHandler: ((value: boolean) => unknown) | null = null;
+
+  constructor(parent: FakeElement) {
+    // Obsidian's toggle is a focusable <div role="checkbox">, not an <input>;
+    // the explicit tabindex is what makes it focusable in jsdom too.
+    this.toggleEl = asFake(
+      parent.createDiv({ cls: "checkbox-container", attr: { role: "checkbox", tabindex: "0" } }),
+    );
+  }
 
   setValue(value: boolean): this {
     this.value = value;
@@ -352,14 +487,27 @@ export class FakeToggleComponent {
 
 export class Setting {
   readonly containerEl: FakeElement;
+  /** The row element the real Setting builds inside `containerEl`; the
+   * settings tab attaches its own per-field error region and status block to
+   * it. */
+  readonly settingEl: FakeElement;
+  /** Where the real Setting puts the controls added by addText/addDropdown/
+   * addToggle. Components are built inside it (rather than floating free) so
+   * their elements are actually in the document and can hold focus. */
+  readonly controlEl: FakeElement;
   name = "";
   desc = "";
+  /** True once `setHeading()` has been called: the real Setting turns the row
+   * into a section heading instead of a labelled control row. */
+  isHeading = false;
   readonly textComponents: FakeTextComponent[] = [];
   readonly dropdownComponents: FakeDropdownComponent[] = [];
   readonly toggleComponents: FakeToggleComponent[] = [];
 
   constructor(containerEl: FakeElement) {
     this.containerEl = containerEl;
+    this.settingEl = asFake(containerEl.createDiv({ cls: "setting-item" }));
+    this.controlEl = asFake(this.settingEl.createDiv({ cls: "setting-item-control" }));
     createdSettings.push(this);
   }
 
@@ -373,22 +521,28 @@ export class Setting {
     return this;
   }
 
+  setHeading(): this {
+    this.isHeading = true;
+    this.settingEl.addClass("setting-item-heading");
+    return this;
+  }
+
   addText(callback: (component: FakeTextComponent) => void): this {
-    const component = new FakeTextComponent();
+    const component = new FakeTextComponent(this.controlEl);
     this.textComponents.push(component);
     callback(component);
     return this;
   }
 
   addDropdown(callback: (component: FakeDropdownComponent) => void): this {
-    const component = new FakeDropdownComponent();
+    const component = new FakeDropdownComponent(this.controlEl);
     this.dropdownComponents.push(component);
     callback(component);
     return this;
   }
 
   addToggle(callback: (component: FakeToggleComponent) => void): this {
-    const component = new FakeToggleComponent();
+    const component = new FakeToggleComponent(this.controlEl);
     this.toggleComponents.push(component);
     callback(component);
     return this;
@@ -397,7 +551,7 @@ export class Setting {
 
 /** Every `Setting` constructed since the last `resetCreatedSettings()`, in
  * creation order — lets tests inspect a settings tab's `display()` output
- * without needing a real DOM to query. */
+ * without needing to hand-query the whole document. */
 export const createdSettings: Setting[] = [];
 
 export function resetCreatedSettings(): void {
@@ -419,7 +573,11 @@ export class TFile extends TAbstractFile {}
 export class View extends Component {
   app: unknown;
   leaf: unknown;
-  readonly containerEl: FakeElement = new FakeElement("div");
+  /** Real `View.onResize()` is called by the host when the leaf is resized;
+   * the Report Hub overrides it (see syncPaneHeight in src/view.ts), so the
+   * base method has to exist for tests to call the override through it. */
+  onResize(): void {}
+  readonly containerEl: FakeElement = createRootElement("div");
   readonly contentEl: FakeElement;
   icon = "";
   navigation = true;
@@ -428,7 +586,7 @@ export class View extends Component {
     super();
     this.leaf = leaf;
     this.app = (leaf as { app?: unknown } | undefined)?.app;
-    this.contentEl = this.containerEl.createDiv();
+    this.contentEl = asFake(this.containerEl.createDiv());
   }
 }
 
@@ -439,14 +597,14 @@ export class ItemView extends View {}
 
 export class Modal {
   app: unknown;
-  readonly containerEl: FakeElement = new FakeElement("div");
+  readonly containerEl: FakeElement = createRootElement("div");
   readonly contentEl: FakeElement;
   readonly titleEl: FakeElement;
 
   constructor(app: unknown) {
     this.app = app;
-    this.contentEl = this.containerEl.createDiv();
-    this.titleEl = this.containerEl.createDiv();
+    this.contentEl = asFake(this.containerEl.createDiv());
+    this.titleEl = asFake(this.containerEl.createDiv());
   }
 
   setTitle(title: string): this {
@@ -497,16 +655,19 @@ export class MarkdownRenderer {
     const target = el as FakeElement;
     renderedMarkdown.push({ markdown, sourcePath, el: target });
     const rendered = target.createDiv({ cls: "fake-markdown-rendered" });
-    rendered.text = markdown;
+    rendered.setText(markdown);
   }
 }
 
-/** Test helper: resets every piece of shared mutable mock state. Call from
- * `beforeEach` so notices/settings/renders from one test never leak into
- * the next. */
+/** Test helper: resets every piece of shared mutable mock state, including the
+ * document itself — otherwise a focused, focus-keyed element left behind by
+ * one test would still be `document.activeElement` when the next test's first
+ * `FocusRestorer.capture()` runs. Call from `beforeEach`, before constructing
+ * anything that builds DOM. */
 export function resetObsidianMocks(): void {
   resetNotices();
   resetCreatedSettings();
   resetRenderedMarkdown();
   resetCreatedModals();
+  document.body.replaceChildren();
 }
