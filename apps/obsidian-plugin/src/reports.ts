@@ -1,5 +1,3 @@
-import path from "node:path";
-
 import {
   groupItemsBySource,
   inferCurrentObjective,
@@ -13,7 +11,6 @@ import {
   type CompileReport,
   type ContextPack,
   type ExtractedItem,
-  type ValidationIssue,
 } from "@gotsaeng/core";
 
 export { renderLlmHandoff } from "@gotsaeng/core";
@@ -199,10 +196,6 @@ export function renderWeeklyReview(pack: ContextPack): string {
   ].join("\n");
 }
 
-export function formatValidationIssue(issue: ValidationIssue): string {
-  return `${issue.path}: ${issue.message}`;
-}
-
 function renderStringList(items: string[]): string {
   if (items.length === 0) {
     return "- None.";
@@ -349,12 +342,54 @@ function countExtractedItems(pack: ContextPack): number {
   );
 }
 
+// The characters Obsidian gives structural meaning to inside a wikilink: `[`
+// and `]` delimit the link, `|` starts the alias, `#` a heading reference and
+// `^` a block reference.
+//
+// `%` is deliberately NOT in the character class. Obsidian resolves a wikilink
+// target literally — it does not percent-decode it — so every `%` this encodes
+// turns a link that used to open the right file into one that opens nothing.
+// Encoding `%` unconditionally therefore broke click-through for every
+// ordinary `%`-bearing file name ("100% done.md", "10_Wiki/a%b.md"), which is
+// the common case, to protect against a pathological one.
+//
+// The lookahead narrows it to exactly the pathological case: a literal `%` is
+// escaped only when the two characters behind it already spell one of the six
+// escape codes this function emits. Without that, a real file named
+// "a%5Bb.md" would go into the link untouched and come back out of
+// `decodeWikiLinkReserved` (source-links.ts) as "a[b.md" — a different file.
+// A `%` followed by anything else is left byte-identical, so the click-through
+// regression is narrowed to file names that already look percent-encoded.
+//
+// String.replace scans the original string once, so the "%25" this produces is
+// never re-scanned — the ordering that would otherwise double-encode the
+// escapes for `[`/`]`/etc. cannot arise. It is also why an unescaped literal
+// `%` can never be mistaken for an escape on the way back: the only sequences
+// that follow it in the output are either the original characters (which the
+// lookahead just proved are not an escape code) or an emitted escape, whose
+// own `%` sits between the two.
+const WIKILINK_RESERVED = /%(?=25|5B|5D|7C|23|5E)|[[\]|#^]/giu;
+// The subset that breaks a *label*. `#` and `^` carry no meaning after the
+// alias separator, so they are left alone rather than mangling display text.
+const WIKILINK_LABEL_RESERVED = /[[\]|]/gu;
+
+/**
+ * Renders `[[path|label]]` for a vault path. Reserved characters in the path
+ * are percent-encoded rather than replaced: only `|` used to be handled, and
+ * by substituting a space — which silently produced a *different* path, and
+ * left `#`/`[`/`]`/`^` to break the link outright. The encoding is what makes
+ * the link survive a round trip back through `extractSourceLinks`, whose path
+ * pattern excludes exactly these characters (see `decodeWikiLinkReserved` in
+ * source-links.ts). `%` is escaped only in the one case that would otherwise
+ * round-trip to the wrong file — see the comment on WIKILINK_RESERVED for why
+ * escaping it any more widely costs real click-through in Obsidian.
+ */
 export function toVaultWikiLink(pathOrLinkText: string, label: string): string {
-  const safePath = pathOrLinkText.replace(/\|/g, " ");
-  const safeLabel = label.replace(/\|/g, " ");
+  const safePath = pathOrLinkText.replace(WIKILINK_RESERVED, encodeReservedChar);
+  const safeLabel = label.replace(WIKILINK_LABEL_RESERVED, " ");
   return `[[${safePath}|${safeLabel}]]`;
 }
 
-export function makeReportPath(outputDir: string, fileName: string): string {
-  return path.join(outputDir, fileName);
+function encodeReservedChar(char: string): string {
+  return `%${char.charCodeAt(0).toString(16).toUpperCase()}`;
 }

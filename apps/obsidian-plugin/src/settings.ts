@@ -80,9 +80,39 @@ export function normalizeManagedOutputFolders(
   outputFolder: string,
 ): string[] {
   const base = value ?? [];
-  const normalized = new Set(base.map((folder) => normalizeOutputFolder(folder)));
+  const normalized = new Set(
+    base
+      // normalizeOutputFolder maps "" (and any whitespace-only entry) onto the
+      // *default* folder, so a blank entry that slipped into persisted data
+      // would silently grandfather the built-in hidden folder into the managed
+      // set — marking it sweepable in a vault that may never have used it.
+      // Drop such entries instead of normalizing them into something real.
+      .filter((folder) => folder.trim().length > 0)
+      .map((folder) => normalizeOutputFolder(folder)),
+  );
   normalized.add(normalizeOutputFolder(outputFolder));
   return [...normalized];
+}
+
+// Bounds `managedOutputFolders`, which is otherwise append-only:
+// normalizeManagedOutputFolders folds the folder currently in use into the set
+// on every save, so a vault that has moved its output folder repeatedly keeps
+// every folder it ever used in the sweep set forever. `existingFolders` is the
+// subset the caller has confirmed still exists on disk (see pruneSettings in
+// main.ts) — a folder that is gone can hold nothing worth sweeping. The folder
+// in use is always kept, whether or not it has been created yet.
+export function pruneManagedOutputFolders(
+  managedOutputFolders: readonly string[],
+  outputFolder: string,
+  existingFolders: readonly string[],
+): string[] {
+  const existing = new Set(existingFolders.map((folder) => normalizeOutputFolder(folder)));
+  const current = normalizeOutputFolder(outputFolder);
+
+  return managedOutputFolders.filter((folder) => {
+    const normalized = normalizeOutputFolder(folder);
+    return normalized === current || existing.has(normalized);
+  });
 }
 
 export function normalizeProjectName(value: string | undefined): string {
@@ -177,9 +207,13 @@ export function assertValidOutputFolderPath(value: string): void {
   }
 }
 
-export function validateCustomOutputFolderInput(value: string): string[] {
-  return validateOutputFolderPath(value);
-}
+// Deliberately an alias, not a wrapper. It used to be a function whose body
+// was `return validateOutputFolderPath(value)` and nothing else, which reads
+// as a seam the two rules could diverge at — they can't, and shouldn't: the
+// settings-tab field and the persisted value must accept exactly the same
+// paths. The name is kept because it is what the call sites at the field
+// itself are about.
+export const validateCustomOutputFolderInput = validateOutputFolderPath;
 
 export function validateStaleDaysInput(value: string): string[] {
   const trimmed = value.trim();
@@ -230,6 +264,37 @@ export function updateSettingsWithStaleDaysInput(
     ...settings,
     staleDays: Number(value.trim()),
   };
+}
+
+// `normalizeSettings` deliberately coerces an invalid persisted value instead
+// of keeping it: `outputFolder` is resolved against the vault and swept for
+// deletion, so carrying "../outside" or "" around in live settings is a
+// file-system hazard, not merely a display problem. The consequence is that by
+// the time anything inspects `plugin.settings`, nothing invalid is left there —
+// which is why the settings banner fed only by getSettingsValidationMessages
+// could structurally never fire for real persisted data. This reports what was
+// wrong with the data *as persisted*, so a silent coercion becomes something
+// the user is actually told about. Call it on the raw `loadData()` result,
+// before normalization.
+export function getPersistedSettingsIssues(settings: Partial<GotSaengPluginSettings>): string[] {
+  const messages: string[] = [];
+
+  if (settings.outputFolderVisibility === "custom" && settings.outputFolder !== undefined) {
+    for (const message of validateCustomOutputFolderInput(settings.outputFolder)) {
+      messages.push(`Saved output folder path was reset to the default. ${message}`);
+    }
+  }
+
+  if (
+    settings.staleDays !== undefined &&
+    normalizeStaleDays(settings.staleDays) !== settings.staleDays
+  ) {
+    messages.push(
+      `Saved stale days value was reset to ${DEFAULT_SETTINGS.staleDays}. Stale days must be a positive whole number.`,
+    );
+  }
+
+  return messages;
 }
 
 export function getSettingsValidationMessages(settings: GotSaengPluginSettings): string[] {

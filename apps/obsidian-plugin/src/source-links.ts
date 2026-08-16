@@ -13,11 +13,46 @@ export type ExtractSourceLinksOptions = {
 
 const DEFAULT_LINK_LIMIT = 24;
 
-const SOURCE_PATTERNS = [
-  /\[\[([^[\]|#]+?\.md)(?:#[^\]|]*)?(?:\|([^\]]+))?\]\]/giu,
-  /\bsource:\s*([^;)\n]+?\.md)\b/giu,
-  /"sourcePath"\s*:\s*"([^"]+?\.md)"/giu,
+// `decodeReserved` marks the patterns whose match came out of a wikilink
+// target, which is the only place `toVaultWikiLink` (reports.ts)
+// percent-encodes the characters Obsidian reserves there. The other two
+// patterns read paths written verbatim, so decoding them would corrupt a path
+// that legitimately contains a "%5B"-shaped substring.
+const SOURCE_PATTERNS: { pattern: RegExp; decodeReserved: boolean }[] = [
+  { pattern: /\[\[([^[\]|#]+?\.md)(?:#[^\]|]*)?(?:\|([^\]]+))?\]\]/giu, decodeReserved: true },
+  { pattern: /\bsource:\s*([^;)\n]+?\.md)\b/giu, decodeReserved: false },
+  { pattern: /"sourcePath"\s*:\s*"([^"]+?\.md)"/giu, decodeReserved: false },
 ];
+
+// The inverse of toVaultWikiLink's encoding, limited to exactly the six
+// characters it encodes. A blanket decodeURIComponent would instead throw on a
+// stray "%" and rewrite unrelated escapes in a path that never went through
+// that encoder. "%25" (an encoded `%`) is part of the set for the same reason
+// the encoder escapes `%` at all: it is what keeps a path containing a literal
+// "%5B" from being decoded into one containing "[". A single pass is enough
+// and is what makes the two-level case ("%255B") come out right — the `%` this
+// restores is not re-scanned, so the "5B" behind it stays literal.
+const ENCODED_WIKILINK_RESERVED = /%(25|5B|5D|7C|23|5E)/giu;
+
+// Known, accepted limitation: this runs on every wikilink target in a
+// generated report, including one a user hand-wrote into a report file that
+// never passed through `toVaultWikiLink`. A hand-written `[[Notes/100%25
+// off.md]]` naming a file literally called "100%25 off.md" is decoded to
+// "100% off.md" and resolves to nothing. The extractor cannot tell its own
+// encoder's output apart from user-authored text using the same syntax — both
+// are just characters in a wikilink — so distinguishing them would need a
+// marker in the emitted link, which would be visible in the report and would
+// itself have to be escaped. The exposure is bounded by this function's own
+// pattern, not by the encoder: ENCODED_WIKILINK_RESERVED only matches one of
+// these six sequences, so a hand-written link has to contain one of them to
+// be affected at all — true before and after WIKILINK_RESERVED (reports.ts)
+// was narrowed to escape `%` only ahead of these same six codes, since that
+// change controls what the encoder emits, not what this decoder looks for.
+function decodeWikiLinkReserved(value: string): string {
+  return value.replace(ENCODED_WIKILINK_RESERVED, (_match, hex: string) =>
+    String.fromCharCode(Number.parseInt(hex, 16)),
+  );
+}
 
 const GENERATED_MARKDOWN_FILES = new Set(
   OUTPUT_ARTIFACTS.filter((artifact) => artifact.format === "markdown").map(
@@ -101,10 +136,10 @@ export function extractSourceLinks(
   const linksByPath = new Map<string, SourceLink>();
   const limit = options.limit ?? DEFAULT_LINK_LIMIT;
 
-  for (const pattern of SOURCE_PATTERNS) {
+  for (const { pattern, decodeReserved } of SOURCE_PATTERNS) {
     pattern.lastIndex = 0;
     for (const match of content.matchAll(pattern)) {
-      const path = normalizeSourcePath(match[1] ?? "");
+      const path = normalizeSourcePath(match[1] ?? "", decodeReserved);
       if (!path || isGeneratedOutputPath(path, options.outputFolder)) {
         continue;
       }
@@ -124,8 +159,9 @@ export function extractSourceLinks(
     .slice(0, limit);
 }
 
-function normalizeSourcePath(rawPath: string): string | null {
-  const normalized = rawPath
+function normalizeSourcePath(rawPath: string, decodeReserved: boolean): string | null {
+  const decoded = decodeReserved ? decodeWikiLinkReserved(rawPath) : rawPath;
+  const normalized = decoded
     .trim()
     .replace(/^["'<]+|[>"']+$/g, "")
     .replace(/\\/g, "/")

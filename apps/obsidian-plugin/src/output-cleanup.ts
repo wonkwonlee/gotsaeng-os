@@ -27,14 +27,15 @@ const MANAGED_OUTPUT_FILE_NAMES = new Set(OUTPUT_ARTIFACTS.map((artifact) => art
 // it as `previousOutputFolder` so it is swept too, even if the caller hasn't
 // re-saved settings yet with it included in `managedOutputFolders`.
 //
-// `managedOutputFolders` defaults to both built-ins so direct callers that
-// don't pass it (including existing tests) keep the original permissive
-// behavior; real plugin call sites in main.ts always pass
-// `this.settings.managedOutputFolders` explicitly.
+// `managedOutputFolders` is required, with no default: defaulting it to both
+// built-ins made "forgot to pass the persisted set" silently equivalent to
+// "sweep both built-in folders unconditionally" — exactly the permissive
+// behavior this parameter exists to end. Omitting it is now a compile error
+// instead.
 export function getStaleManagedOutputFolders(
   currentOutputFolder: string,
-  previousOutputFolder?: string,
-  managedOutputFolders: readonly string[] = MANAGED_OUTPUT_FOLDERS,
+  previousOutputFolder: string | undefined,
+  managedOutputFolders: readonly string[],
 ): string[] {
   const normalizedCurrent = normalizeOutputFolder(currentOutputFolder);
   const candidates = new Set<string>();
@@ -58,8 +59,8 @@ export async function countStaleManagedOutputFiles(
   fsAdapter: FileSystemAdapter,
   vaultRoot: string,
   currentOutputFolder: string,
-  previousOutputFolder?: string,
-  managedOutputFolders: readonly string[] = MANAGED_OUTPUT_FOLDERS,
+  previousOutputFolder: string | undefined,
+  managedOutputFolders: readonly string[],
 ): Promise<number> {
   let total = 0;
 
@@ -85,8 +86,8 @@ export async function cleanupStaleManagedOutputFolders(
   fsAdapter: FileSystemAdapter,
   vaultRoot: string,
   currentOutputFolder: string,
-  previousOutputFolder?: string,
-  managedOutputFolders: readonly string[] = MANAGED_OUTPUT_FOLDERS,
+  previousOutputFolder: string | undefined,
+  managedOutputFolders: readonly string[],
 ): Promise<OutputCleanupResult[]> {
   const results: OutputCleanupResult[] = [];
 
